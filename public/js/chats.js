@@ -19,6 +19,10 @@ document.addEventListener('click', (e) => {
     }
 });
 
+document.querySelector(".logout").addEventListener("click", () => {
+    GlobalState.logout();
+})
+
 const totalRoomsDiv = document.getElementById("totalRooms");
 const activeRoomsDiv = document.getElementById("activeRooms");
 const activeUsersDiv = document.getElementById("usersActive");
@@ -69,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomInput = document.getElementById("roomNameInput");
     document.querySelector(".username").textContent = GlobalState.get("username") || "Invitado";
     
+    
 
     joinBtn.addEventListener("click", () => {
         if (!roomInput.value.trim()) {
@@ -111,8 +116,6 @@ function renderActiveRooms(rooms) {
         container.appendChild(card);
     });
 }
-console.log("Renderizando salas activas...");
-console.log(WSChat.getGeneralStats() ? WSChat.getGeneralStats().activeRooms : []);
 
 // Puedes llamarlo cuando recibas las salas activas del servidor:
 renderActiveRooms(WSChat.getGeneralStats() ? WSChat.getGeneralStats() : []);

@@ -101,7 +101,6 @@ pub async fn create_token_cookie<'a>(name_cookie: &'a str, token: Cow<'a, str>) 
         .http_only(true) // Evita que sea accesible desde JavaScript.
         // .same_site(cookie::SameSite::Lax)
         .same_site(cookie::SameSite::None)
-        // .secure(false)
         .secure(true)
         .partitioned(true)
         .path("/")

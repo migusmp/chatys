@@ -43,6 +43,20 @@ export const GlobalState = (() => {
         hasFetched = false;
     }
 
+    async function logout() {
+        try {
+            await fetch('/api/user/logout', {
+                method: 'POST',
+                credentials: 'include',
+            });
+        } catch (err) {
+            console.error("Error al cerrar sesión en el servidor:", err);
+        }
+    
+        GlobalState.clear();
+        location.reload();
+    }
+
     async function fetchProfileInfo() {
         return fetch('/api/user/profile', {
             method: 'GET',
@@ -62,15 +76,14 @@ export const GlobalState = (() => {
             })
             .catch(err => {
                 console.error("No se pudo cargar perfil:", err);
-                clear(); // limpia si hubo error
+                clear();
             });
     }
 
     async function fetchProfileInfoOnce() {
-        console.log("Intentando cargar perfil una vez...");
         if (hasFetched || get('isAuthenticated')) return;
         await fetchProfileInfo();
     }
 
-    return { on, set, get, fetchProfileInfo, fetchProfileInfoOnce, clear };
+    return { on, set, get, fetchProfileInfo, fetchProfileInfoOnce, clear, logout };
 })();

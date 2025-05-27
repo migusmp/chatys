@@ -6,7 +6,7 @@ use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, Update
 use crate::services::user::{login, register};
 use crate::utils::responses::ApiResponse;
 use axum::extract::Multipart;
-use axum::http::HeaderMap;
+use axum::http::{HeaderMap, HeaderValue};
 use axum::Extension;
 use axum::{http::StatusCode, response::IntoResponse, Form};
 use sqlx::PgPool;
@@ -73,12 +73,16 @@ pub async fn user_login(
 }
 
 // Hacer ruta de logout
-pub async fn user_logout() -> Result<impl IntoResponse, StatusCode> {
-    let response = (
-        StatusCode::OK,
-        [("Set-Cookie", "auth=; Max-Age=0; Path=/; HttpOnly")],
+pub async fn user_logout() -> impl IntoResponse {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        "Set-Cookie",
+        HeaderValue::from_static(
+            "auth=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None; Partitioned",
+        ),
     );
-    Ok(response)
+
+    (StatusCode::OK, headers)
 }
 
 // Ruta de informacion de usuario (Probar decodear el payload)
