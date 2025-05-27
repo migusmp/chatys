@@ -27,6 +27,13 @@ use tower_http::services::ServeDir;
 #[shuttle_runtime::main]
 async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::ShuttleAxum {
     //let pool = init_db_pool().await;
+    // tracing_subscriber::fmt()
+    //     .with_max_level(tracing::Level::INFO) // o DEBUG, TRACE
+    //     .with_target(false)
+    //     .without_time()
+    //     .init();
+
+    // tracing::info!("Inicializando la aplicación...");
 
     pool.execute(include_str!("../migrations/init.sql"))
          .await
