@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="static/styles/index.css" />
+  <title>Real-time Chat App</title> 
+</head>
+<body>
+  <h1>Welcome to Rust Real-time Chat</h1>
+  <button id="go-chats">Go to Chats</button>
+
+  <script src="static/js/index.js"></script>
+  <script>
+    document.getElementById('go-chats').addEventListener('click', () => {
+      window.location.href = '/chats';
+    });
+  </script>
+</body>
+</html>

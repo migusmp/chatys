@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/styles/login.css">
+    <title>Login</title>
+</head>
+
+<body>
+    <form id="login-form">
+    <h2 style="text-align:center; margin-bottom: 2rem;">Login</h2>
+
+    <div class="input-group">
+      <label for="username">Usuario</label>
+      <input type="text" id="username" name="username" required />
+    </div>
+
+    <div class="input-group">
+      <label for="password">Contraseña</label>
+      <input type="password" id="password" name="password" required />
+    </div>
+
+    <button type="submit">Entrar</button>
+    
+    <p class="register-text">
+        Don't have an account?
+        <a href="/register">Register</a>
+      </p>
+  </form>
+
+  <script src="/static/js/login.js"></script>
+</body>
+</html>

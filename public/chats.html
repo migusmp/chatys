@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Chat WebSocket</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2f;
+            --card-bg: #2c2c3e;
+            --accent: #4eaaff;
+            --text-color: #ffffff;
+            --text-muted: #cccccc;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 2rem;
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+            color: var(--accent);
+        }
+
+        #generalStats,
+        #roomSelector {
+            margin-bottom: 2rem;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+        }
+
+        input[type="text"] {
+            padding: 0.6rem;
+            width: 60%;
+            border: none;
+            border-radius: 8px;
+            background: #3a3a50;
+            color: var(--text-color);
+            outline: none;
+        }
+
+        input[type="text"]::placeholder {
+            color: #888;
+        }
+
+        button {
+            padding: 0.6rem 1rem;
+            background-color: var(--accent);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            margin-left: 0.5rem;
+        }
+
+        button:hover {
+            background-color: #3a99dd;
+        }
+
+        #roomsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .room-card {
+            background: linear-gradient(to bottom right, #1e2a38, #2b3d53);
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            width: 200px;
+            text-align: center;
+        }
+
+        .room-card h3 {
+            margin: 0 0 0.5rem;
+            font-size: 1.2rem;
+            color: #4fc3f7;
+        }
+
+        .room-card button {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: #2196f3;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .room-card button:hover {
+            background: #1976d2;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Chat WebSocket</h1>
+
+    <div id="generalStats">
+        <h2>Estadísticas Generales</h2>
+        <p><strong>Salas totales:</strong> <span id="totalRooms">0</span></p>
+        <p><strong>Salas activas:</strong> <span id="activeRooms">N/A</span></p>
+        <p><strong>Usuarios activos:</strong> <span id="usersActive">0</span></p>
+    </div>
+
+    <div id="roomSelector">
+        <h2>Unirse a una Sala</h2>
+        <label>
+            Nombre de la sala:
+            <input type="text" id="roomNameInput" placeholder="Ej: sala1" />
+        </label>
+        <button id="joinRoomBtn">Unirse</button>
+    </div>
+
+    <div id="roomsContainer"></div>
+
+    <script type="module" src="static/js/chats.js"></script>
+</body>
+
+</html>

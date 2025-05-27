@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/static/styles/chat.css">
+    <title>Chat</title>
+</head>
+
+<body>
+    <h1 id="roomTitle">Cargando sala...</h1>
+
+    <div id="chatContainer"></div>
+
+    <div id="replyContainer" class="hidden" style="display: none;">
+        <div id="replyContent"></div>
+        <button id="cancelReply">✖ Cancelar</button>
+    </div>
+
+    <div id="inputContainer">
+        <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." />
+        <button id="sendButton">Enviar</button>
+    </div>
+
+    <script type="module" src="/static/js/chat/chat.js"></script>
+</body>
+
+</html>

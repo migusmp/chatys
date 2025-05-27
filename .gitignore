@@ -1,0 +1,6 @@
+/target
+/db.db
+.env
+Dockerfile
+.shuttle*
+Secrets*.toml

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE friend_requests SET status = 'accepted' WHERE user_id = $1 AND friend_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "db3b45303a3d500c1500379ad0f7e123f56480f7f0b60571e0c467e1ae226232"
+}
