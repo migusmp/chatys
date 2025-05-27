@@ -1,4 +1,4 @@
-[deploy]
-include = [
-  "public/**",         # incluye los archivos dentro de public
+[build]
+assets = [
+  "public",         # incluye los archivos dentro de public
 ]

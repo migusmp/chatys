@@ -11,6 +11,7 @@ pub mod utils;
 
 use axum::Extension;
 use axum::{routing::get, Router};
+use tower_http::trace::TraceLayer;
 use crate::handlers::{chats_handler, index_handler, login_handler, register_handler};
 use crate::middlewares::auth::auth;
 use crate::services::ws::handle_ws_connection;
@@ -53,6 +54,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
         .route("/register", get(register_handler))
         .route("/chats", get(chats_handler))
         .nest_service("/static", ServeDir::new("public"))
+        .layer(TraceLayer::new_for_http())
         .layer(Extension(app_state));
         
     

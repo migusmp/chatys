@@ -4,6 +4,8 @@ const totalRoomsDiv = document.getElementById("totalRooms");
 const activeRoomsDiv = document.getElementById("activeRooms");
 const activeUsersDiv = document.getElementById("usersActive");
 
+const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+
 
 document.addEventListener('DOMContentLoaded', () => {
     WSChat.connectGeneralStats((stats) => {
@@ -13,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeUsersDiv.textContent = stats.activeUsers || 0;
         renderActiveRooms(stats.activeRooms);
     });
-    const socket = new WebSocket(`ws://${location.host}/ws`);
+    const socket = new WebSocket(`${protocol}://${location.host}/ws`);
 
     socket.onopen = () => {
         console.log('Conexión WebSocket establecida');

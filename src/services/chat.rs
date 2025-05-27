@@ -236,7 +236,7 @@ pub async fn handle_socket(
             );
 
             // Eliminar la sala si está vacía
-            if room.users.is_empty() {
+            if room.users.is_empty() && room_id != "Global" {
                 state.rooms.remove(&room_id);
                 println!("Sala {} eliminada por estar vacía", room_id);
             }

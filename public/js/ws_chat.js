@@ -2,6 +2,7 @@ export const WSChat = (() => {
     let generalStatsSocket = null;
     let generalStats = null;
     let generalStatsCallback = null;
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
 
     const sockets = new Map();       // para mensajes de sala
     const statsSockets = new Map();  // para estadísticas de sala
@@ -26,8 +27,8 @@ export const WSChat = (() => {
 
     function connectGeneralStats(onData) {
         generalStatsCallback = onData;
-
-        generalStatsSocket = new WebSocket(`ws://${location.host}/api/chat/active-rooms`);
+        
+        generalStatsSocket = new WebSocket(`${protocol}://${location.host}/api/chat/active-rooms`);
 
         generalStatsSocket.onmessage = (event) => {
             try {
@@ -61,7 +62,7 @@ export const WSChat = (() => {
             return sockets.get(roomId);
         }
 
-        const socket = new WebSocket(`ws://${location.host}/api/chat/join/${roomId}`);
+        const socket = new WebSocket(`${protocol}://${location.host}/api/chat/join/${roomId}`);
         sockets.set(roomId, socket);
 
         socket.onopen = () => {
@@ -88,7 +89,7 @@ export const WSChat = (() => {
             sockets.delete(roomId);
         };
 
-        const statsSocket = new WebSocket(`ws://${location.host}/api/chat/stats/${roomId}`);
+        const statsSocket = new WebSocket(`${protocol}://${location.host}/api/chat/stats/${roomId}`);
         statsSockets.set(roomId, statsSocket);
 
         statsSocket.onmessage = (e) => {
