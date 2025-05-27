@@ -1,4 +1,5 @@
 import { WSChat } from './ws_chat.js';
+import { GlobalState } from './state.js';
 
 const profileIcon = document.querySelector('.profile-icon');
 const username = document.querySelector('.username');
@@ -26,6 +27,13 @@ const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    GlobalState.fetchProfileInfoOnce();
+
+    GlobalState.on("username", (newUsername) => {
+        console.log("Nombre de usuario actualizado:", newUsername);
+        document.querySelector(".username").textContent = newUsername;
+    });// Poner el nombre de usuario logueado en el apartado del perfil
+    
     WSChat.connectGeneralStats((stats) => {
         // Actualiza el DOM con los datos recibidos
         totalRoomsDiv.textContent = stats.totalRooms;
@@ -56,8 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Actualizar los contadores al cargar la página
     activeRoomsDiv.textContent = WSChat.getGeneralStats() ? WSChat.getGeneralStats().activeRooms : 'Cargando...';
+
     const joinBtn = document.getElementById("joinRoomBtn");
     const roomInput = document.getElementById("roomNameInput");
+    document.querySelector(".username").textContent = GlobalState.get("username") || "Invitado";
+    
 
     joinBtn.addEventListener("click", () => {
         if (!roomInput.value.trim()) {

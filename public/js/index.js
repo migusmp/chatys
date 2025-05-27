@@ -1,3 +1,5 @@
+import { GlobalState } from "./state.js";
+
 document.addEventListener('DOMContentLoaded', () => {
     const socket = new WebSocket(`ws://${location.host}/ws`);
 
@@ -20,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Conexión WebSocket cerrada');
     };
 
+    // Recibir la data del profile
+    GlobalState.fetchProfileInfoOnce();
+
     // Si quieres cerrar el socket cuando se cierre la pestaña
     //window.addEventListener('beforeunload', () => {
     //    if (socket.readyState === WebSocket.OPEN) {
@@ -27,4 +32,3 @@ document.addEventListener('DOMContentLoaded', () => {
     //    }
     //});
 });
-  
