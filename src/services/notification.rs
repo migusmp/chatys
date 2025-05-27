@@ -7,7 +7,7 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use crate::db::db::init_db_pool;
 
 pub struct NotificationService {
-    pub pool: Arc<PgPool>,
+    pub pool: PgPool,
     pub connected_users:
         Arc<Mutex<std::collections::HashMap<i32, tokio::sync::mpsc::Sender<String>>>>,
     pub global_broadcast: broadcast::Sender<String>,

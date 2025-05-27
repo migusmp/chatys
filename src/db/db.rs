@@ -22,7 +22,7 @@ use crate::models::user::UserData;
 //     Ok(pool)
 // }
 
-pub async fn init_db_pool() -> Arc<PgPool> {
+pub async fn init_db_pool() -> PgPool {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
 
@@ -33,7 +33,7 @@ pub async fn init_db_pool() -> Arc<PgPool> {
         .await
         .expect("Failed to connect to the database");
 
-    Arc::new(pool)
+    pool
 }
 
 // Función para crear la tabla de usuarios si no existe
