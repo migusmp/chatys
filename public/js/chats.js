@@ -1,5 +1,23 @@
 import { WSChat } from './ws_chat.js';
 
+const profileIcon = document.querySelector('.profile-icon');
+const username = document.querySelector('.username');
+const profileMenu = document.getElementById('profileMenu');
+
+function toggleMenu() {
+    profileMenu.classList.toggle('show');
+}
+
+profileIcon.addEventListener('click', toggleMenu);
+username.addEventListener('click', toggleMenu);
+
+// Cerrar al hacer clic fuera
+document.addEventListener('click', (e) => {
+    if (!profileMenu.contains(e.target) && e.target !== profileIcon && e.target !== username) {
+        profileMenu.classList.remove('show');
+    }
+});
+
 const totalRoomsDiv = document.getElementById("totalRooms");
 const activeRoomsDiv = document.getElementById("activeRooms");
 const activeUsersDiv = document.getElementById("usersActive");

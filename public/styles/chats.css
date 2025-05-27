@@ -106,3 +106,127 @@ button:hover {
 .room-card button:hover {
     background: #1976d2;
 }
+
+.app-header {
+    position: fixed;      /* fijo en la pantalla */
+    top: 0;               /* pegado arriba */
+    left: 0;              /* al inicio horizontal */
+    width: 100vw;         /* todo el ancho */
+    height: 4.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card-bg);
+    padding: 1rem 3rem;
+    box-shadow: 0 4px 12px var(--shadow);
+    z-index: 1000;        /* para que esté encima de otros elementos */
+    margin-bottom: 0;     /* elimina margen que no tiene sentido en fixed */
+}
+
+/* Importante: dejar espacio para que el contenido no quede tapado por el header fijo */
+.main-content {
+    padding: 6rem 2rem 2rem; /* 6rem para dejar espacio arriba (altura aproximada del header + margen) */
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.6rem;
+    font-weight: bold;
+}
+
+.rust-icon {
+    color: var(--accent);
+    font-size: 1.8rem;
+}
+
+.title {
+    color: var(--accent);
+}
+
+.username {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+
+
+/* Estilos del menú del perfil del usuario */
+/* Contenedor relativo para posicionar el menú */
+.header-right {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Menú desplegable */
+.profile-menu {
+    position: absolute;
+    top: 60px;
+    right: 2rem;
+    background: linear-gradient(135deg, #2f3440, #1f2230);
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+    width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+    z-index: 1100;
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+/* Mostrar menú con animación */
+.profile-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Lista sin estilos predeterminados */
+.profile-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Cada opción */
+.profile-menu li {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+    font-weight: 600;
+    color: var(--text-color);
+    user-select: none;
+}
+
+.profile-menu li a {
+    text-decoration: none;
+    color: inherit; /* hereda el color del li */
+}
+
+/* Separador sutil */
+.profile-menu li + li {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Efecto hover */
+.profile-menu li:hover {
+    background: var(--accent);
+    color: var(--bg-color);
+    box-shadow: 0 0 8px var(--accent);
+    transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Opcional: efecto pulsante para icono perfil */
+.profile-icon {
+    font-size: 1.8rem;
+    color: var(--accent);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.profile-icon:hover {
+    transform: scale(1.1);
+}
