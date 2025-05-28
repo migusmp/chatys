@@ -90,7 +90,7 @@ impl AppState {
             r#"
             SELECT id, type_msg, status, user_id, sender_name, message
             FROM friend_requests
-            WHERE user_id = $1 AND seen = false
+            WHERE user_id = $1 AND seen = false AND status = 'pending'
             ORDER BY created_at ASC
             "#,
         )

@@ -34,41 +34,87 @@ GlobalState.on('notifications', notifications => {
             console.log("Notification:", notif);
             const li = document.createElement('li');
             li.classList.add('notification-item');
-        
+
             // Texto del mensaje
             const messageSpan = document.createElement('span');
             messageSpan.textContent = notif.message;
             li.appendChild(messageSpan);
-        
+
             if (notif.type_msg === 'FR') {
                 const actions = document.createElement('div');
                 actions.classList.add('notification-actions');
-        
+
                 // Botón aceptar (tick verde)
                 const acceptBtn = document.createElement('button');
                 acceptBtn.innerHTML = '<i class="fas fa-check"></i>';
                 acceptBtn.classList.add('btn-accept');
                 acceptBtn.title = "Aceptar solicitud";
-                acceptBtn.onclick = () => {
+                acceptBtn.onclick = async () => {
                     console.log("Solicitud aceptada:", notif);
-                    // Aquí deberías hacer una llamada al backend
+
+                    try {
+                        const res = await fetch(`/api/friend/accept/${notif.user_id}`, {
+                            method: 'POST',
+                            credentials: 'include',
+                        });
+
+                        if (res.ok) {
+                            console.log('Solicitud aceptada correctamente');
+                            li.remove();
+
+                            if (notificationList.children.length === 0) {
+                                notificationCount.style.display = 'none';
+                                noNotifications.style.display = 'block';
+                                notificationList.classList.add('hidden');
+                            }
+
+                        } else {
+                            console.error('Error al aceptar solicitud');
+                        }
+                    } catch (error) {
+                        console.error('Error al enviar solicitud:', error);
+                    }
                 };
-        
+
                 // Botón rechazar (cruz roja)
                 const rejectBtn = document.createElement('button');
                 rejectBtn.innerHTML = '<i class="fas fa-times"></i>';
                 rejectBtn.classList.add('btn-reject');
                 rejectBtn.title = "Rechazar solicitud";
-                rejectBtn.onclick = () => {
+                rejectBtn.onclick = async () => {
                     console.log("Solicitud rechazada:", notif);
-                    // Aquí deberías hacer una llamada al backend
+
+                    try {
+                        const res = await fetch('/api/friend-request/reject', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ request_id: notif.id }),
+                        });
+
+                        if (res.ok) {
+                            console.log('Solicitud rechazada correctamente');
+                            li.remove();
+
+                            if (notificationList.children.length === 0) {
+                                notificationCount.style.display = 'none';
+                                noNotifications.style.display = 'block';
+                                notificationList.classList.add('hidden');
+                            }
+                        } else {
+                            console.error('Error al rechazar solicitud');
+                        }
+                    } catch (error) {
+                        console.error('Error al enviar solicitud:', error);
+                    }
                 };
-        
+
                 actions.appendChild(acceptBtn);
                 actions.appendChild(rejectBtn);
                 li.appendChild(actions);
             }
-        
+
             notificationList.appendChild(li);
         }
     }
