@@ -9,7 +9,7 @@ pub struct FriendNotification {
     pub type_msg: String,
     pub status: String,
     pub user_id: i32,
-    pub user_name: String,
+    pub user_username: String,
     pub message: String,
 }
 #[derive(Serialize, Deserialize, sqlx::FromRow, Debug)]
@@ -92,13 +92,13 @@ impl AppState {
             FROM friend_requests
             WHERE user_id = $1 AND seen = false
             ORDER BY created_at ASC
-            "#
+            "#,
         )
         .bind(user_id)
         .fetch_all(&self.db_pool)
         .await
         .unwrap_or_default();
-    
+
         // 2. Obtener el sender para el usuario
         let notifications_map = self.friend_notifications.lock().await;
         if let Some(sender) = notifications_map.get(&user_id) {
@@ -112,14 +112,18 @@ impl AppState {
                     sender_name: notif.sender_name,
                     message: notif.message,
                 };
-    
+
                 if let Ok(json_msg) = serde_json::to_string(&notification) {
                     let _ = sender.try_send(json_msg);
                 }
             }
         }
     }
-    pub async fn mark_notification_seen(&self, request_id: i32, db_pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+    pub async fn mark_notification_seen(
+        &self,
+        request_id: i32,
+        db_pool: &sqlx::PgPool,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query("UPDATE friend_requests SET seen = true WHERE id = $1")
             .bind(request_id)
             .execute(db_pool)
@@ -131,14 +135,14 @@ impl AppState {
     pub async fn send_friend_notification(
         &self,
         friend_id: i32,
-        user_name: String,
+        user_username: String,
         user_id: i32,
     ) -> Result<(), String> {
-        let message_text = format!("{} send to you a friend request!", user_name);
+        let message_text = format!("{} send to you a friend request!", user_username);
         let notification = FriendNotification {
             type_msg: "FR".to_string(),
             user_id,
-            user_name: user_name.clone(),
+            user_username: user_username.clone(),
             status: "pending".to_string(),
             message: message_text,
         };
@@ -152,7 +156,7 @@ impl AppState {
             .insert_friend_notification_to_db(
                 friend_id,
                 user_id,
-                user_name.as_str(),
+                user_username.as_str(),
                 &notification.type_msg,
                 &notification.status,
                 &notification.message,
@@ -184,28 +188,31 @@ impl AppState {
     // Similar para aceptar la notificación de amistad
     pub async fn accept_friend_notification(
         &self,
-        friend_id: i32,          // ID del que envió la solicitud
-        user_name: String,       // nombre del que acepta
-        user_id: i32,            // ID del que acepta
+        friend_id: i32,    // ID del que envió la solicitud
+        user_name: String, // nombre del que acepta
+        user_id: i32,      // ID del que acepta
     ) -> Result<(), String> {
         // 1. Marcar la solicitud como aceptada
-        if let Err(e) = self.mark_friend_request_as_accepted(friend_id, user_id).await {
+        if let Err(e) = self
+            .mark_friend_request_as_accepted(friend_id, user_id)
+            .await
+        {
             return Err(format!("DB update failed: {}", e));
         }
-    
+
         // 2. Crear y serializar la notificación
         let message_text = format!("{} accepted your friend request!", user_name);
         let notification = FriendNotification {
             type_msg: "AFR".to_string(),
             user_id,
-            user_name,
+            user_username: user_name,
             status: "success".to_string(),
             message: message_text,
         };
-    
+
         let json_message = serde_json::to_string(&notification)
             .map_err(|_| "Failed to serialize the notification".to_string())?;
-    
+
         // 3. Intentar enviar la notificación
         let notifications = self.friend_notifications.lock().await;
         if let Some(sender) = notifications.get(&friend_id) {
@@ -213,13 +220,15 @@ impl AppState {
                 Ok(_) => Ok(()),
                 Err(_) => {
                     drop(notifications);
-                    self.store_undelivered_message(friend_id, json_message).await;
+                    self.store_undelivered_message(friend_id, json_message)
+                        .await;
                     Err(format!("Unable to send notification to {}", friend_id))
                 }
             }
         } else {
             drop(notifications);
-            self.store_undelivered_message(friend_id, json_message).await;
+            self.store_undelivered_message(friend_id, json_message)
+                .await;
             Err(format!("User {} not connected", friend_id))
         }
     }

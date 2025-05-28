@@ -229,3 +229,129 @@ button:hover {
 .profile-icon:hover {
     transform: scale(1.1);
 }
+
+/* Estilos de las notificaciones */
+.notification-wrapper {
+    position: relative;
+    margin-right: 1rem;
+    cursor: pointer;
+}
+
+.notification-icon {
+    font-size: 1.5rem;
+    color: #fff;
+    transition: transform 0.2s ease;
+}
+
+.notification-icon:hover {
+    transform: scale(1.1);
+}
+
+.notification-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ff4d4dcc;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 50%;
+    display: none;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.notification-menu {
+    position: absolute;
+    right: 0;
+    top: 40px;
+    background-color: #1e1e2f;
+    color: #fff;
+    border: none;
+    padding: 10px;
+    width: 300px;
+    border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    display: none;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.notification-menu.show {
+    display: block;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.notification-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.notification-menu ul li {
+    background-color: #2b2b3c;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-menu ul li:last-child {
+    margin-bottom: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Notificaciones con botones de acción */
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-accept,
+.btn-reject {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.btn-accept {
+    color: #3eff00cc;
+}
+
+.btn-accept:hover {
+    background-color: rgba(63, 255, 0, 0.1);
+    transform: scale(1.1);
+}
+
+.btn-reject {
+    color: #ff4d4d;
+}
+
+.btn-reject:hover {
+    background-color: rgba(255, 77, 77, 0.1);
+    transform: scale(1.1);
+}

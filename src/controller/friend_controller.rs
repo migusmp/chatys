@@ -58,7 +58,7 @@ pub async fn send_friend_request(
 
     // Enviar notificación de solicitud de amistad
     let _ = app_state
-        .send_friend_notification(friend_id, payload.name, payload.id)
+        .send_friend_notification(friend_id, payload.username, payload.id)
         .await;
 
     Ok(ApiResponse::success("User friend requested successfully"))
@@ -93,7 +93,10 @@ pub async fn accept_friend_request(
     }
 
     // Actualizar la solicitud de amistad a 'accepted'
-    app_state.mark_friend_request_as_accepted(friend_requested_id, payload.id).await.map_err(|_| ErrorRequest::InternalError)?;
+    app_state
+        .mark_friend_request_as_accepted(friend_requested_id, payload.id)
+        .await
+        .map_err(|_| ErrorRequest::InternalError)?;
 
     // Insertar la relación de amistad en la tabla `friends`
     sqlx::query!(

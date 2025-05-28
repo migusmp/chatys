@@ -16,6 +16,15 @@
             <span class="title">Rusty Chats</span>
         </div>
         <div class="header-right">
+            <div class="notification-wrapper">
+                <i class="fas fa-bell notification-icon" style="color: #3a99dd;"></i>
+                <span class="notification-count" id="notificationCount">0</span>
+                <div class="notification-menu" id="notificationMenu">
+                    <p id="noNotifications">No hay notificaciones</p>
+                    <ul id="notificationList" class="hidden"></ul>
+                </div>
+            </div>
+
             <i class="fas fa-user-circle profile-icon"></i>
             <span class="username"></span>
             
@@ -50,6 +59,7 @@
         <div id="roomsContainer"></div>
     </div>
     <script type="module" src="static/js/chats.js"></script>
+    <script type="module" src="static/js/notifications.js"></script>
 </body>
 
 </html>
