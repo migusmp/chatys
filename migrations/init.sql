@@ -10,9 +10,13 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS friend_requests (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    friend_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    status VARCHAR(20) DEFAULT 'pending',
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,       -- receptor
+    friend_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,    -- emisor
+    sender_name TEXT NOT NULL,
+    type_msg TEXT NOT NULL,          -- ej. 'FR' o 'AFR'
+    status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, rejected, etc.
+    message TEXT NOT NULL DEFAULT 'FR',
+    seen BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

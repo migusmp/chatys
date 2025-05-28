@@ -31,35 +31,30 @@ pub async fn send_friend_request(
     )
     .fetch_optional(&pool)
     .await
-    .map_err(|_| ErrorRequest::InternalError)?;
+    .map_err(|e| {
+        println!("Error en X: {:?}", e);
+        ErrorRequest::InternalError
+    })?;
 
     if already_friends.is_some() {
         return Err(ErrorRequest::AlreadyFriends);
     }
-
-    // Verificar si ya existe una solicitud de amistad pendiente
+    // Verificar si ya existe una solicitud pendiente de este remitente (sender_id) al receptor (user_id)
     let existing_request = sqlx::query_scalar!(
-        "SELECT 1 FROM friend_requests WHERE user_id = $1 AND friend_id = $2 AND status = 'pending'",
+        "SELECT 1 FROM friend_requests WHERE sender_id = $1 AND user_id = $2 AND status = 'pending'",
         payload.id,
         friend_id
     )
     .fetch_optional(&pool)
     .await
-    .map_err(|_| ErrorRequest::InternalError)?;
+    .map_err(|e| {
+        println!("Error en X: {:?}", e);
+        ErrorRequest::InternalError
+    })?;
 
     if existing_request.is_some() {
         return Err(ErrorRequest::DuplicateFriendRequest);
     }
-
-    // Insertar la solicitud de amistad en la base de datos
-    sqlx::query!(
-        "INSERT INTO friend_requests (user_id, friend_id, status, created_at) VALUES ($1, $2, 'pending', NOW())",
-        payload.id,
-        friend_id,
-    )
-    .execute(&pool)
-    .await
-    .map_err(|_| ErrorRequest::InternalError)?;
 
     // Enviar notificación de solicitud de amistad
     let _ = app_state
@@ -85,9 +80,9 @@ pub async fn accept_friend_request(
 
     // Verificar si la solicitud de amistad existe y está pendiente
     let existing_request = sqlx::query_scalar!(
-        "SELECT 1 FROM friend_requests WHERE user_id = $1 AND friend_id = $2 AND status = 'pending'",
+        "SELECT 1 FROM friend_requests WHERE user_id = $1 AND sender_id = $2 AND status = 'pending'",
+        payload.id,
         friend_requested_id,
-        payload.id
     )
     .fetch_optional(&pool)
     .await
@@ -98,14 +93,7 @@ pub async fn accept_friend_request(
     }
 
     // Actualizar la solicitud de amistad a 'accepted'
-    sqlx::query!(
-        "UPDATE friend_requests SET status = 'accepted' WHERE user_id = $1 AND friend_id = $2",
-        friend_requested_id,
-        payload.id
-    )
-    .execute(&pool)
-    .await
-    .map_err(|_| ErrorRequest::InternalError)?;
+    app_state.mark_friend_request_as_accepted(friend_requested_id, payload.id).await.map_err(|_| ErrorRequest::InternalError)?;
 
     // Insertar la relación de amistad en la tabla `friends`
     sqlx::query!(

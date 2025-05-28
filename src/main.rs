@@ -43,7 +43,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
     chat_state_init.create_room(String::from("Global"));
 
     let chat_state = Arc::new(RwLock::new(chat_state_init));
-    let app_state = Arc::new(AppState::new());
+    let app_state = Arc::new(AppState::new(pool.clone()));
     let app_state_cloned = app_state.clone();
 
     let ws_router = Router::new()

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
@@ -9,6 +10,15 @@ pub struct FriendNotification {
     pub status: String,
     pub user_id: i32,
     pub user_name: String,
+    pub message: String,
+}
+#[derive(Serialize, Deserialize, sqlx::FromRow, Debug)]
+pub struct FriendNotificationRow {
+    pub id: i32,
+    pub type_msg: String,
+    pub status: String,
+    pub user_id: i32,
+    pub sender_name: Option<String>,
     pub message: String,
 }
 
@@ -25,6 +35,7 @@ impl Default for AppConfig {
 }
 
 pub struct AppState {
+    pub db_pool: PgPool,
     pub global_broadcast: broadcast::Sender<String>,
     pub connected_users: Arc<Mutex<HashMap<i32, mpsc::Sender<String>>>>,
     pub friend_notifications: Arc<Mutex<HashMap<i32, mpsc::Sender<String>>>>,
@@ -33,9 +44,10 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(db_pool: PgPool) -> Self {
         let (global_broadcast, _) = broadcast::channel::<String>(1000);
         Self {
+            db_pool,
             global_broadcast,
             connected_users: Arc::new(Mutex::new(HashMap::new())),
             friend_notifications: Arc::new(Mutex::new(HashMap::new())),
@@ -73,15 +85,46 @@ impl AppState {
 
     // Entrega todas las notificaciones pendientes de un usuario (si está conectado)
     pub async fn deliver_undelivered_messages(&self, user_id: i32) {
-        let mut undelivered = self.undelivered_messages.lock().await;
-        if let Some(messages) = undelivered.remove(&user_id) {
-            let notifications = self.friend_notifications.lock().await;
-            if let Some(sender) = notifications.get(&user_id) {
-                for message in messages {
-                    let _ = sender.try_send(message);
+        // 1. Consulta notificaciones no vistas
+        let notifications = sqlx::query_as::<_, FriendNotificationRow>(
+            r#"
+            SELECT id, type_msg, status, user_id, sender_name, message
+            FROM friend_requests
+            WHERE user_id = $1 AND seen = false
+            ORDER BY created_at ASC
+            "#
+        )
+        .bind(user_id)
+        .fetch_all(&self.db_pool)
+        .await
+        .unwrap_or_default();
+    
+        // 2. Obtener el sender para el usuario
+        let notifications_map = self.friend_notifications.lock().await;
+        if let Some(sender) = notifications_map.get(&user_id) {
+            for notif in notifications {
+                // 3. Convertir a FriendNotification y luego a JSON
+                let notification = FriendNotificationRow {
+                    id: notif.id,
+                    type_msg: notif.type_msg,
+                    status: notif.status,
+                    user_id: notif.user_id,
+                    sender_name: notif.sender_name,
+                    message: notif.message,
+                };
+    
+                if let Ok(json_msg) = serde_json::to_string(&notification) {
+                    let _ = sender.try_send(json_msg);
                 }
             }
         }
+    }
+    pub async fn mark_notification_seen(&self, request_id: i32, db_pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE friend_requests SET seen = true WHERE id = $1")
+            .bind(request_id)
+            .execute(db_pool)
+            .await?;
+        Ok(())
     }
 
     // Envía una notificación de amistad (o la guarda si el usuario está desconectado)
@@ -95,13 +138,29 @@ impl AppState {
         let notification = FriendNotification {
             type_msg: "FR".to_string(),
             user_id,
-            user_name,
+            user_name: user_name.clone(),
             status: "pending".to_string(),
             message: message_text,
         };
 
         let json_message = serde_json::to_string(&notification)
             .map_err(|_| "Failed to serialize the notification".to_string())?;
+
+        // Guardar en la base de datos
+        // TODO
+        if let Err(e) = self
+            .insert_friend_notification_to_db(
+                friend_id,
+                user_id,
+                user_name.as_str(),
+                &notification.type_msg,
+                &notification.status,
+                &notification.message,
+            )
+            .await
+        {
+            return Err(format!("Failed to insert notification to DB: {}", e));
+        }
 
         let notifications = self.friend_notifications.lock().await;
         if let Some(sender) = notifications.get(&friend_id) {
@@ -125,11 +184,17 @@ impl AppState {
     // Similar para aceptar la notificación de amistad
     pub async fn accept_friend_notification(
         &self,
-        friend_id: i32,
-        user_name: String,
-        user_id: i32,
+        friend_id: i32,          // ID del que envió la solicitud
+        user_name: String,       // nombre del que acepta
+        user_id: i32,            // ID del que acepta
     ) -> Result<(), String> {
-        let message_text = format!("{} accept your friend request!", user_name);
+        // 1. Marcar la solicitud como aceptada
+        if let Err(e) = self.mark_friend_request_as_accepted(friend_id, user_id).await {
+            return Err(format!("DB update failed: {}", e));
+        }
+    
+        // 2. Crear y serializar la notificación
+        let message_text = format!("{} accepted your friend request!", user_name);
         let notification = FriendNotification {
             type_msg: "AFR".to_string(),
             user_id,
@@ -137,27 +202,42 @@ impl AppState {
             status: "success".to_string(),
             message: message_text,
         };
-
+    
         let json_message = serde_json::to_string(&notification)
             .map_err(|_| "Failed to serialize the notification".to_string())?;
-
+    
+        // 3. Intentar enviar la notificación
         let notifications = self.friend_notifications.lock().await;
         if let Some(sender) = notifications.get(&friend_id) {
             match sender.try_send(json_message.clone()) {
                 Ok(_) => Ok(()),
-                Err(_e) => {
+                Err(_) => {
                     drop(notifications);
-                    self.store_undelivered_message(friend_id, json_message)
-                        .await;
+                    self.store_undelivered_message(friend_id, json_message).await;
                     Err(format!("Unable to send notification to {}", friend_id))
                 }
             }
         } else {
             drop(notifications);
-            self.store_undelivered_message(friend_id, json_message)
-                .await;
+            self.store_undelivered_message(friend_id, json_message).await;
             Err(format!("User {} not connected", friend_id))
         }
+    }
+
+    pub async fn mark_friend_request_as_accepted(
+        &self,
+        sender_id: i32,
+        user_id: i32,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "UPDATE friend_requests SET status = 'accepted' WHERE user_id = $1 AND sender_id = $2",
+            user_id,
+            sender_id
+        )
+        .execute(&self.db_pool)
+        .await?;
+
+        Ok(())
     }
 
     // Agrega un usuario al broadcast global
@@ -195,5 +275,31 @@ impl AppState {
         // Aquí podrías limpiar otros recursos relacionados con el usuario si existen.
 
         println!("Usuario {} desconectado y estado limpiado", user_id);
+    }
+
+    pub async fn insert_friend_notification_to_db(
+        &self,
+        user_id: i32,
+        sender_id: i32,
+        sender_name: &str,
+        type_msg: &str,
+        status: &str,
+        message: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            INSERT INTO friend_requests (user_id, sender_id, sender_name, type_msg, status, message)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            "#,
+            user_id,
+            sender_id,
+            sender_name,
+            type_msg,
+            status,
+            message
+        )
+        .execute(&self.db_pool)
+        .await?;
+        Ok(())
     }
 }
