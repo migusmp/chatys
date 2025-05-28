@@ -37,7 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Nombre de usuario actualizado:", newUsername);
         document.querySelector(".username").textContent = newUsername;
     });// Poner el nombre de usuario logueado en el apartado del perfil
-    
+
+    GlobalState.on('notifications', (notifications) => {
+        console.log(notifications) // tu función para actualizar la UI
+    });
+
     WSChat.connectGeneralStats((stats) => {
         // Actualiza el DOM con los datos recibidos
         totalRoomsDiv.textContent = stats.totalRooms;
@@ -53,8 +57,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // socket.send(JSON.stringify({ type: 'hello', payload: 'Hola servidor' }));
     };
 
+    // REcibir mensajes del servidor
     socket.onmessage = (event) => {
         console.log('Mensaje recibido del servidor:', event.data);
+        const msg = JSON.parse(event.data);
+
+        // Si es una notificación, guárdala
+        if (msg.type_msg === "FR") {
+            GlobalState.addNotification(msg);
+        }
         // Aquí puedes actualizar la UI con la info recibida
     };
 
@@ -72,8 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const joinBtn = document.getElementById("joinRoomBtn");
     const roomInput = document.getElementById("roomNameInput");
     document.querySelector(".username").textContent = GlobalState.get("username") || "Invitado";
-    
-    
+
+
 
     joinBtn.addEventListener("click", () => {
         if (!roomInput.value.trim()) {

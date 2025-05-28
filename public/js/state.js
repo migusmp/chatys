@@ -8,6 +8,7 @@ export const GlobalState = (() => {
         name: localStorage.getItem('name') || null,
         email: localStorage.getItem('email') || null,
         image: localStorage.getItem('image') || null,
+        notifications: [],
         theme: localStorage.getItem('theme') || 'dark',
     };
 
@@ -31,6 +32,27 @@ export const GlobalState = (() => {
 
     function get(key) {
         return state[key];
+    }
+
+    function updateNotifications(newNotifications) {
+        state.notifications.push(...newNotifications);
+        if (listeners['notifications']) {
+            listeners['notifications'].forEach(cb => cb([...state.notifications]));
+        }
+    }
+    
+    function addNotification(notification) {
+        state.notifications.push(notification);
+        if (listeners['notifications']) {
+            listeners['notifications'].forEach(cb => cb([...state.notifications]));
+        }
+    }
+    
+    function clearNotifications() {
+        state.notifications = [];
+        if (listeners['notifications']) {
+            listeners['notifications'].forEach(cb => cb([]));
+        }
     }
 
     function clear() {
@@ -85,5 +107,10 @@ export const GlobalState = (() => {
         await fetchProfileInfo();
     }
 
-    return { on, set, get, fetchProfileInfo, fetchProfileInfoOnce, clear, logout };
+    return {
+        on, set, get,
+        fetchProfileInfo, fetchProfileInfoOnce,
+        clear, logout,
+        updateNotifications, addNotification, clearNotifications,
+    };
 })();

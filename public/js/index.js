@@ -11,6 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.onmessage = (event) => {
         console.log('Mensaje recibido del servidor:', event.data);
+        try {
+            let msg = JSON.parse(event.data);
+            if (msg.type_msg === 'FR') {
+                GlobalState.addNotification(msg);
+            }
+        } catch (e) {
+            console.error('Error al parsear JSON:', e);
+        }
         // Aquí puedes actualizar la UI con la info recibida
     };
 
