@@ -1,11 +1,11 @@
 use crate::models::chat::ChatState;
 use crate::models::user::Payload;
-use axum::extract::ws::{Message, WebSocket};
+use axum::{body::Bytes, extract::ws::{Message, WebSocket}};
 
 use futures::{SinkExt, StreamExt};
 use serde_json::json;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{mpsc, RwLock};
 
 pub async fn handle_socket_for_active_rooms(
     socket: WebSocket,
@@ -147,24 +147,32 @@ pub async fn handle_socket(
     state: Arc<RwLock<ChatState>>,
     user: Payload,
 ) {
-    let (mut sender, mut receiver) = socket.split();
+    let (sender_ws, mut receiver_ws) = socket.split();
+
+    // Canal unidireccional para enviar mensajes al cliente
+    let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
+
+    // Spawn para escribir en WebSocket desde el canal
+    let send_task = tokio::spawn(async move {
+        let mut sender_ws = sender_ws;
+        while let Some(msg) = rx.recv().await {
+            if let Err(e) = sender_ws.send(msg).await {
+                eprintln!("Error enviando mensaje al cliente: {}", e);
+                break;
+            }
+        }
+    });
 
     let user_channel = {
         let mut state = state.write().await;
         state.join_room(&room_id, user.username.clone())
     };
 
-    // Construir el mensaje en JSON
-    let join_msg_json = json!({
+    let join_msg = Message::Text(json!({
         "user": "system",
         "message": format!("{} joined the chat.", user.username)
-    })
-    .to_string();
+    }).to_string().into());
 
-    // Crear el mensaje WebSocket con el JSON como texto
-    let join_msg = Message::Text(join_msg_json.into());
-
-    // Enviar el mensaje a todos los usuarios de la sala
     {
         let state = state.read().await;
         if let Some(room) = state.rooms.get(&room_id) {
@@ -175,74 +183,81 @@ pub async fn handle_socket(
             }
         }
     }
+
+    // Suscripción a canal de la sala
     let mut user_channel_rx = user_channel.subscribe();
-    let tx_to_client = tokio::spawn(async move {
+    let tx_clone = tx.clone();
+    tokio::spawn(async move {
         while let Ok(msg) = user_channel_rx.recv().await {
-            if let Err(e) = sender.send(msg).await {
-                eprintln!("Error sending message: {}", e);
+            if tx_clone.send(msg).is_err() {
                 break;
             }
         }
     });
 
-    // Manejar mensajes recibidos desde el cliente WebSocket
-    while let Some(Ok(msg)) = receiver.next().await {
-        let json_msg = match msg {
+    // Keep-alive: enviar Ping cada 30s
+    let tx_ping = tx.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+        loop {
+            interval.tick().await;
+            if tx_ping.send(Message::Ping(Bytes::from(vec![]))).is_err() {
+                break;
+            }
+        }
+    });
+
+    // Recibir mensajes del cliente
+    while let Some(Ok(msg)) = receiver_ws.next().await {
+        match msg {
             Message::Text(text) => {
-                json!({
+                let json_msg = Message::Text(json!({
                     "userId": user.id,
                     "user": user.username,
                     "message": text.to_string(),
-                })
-            }
-            Message::Binary(_) => {
-                json!({
-                    "userId": user.id,
-                    "user": user.username,
-                    "message": "[binary data]",
-                })
-            }
-            _ => {
-                json!({
-                    "user": "system",
-                    "message": format!("{} left the chat.", user.username),
-                })
-            }
-        };
-        let json_str = json_msg.to_string();
-        let message = Message::Text(json_str.into());
-        println!("message: {:?}", message);
+                }).to_string().into());
 
-        let state = state.read().await;
-
-        // Reenviar mensaje a todos los usuarios de la sala
-        if let Some(room) = state.rooms.get(&room_id) {
-            for (user_id, sender) in &room.users {
-                if let Err(e) = sender.send(message.clone()) {
-                    eprintln!("Error enviando mensaje a {}: {}", user_id, e);
+                let state = state.read().await;
+                if let Some(room) = state.rooms.get(&room_id) {
+                    for (user_id, sender) in &room.users {
+                        if let Err(e) = sender.send(json_msg.clone()) {
+                            eprintln!("Error enviando mensaje a {}: {}", user_id, e);
+                        }
+                    }
                 }
             }
+            Message::Binary(_) => {
+                // Similar al anterior, puedes manejarlo igual
+            }
+            Message::Ping(_) | Message::Pong(_) => {
+                // Ignorar, ya que son automáticos
+            }
+            Message::Close(_) => break,
         }
     }
 
-    // Limpiar al usuario cuando se desconecte
-    {
-        let mut state = state.write().await;
-        if let Some(room) = state.rooms.get_mut(&room_id) {
-            room.users.remove(&user.username);
-            println!(
-                "Usuario {} se desconectó de la sala {}",
-                user.username, room_id
-            );
+    // Cleanup
+{
+    let mut state = state.write().await;
+    if let Some(room) = state.rooms.get_mut(&room_id) {
+        room.users.remove(&user.username);
 
-            // Eliminar la sala si está vacía
-            if room.users.is_empty() && room_id != "Global" {
-                state.rooms.remove(&room_id);
-                println!("Sala {} eliminada por estar vacía", room_id);
+        let leave_msg = Message::Text(json!({
+            "user": "system",
+            "message": format!("{} left the chat.", user.username)
+        }).to_string().into());
+
+        for (user_id, sender) in &room.users {
+            if let Err(e) = sender.send(leave_msg.clone()) {
+                eprintln!("Error enviando mensaje de salida a {}: {}", user_id, e);
             }
         }
-    }
 
-    // Esperar a que termine la tarea de envío al cliente
-    let _ = tx_to_client.await;
+        if room.users.is_empty() && room_id != "Global" {
+            state.rooms.remove(&room_id);
+        }
+    }
+}
+
+    let _ = send_task.await;
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT 1 FROM friend_requests WHERE user_id = $1 AND friend_id = $2 AND status = 'pending'",
+  "query": "SELECT 1 FROM friend_requests WHERE sender_id = $1 AND user_id = $2 AND status = 'pending'",
   "describe": {
     "columns": [
       {
@@ -19,5 +19,5 @@
       null
     ]
   },
-  "hash": "d48346edf2220de5a323fa0950a315bd40a8c37694a2444df6be324db5154795"
+  "hash": "9a6a87dd1fbddafbb52200f3e4e97d78c64ab73e72172e5f5ec2577a27900053"
 }
