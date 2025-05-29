@@ -75,6 +75,7 @@ pub enum ErrorRequest {
     ErrorEmailUpdate,
     AlreadyFriends,
     EmailExists,
+    BadParameter,
 }
 
 impl IntoResponse for ErrorRequest {
@@ -116,6 +117,7 @@ impl IntoResponse for ErrorRequest {
             ErrorRequest::AlreadyFriends => {
                 (StatusCode::OK, "You are already friends with this user")
             }
+            ErrorRequest::BadParameter => (StatusCode::BAD_REQUEST, "Bad parameter provided in request"),
         };
         let body = Json(ErrorResponse {
             status: "error".to_string(),

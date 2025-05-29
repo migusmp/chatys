@@ -26,5 +26,11 @@ pub fn friend_router(pool: PgPool) -> Router {
                 }
             }),
         )
+        .route("/reject/{friend_request_id}", post({
+            let pool = pool.clone();
+            move |payload, path_data, app_state| {
+                crate::controller::friend_controller::reject_friend_request(pool, payload, path_data, app_state)
+            }
+        }))
         .layer(axum::middleware::from_fn(auth))
 }

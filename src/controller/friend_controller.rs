@@ -121,3 +121,29 @@ pub async fn accept_friend_request(
     // Responder exitosamente
     Ok(ApiResponse::success("Friend added successfully"))
 }
+
+pub async fn reject_friend_request(
+    pool: PgPool,
+    Extension(payload): Extension<Payload>,
+    Path(friend_request_id): Path<String>,
+    Extension(_app_state): Extension<Arc<AppState>>,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    let friend_request_id = friend_request_id
+        .parse::<i32>()
+        .map_err(|_| ErrorRequest::BadParameter)?;
+
+    let result = sqlx::query!(
+        "DELETE FROM friend_requests WHERE id = $1 AND status='pending' AND user_id = $2",
+        friend_request_id,
+        payload.id,
+    )
+    .execute(&pool)
+    .await
+    .map_err(|_| ErrorRequest::InternalError)?;
+
+    if result.rows_affected() == 0 {
+        return Err(ErrorRequest::NoFriendRequestFound);
+    }
+
+    Ok(ApiResponse::success("Friend request rejected successfully"))
+}
