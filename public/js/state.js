@@ -55,6 +55,16 @@ export const GlobalState = (() => {
         }
     }
 
+    function removeNotification(notification) {
+        const index = state.notifications.findIndex(n => n.id === notification.id);
+        if (index !== -1) {
+            state.notifications.splice(index, 1);
+            if (listeners['notifications']) {
+                listeners['notifications'].forEach(cb => cb([...state.notifications]));
+            }
+        }
+    }
+
     function clear() {
         for (const key of persistKeys) {
             state[key] = key === 'theme' ? 'dark' : null;
@@ -111,6 +121,6 @@ export const GlobalState = (() => {
         on, set, get,
         fetchProfileInfo, fetchProfileInfoOnce,
         clear, logout,
-        updateNotifications, addNotification, clearNotifications,
+        updateNotifications, addNotification, clearNotifications, removeNotification,
     };
 })();

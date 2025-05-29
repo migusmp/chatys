@@ -61,6 +61,7 @@ GlobalState.on('notifications', notifications => {
                         if (res.ok) {
                             console.log('Solicitud aceptada correctamente');
                             li.remove();
+                            GlobalState.removeNotification(notif);
 
                             if (notificationList.children.length === 0) {
                                 notificationCount.style.display = 'none';
@@ -84,18 +85,21 @@ GlobalState.on('notifications', notifications => {
                 rejectBtn.onclick = async () => {
                     console.log("Solicitud rechazada:", notif);
 
+                    if (!notif.id) {
+                        console.error('notif.id está undefined, verifique el backend.');
+                        return;
+                    }
+
                     try {
-                        const res = await fetch('/api/friend-request/reject', {
+                        const res = await fetch(`/api/friend/reject/${notif.id}`, {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ request_id: notif.id }),
+                            credentials: 'include',
                         });
 
                         if (res.ok) {
                             console.log('Solicitud rechazada correctamente');
                             li.remove();
+                            GlobalState.removeNotification(notif);
 
                             if (notificationList.children.length === 0) {
                                 notificationCount.style.display = 'none';

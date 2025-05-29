@@ -6,6 +6,7 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 
 #[derive(Serialize, Deserialize)]
 pub struct FriendNotification {
+    pub id: Option<i32>,
     pub type_msg: String,
     pub status: String,
     pub user_id: i32,
@@ -139,7 +140,8 @@ impl AppState {
         user_id: i32,
     ) -> Result<(), String> {
         let message_text = format!("{} send to you a friend request!", user_username);
-        let notification = FriendNotification {
+        let mut notification = FriendNotification {
+            id: None,
             type_msg: "FR".to_string(),
             user_id,
             user_username: user_username.clone(),
@@ -147,12 +149,7 @@ impl AppState {
             message: message_text,
         };
 
-        let json_message = serde_json::to_string(&notification)
-            .map_err(|_| "Failed to serialize the notification".to_string())?;
-
-        // Guardar en la base de datos
-        // TODO
-        if let Err(e) = self
+        let inserted_id = match self
             .insert_friend_notification_to_db(
                 friend_id,
                 user_id,
@@ -163,8 +160,18 @@ impl AppState {
             )
             .await
         {
-            return Err(format!("Failed to insert notification to DB: {}", e));
-        }
+            Ok(id) => id, // id insertado
+            Err(e) => return Err(format!("Failed to insert notification to DB: {}", e)),
+        };
+
+        notification.id = Some(inserted_id);
+
+        let json_message = serde_json::to_string(&notification)
+            .map_err(|_| "Failed to serialize the notification".to_string())?;
+
+        // Guardar en la base de datos
+        // TODO
+        
 
         let notifications = self.friend_notifications.lock().await;
         if let Some(sender) = notifications.get(&friend_id) {
@@ -203,6 +210,7 @@ impl AppState {
         // 2. Crear y serializar la notificación
         let message_text = format!("{} accepted your friend request!", user_name);
         let notification = FriendNotification {
+            id: None,
             type_msg: "AFR".to_string(),
             user_id,
             user_username: user_name,
@@ -294,11 +302,12 @@ impl AppState {
         type_msg: &str,
         status: &str,
         message: &str,
-    ) -> Result<(), sqlx::Error> {
-        sqlx::query!(
+    ) -> Result<i32, sqlx::Error> {
+        let record = sqlx::query!(
             r#"
             INSERT INTO friend_requests (user_id, sender_id, sender_name, type_msg, status, message)
             VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id
             "#,
             user_id,
             sender_id,
@@ -307,8 +316,8 @@ impl AppState {
             status,
             message
         )
-        .execute(&self.db_pool)
+        .fetch_one(&self.db_pool)
         .await?;
-        Ok(())
+        Ok(record.id)
     }
 }
