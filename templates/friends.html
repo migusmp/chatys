@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Mis Amigos</title>
+</head>
+<body>
+    <h1>Lista de Amigos</h1>
+
+    {% if friends.len() == 0 %}
+        <p>No tienes amigos aún.</p>
+    {% else %}
+    <ul>
+        {% for friend in friends %}
+            <li>
+              {% if friend.username.len() > 0 %}
+                Nombre: {{ friend.username }}
+              {% endif %}
+              <img src="{{ friend.image }}" alt="Imagen de {{ friend.username }}">
+            </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</body>
+</html>
+

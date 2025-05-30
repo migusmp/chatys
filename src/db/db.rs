@@ -253,9 +253,9 @@ async fn check_updated_email(new_email: &String) -> Result<(), UpdateUserEmail> 
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct Friend {
-    id: i32,
-    username: String,
-    image: String,
+    pub id: i32,
+    pub username: String,
+    pub image: String,
 }
 
 pub async fn get_user_friends(
