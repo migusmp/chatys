@@ -1,8 +1,10 @@
 import { GlobalState } from "./state.js";
 import { startApp } from "./utils/fetch_api.js";
 
+const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = new WebSocket(`ws://${location.host}/ws`);
+    const socket = new WebSocket(`${protocol}://${location.host}/ws`);
 
     socket.onopen = () => {
         console.log('Conexión WebSocket establecida');
@@ -32,10 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Recibir la data del profile
-    GlobalState.init().then(() => {
-        // Aquí puedes hacer algo con el estado global, como mostrar el perfil del usuario
-        console.log("Estado global inicializado");
-    });
+    startApp();
 
     // Si quieres cerrar el socket cuando se cierre la pestaña
     //window.addEventListener('beforeunload', () => {

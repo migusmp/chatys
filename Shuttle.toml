@@ -1,4 +1,6 @@
 [build]
 assets = [
-  "public",         # incluye los archivos dentro de public
+  "public",
+  "uploads",
+  "templates",         # incluye los archivos dentro de public
 ]

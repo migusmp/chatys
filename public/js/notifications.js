@@ -31,6 +31,7 @@ GlobalState.on('notifications', notifications => {
         notificationList.classList.remove('hidden');
         notificationList.innerHTML = '';
         for (const notif of notifications) {
+            console.log("Procesando notificación:", notif);
             console.log("Notification:", notif);
             const li = document.createElement('li');
             li.classList.add('notification-item');

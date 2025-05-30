@@ -43,7 +43,7 @@ pub async fn verify_user_login(
     // Realizamos la consulta para obtener los datos del usuario por `username`.
     let row = sqlx::query!(
         r#"
-        SELECT id, username, email, password, image, created_at, name
+        SELECT id, username, email, password, image, name, created_at
         FROM users
         WHERE username = $1
         "#,
@@ -64,7 +64,7 @@ pub async fn verify_user_login(
         Ok(Some(User {
             id: row.id,
             username: row.username,
-            name: row.name.unwrap_or_default(),
+            name: row.name,
             email: row.email,
             image: row.image.unwrap(),
             password: row.password,

@@ -10,6 +10,7 @@ pub struct FriendNotification {
     pub type_msg: String,
     pub status: String,
     pub user_id: i32,
+    pub sender_id: i32,
     pub user_username: String,
     pub message: String,
 }
@@ -151,6 +152,7 @@ impl AppState {
             type_msg: "FR".to_string(),
             user_id,
             user_username: user_username.clone(),
+            sender_id: user_id,
             status: "pending".to_string(),
             message: message_text,
         };
@@ -181,15 +183,17 @@ impl AppState {
         // TODO
         
 
-        let notifications = self.friend_notifications.lock().await;
+        let mut notifications = self.friend_notifications.lock().await;
         if let Some(sender) = notifications.get(&friend_id) {
             match sender.try_send(json_message.clone()) {
                 Ok(_) => Ok(()),
                 Err(_e) => {
+                    // Canal cerrado, remover sender para no intentar enviar más
+                    notifications.remove(&friend_id);
                     drop(notifications); // liberar lock antes de await
                     self.store_undelivered_message(friend_id, json_message)
                         .await;
-                    Err(format!("Unable to send notification to {}", friend_id))
+                    return Err(format!("Unable to send notification to {}", friend_id))
                 }
             }
         } else {
@@ -222,6 +226,7 @@ impl AppState {
             type_msg: "AFR".to_string(),
             user_id,
             user_username: user_name,
+            sender_id: user_id,
             status: "success".to_string(),
             message: message_text,
         };
