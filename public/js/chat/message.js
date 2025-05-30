@@ -1,3 +1,4 @@
+import { GlobalState } from "../state.js";
 import { sendFriendRequest } from "../utils/fetch_api.js";
 
 let replyTo = null;  // Puedes exportar si quieres que reply.js lo modifique, o mejor manejarlo en reply.js
@@ -26,12 +27,22 @@ export function createMessageElement(msg) {
     const menu = document.createElement("div");
     menu.className = "dropdown-menu";
 
+    const friends = GlobalState.get('friends');
+
+    console.log("ID del usuario del mensaje: ", msg.userId);
+    console.log("Lista de amigos: ", friends);
+    const isFriend = friends.includes(msg.userId) || friends.some(f => f.id === msg.userId);
+
+    console.log("Mi id: ", GlobalState.get('id'));
+    console.log("message ID: ", msg.userId);
+    const isMyMessage = msg.userId == GlobalState.get('id') ? true : false;
+    const isSystemMessage = msg.user == "system";
+
+
     const actions = [
-        { label: "Ver perfil", icon: "👤", handler: () => alert("Ver perfil de " + content) },
-        {
-            label: "Añadir amigo", icon: "🤝", handler: () => {
-                sendFriendRequest(wrapper.dataset.userid)
-            }
+        // Ver perfil solo si no es un mensaje del sistema
+        !isSystemMessage && {
+            label: "Ver perfil", icon: "👤", handler: () => alert("Ver perfil de " + content)
         },
         {
             label: "Responder", icon: "🔁", handler: () => {
@@ -45,8 +56,18 @@ export function createMessageElement(msg) {
                 navigator.clipboard.writeText(content).then(() => alert("Texto copiado"));
             }
         },
-        { label: "Bloquear usuario", icon: "🚫", handler: () => alert("Usuario bloqueado: " + content) }
-    ];
+        // Añadir amigo solo si no es amigo, no soy yo, y no es mensaje del sistema
+        !isSystemMessage && !isFriend && !isMyMessage && {
+            label: "Añadir amigo", icon: "🤝", handler: () => {
+                sendFriendRequest(wrapper.dataset.userid);
+            }
+        },
+        // Bloquear solo si no soy yo y no es mensaje del sistema
+        !isSystemMessage && !isMyMessage && {
+            label: "Bloquear usuario", icon: "🚫", handler: () => alert("Usuario bloqueado: " + content)
+        }
+    ].filter(Boolean);
+
 
     actions.forEach(action => {
         const btn = document.createElement("button");

@@ -9,11 +9,17 @@ export const GlobalState = (() => {
         email: localStorage.getItem('email') || null,
         image: localStorage.getItem('image') || null,
         notifications: [],
+        friends: [],
         theme: localStorage.getItem('theme') || 'dark',
     };
 
     const listeners = {};
     let hasFetched = false;
+
+    async function init() {
+        await fetchProfileInfoOnce();
+        await fetchFriendsList();
+    }
 
     function on(key, callback) {
         if (!listeners[key]) listeners[key] = [];
@@ -117,10 +123,25 @@ export const GlobalState = (() => {
         await fetchProfileInfo();
     }
 
+    async function fetchFriendsList() {
+        await fetch('/api/user/get-friends', {
+            method: "GET",
+            credentials: "include"
+        })
+        .then(res => res.json())
+        .then(data => {
+            set('friends', data.data);
+            console.log("Lista de amigos cargada:", GlobalState.get('friends'));
+        })
+        .catch(e => {
+            console.error("Error al cargar la lista de amigos:", e);
+        })
+    }
+
     return {
         on, set, get,
         fetchProfileInfo, fetchProfileInfoOnce,
         clear, logout,
-        updateNotifications, addNotification, clearNotifications, removeNotification,
+        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init
     };
 })();
