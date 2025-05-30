@@ -34,11 +34,10 @@ if (!roomName) {
         const msg = JSON.parse(event.data);
 
         const currentUsername = GlobalState.get('username');
-        console.log("msg.user: " + msg.user);
-        console.log("currentUsername: " + currentUsername);
         const displayName = msg.user === currentUsername ? 'Tú' : msg.user;
 
         const msgElement = createMessageElement({
+            userId: msg.userId,
             user: displayName,
             message: msg.message
         });

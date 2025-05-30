@@ -1,8 +1,11 @@
+import { sendFriendRequest } from "../utils/fetch_api.js";
+
 let replyTo = null;  // Puedes exportar si quieres que reply.js lo modifique, o mejor manejarlo en reply.js
 
 export function createMessageElement(msg) {
     const wrapper = document.createElement("div");
     wrapper.className = "message";
+    wrapper.dataset.userid = msg.userId;
 
     // Nombre de usuario arriba
     const userDiv = document.createElement("div");
@@ -25,15 +28,23 @@ export function createMessageElement(msg) {
 
     const actions = [
         { label: "Ver perfil", icon: "👤", handler: () => alert("Ver perfil de " + content) },
-        { label: "Solicitud de amistad", icon: "🤝", handler: () => alert("Solicitud de amistad a " + content) },
-        { label: "Responder", icon: "🔁", handler: () => {
-            replyTo = content;
-            const event = new CustomEvent('reply', { detail: content });
-            document.dispatchEvent(event);
-        }},
-        { label: "Copiar texto", icon: "📋", handler: () => {
-            navigator.clipboard.writeText(content).then(() => alert("Texto copiado"));
-        }},
+        {
+            label: "Añadir amigo", icon: "🤝", handler: () => {
+                sendFriendRequest(wrapper.dataset.userid)
+            }
+        },
+        {
+            label: "Responder", icon: "🔁", handler: () => {
+                replyTo = content;
+                const event = new CustomEvent('reply', { detail: content });
+                document.dispatchEvent(event);
+            }
+        },
+        {
+            label: "Copiar texto", icon: "📋", handler: () => {
+                navigator.clipboard.writeText(content).then(() => alert("Texto copiado"));
+            }
+        },
         { label: "Bloquear usuario", icon: "🚫", handler: () => alert("Usuario bloqueado: " + content) }
     ];
 
