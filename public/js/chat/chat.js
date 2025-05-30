@@ -46,6 +46,7 @@ import { GlobalState } from '../state.js';
             const msgElement = createMessageElement({
                 userId: msg.userId,
                 user: displayName,
+                image: msg.image,
                 message: msg.message
             });
 

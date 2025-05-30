@@ -32,6 +32,8 @@ body {
 
 /* Mensajes */
 .message {
+    display: flex;             /* Para alinear imagen y texto en fila */
+    align-items: flex-start;  /* Alinear imagen y texto al inicio */
     background-color: #2a2f36;
     border-radius: 8px;
     padding: 8px 12px;
@@ -59,6 +61,16 @@ body {
     font-size: 1em;
     color: #cbd5e1;
     white-space: pre-wrap;
+}
+.message-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+    flex-shrink: 0;
+    /* border: 2px solid #4ea8de; */
+    vertical-align: middle;
 }
 
 /* Botón de opciones */

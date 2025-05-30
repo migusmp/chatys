@@ -215,6 +215,7 @@ pub async fn handle_socket(
                     "userId": user.id,
                     "user": user.username,
                     "message": text.to_string(),
+                    "image": user.image,
                 }).to_string().into());
 
                 let state = state.read().await;
