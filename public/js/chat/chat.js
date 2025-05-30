@@ -1,6 +1,7 @@
 import { WSChat } from '/static/js/ws_chat.js';
 import { createMessageElement } from './message.js';
 import { setupReplyFeature } from './reply.js';
+import { GlobalState } from '../state.js';
 
 const params = new URLSearchParams(window.location.search);
 const roomName = params.get("room");
@@ -31,7 +32,17 @@ if (!roomName) {
 
     socket.addEventListener("message", (event) => {
         const msg = JSON.parse(event.data);
-        const msgElement = createMessageElement(msg);
+
+        const currentUsername = GlobalState.get('username');
+        console.log("msg.user: " + msg.user);
+        console.log("currentUsername: " + currentUsername);
+        const displayName = msg.user === currentUsername ? 'Tú' : msg.user;
+
+        const msgElement = createMessageElement({
+            user: displayName,
+            message: msg.message
+        });
+
         chatContainer.appendChild(msgElement);
         chatContainer.scrollTop = chatContainer.scrollHeight;
     });
