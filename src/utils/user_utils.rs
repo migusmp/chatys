@@ -64,7 +64,7 @@ pub async fn verify_user_login(
         Ok(Some(User {
             id: row.id,
             username: row.username,
-            name: row.name.expect("Error al obtener el name"),
+            name: row.name.unwrap_or_default(),
             email: row.email,
             image: row.image.unwrap(),
             password: row.password,

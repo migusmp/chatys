@@ -62,6 +62,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
         .route("/chats", get(chats_handler))
         .route("/friends", get(friends_handler))
         .nest_service("/static", ServeDir::new("public"))
+        .nest_service("/media/user", ServeDir::new("uploads/user"))
         .layer(TraceLayer::new_for_http())
         .layer(Extension(pool))
         .layer(Extension(app_state));
