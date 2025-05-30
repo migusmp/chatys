@@ -53,7 +53,7 @@ GlobalState.on('notifications', notifications => {
                     console.log("Solicitud aceptada:", notif);
 
                     try {
-                        const res = await fetch(`/api/friend/accept/${notif.user_id}`, {
+                        const res = await fetch(`/api/friend/accept/${notif.sender_id}`, {
                             method: 'POST',
                             credentials: 'include',
                         });

@@ -19,6 +19,7 @@ pub struct FriendNotificationRow {
     pub type_msg: String,
     pub status: String,
     pub user_id: i32,
+    pub sender_id: i32,
     pub sender_name: Option<String>,
     pub message: String,
 }
@@ -89,7 +90,7 @@ impl AppState {
         // 1. Consulta notificaciones no vistas
         let notifications = sqlx::query_as::<_, FriendNotificationRow>(
             r#"
-            SELECT id, type_msg, status, user_id, sender_name, message
+            SELECT id, type_msg, status, user_id, sender_id, sender_name, message
             FROM friend_requests
             WHERE user_id = $1 AND seen = false AND status = 'pending'
             ORDER BY created_at ASC
@@ -104,12 +105,17 @@ impl AppState {
         let notifications_map = self.friend_notifications.lock().await;
         if let Some(sender) = notifications_map.get(&user_id) {
             for notif in notifications {
+                println!(
+                    "Entregando notificación a usuario {}: {:?}",
+                    user_id, notif
+                );
                 // 3. Convertir a FriendNotification y luego a JSON
                 let notification = FriendNotificationRow {
                     id: notif.id,
                     type_msg: notif.type_msg,
                     status: notif.status,
                     user_id: notif.user_id,
+                    sender_id: notif.sender_id,
                     sender_name: notif.sender_name,
                     message: notif.message,
                 };
@@ -148,6 +154,8 @@ impl AppState {
             status: "pending".to_string(),
             message: message_text,
         };
+
+        println!("Usuario que ha enviado la solicitud: id: {}, nombre: {}", user_id, user_username);
 
         let inserted_id = match self
             .insert_friend_notification_to_db(
