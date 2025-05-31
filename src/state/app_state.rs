@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
 
+use crate::services::ws::notify_user_with_active_friends;
+
 #[derive(Serialize, Deserialize)]
 pub struct FriendNotification {
     pub id: Option<i32>,
@@ -270,6 +272,17 @@ impl AppState {
         Ok(())
     }
 
+    pub async fn get_user_friends(&self, user_id: i32) -> Result<Vec<i32>, sqlx::Error> {
+        let friends = sqlx::query!(
+            "SELECT friend_id FROM friends WHERE user_id = $1",
+            user_id
+        )
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        Ok(friends.into_iter().map(|f| f.friend_id).collect())
+    }
+
     // Agrega un usuario al broadcast global
     pub async fn add_user_to_global_broadcast(&self) -> broadcast::Receiver<String> {
         self.global_broadcast.subscribe()
@@ -303,6 +316,11 @@ impl AppState {
         }
 
         // Aquí podrías limpiar otros recursos relacionados con el usuario si existen.
+        if let Ok(friends) = self.get_user_friends(user_id).await {
+            for friend_id in friends {
+                notify_user_with_active_friends(self, friend_id).await;
+            }
+        }
 
         println!("Usuario {} desconectado y estado limpiado", user_id);
     }

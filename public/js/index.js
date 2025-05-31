@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error('Error al parsear JSON:', e);
         }
-        // Aquí puedes actualizar la UI con la info recibida
     };
 
     socket.onerror = (error) => {
