@@ -15,6 +15,7 @@ export const GlobalState = (() => {
 
     const listeners = {};
     let hasFetched = false;
+    let socket = null;
 
     async function init() {
         await fetchProfileInfoOnce();
@@ -138,10 +139,49 @@ export const GlobalState = (() => {
         })
     }
 
+    async function init() {
+        initSocket();
+        await fetchProfileInfoOnce();
+        await fetchFriendsList();
+    }
+
+    function initSocket() {
+        if (socket) return; // evitar doble conexión
+
+        const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+        socket = new WebSocket(`${protocol}://${location.host}/ws`);
+
+        socket.onopen = () => {
+            console.log('🔌 WebSocket conectado');
+        };
+
+        socket.onmessage = (event) => {
+            console.log('📨 Mensaje del servidor:', event.data);
+            try {
+                const msg = JSON.parse(event.data);
+                console.log("Mensaje from /ws:",msg);
+                if (msg.type_msg === 'FR') {
+                    addNotification(msg);
+                }
+            } catch (e) {
+                console.error('⚠️ Error al parsear JSON:', e);
+            }
+        };
+
+        socket.onerror = (err) => {
+            console.error('❌ WebSocket error:', err);
+        };
+
+        socket.onclose = () => {
+            console.warn('🔌 WebSocket desconectado');
+            socket = null;
+        };
+    }
+
     return {
         on, set, get,
         fetchProfileInfo, fetchProfileInfoOnce,
         clear, logout,
-        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init
+        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket
     };
 })();

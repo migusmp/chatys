@@ -32,6 +32,7 @@ const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
 
 document.addEventListener('DOMContentLoaded', () => {
     GlobalState.fetchProfileInfoOnce();
+    GlobalState.initSocket();
 
     GlobalState.on("username", (newUsername) => {
         console.log("Nombre de usuario actualizado:", newUsername);
