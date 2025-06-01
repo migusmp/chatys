@@ -227,6 +227,11 @@ button:hover {
     font-size: 1rem;
     color: var(--text-muted);
 }
+.user-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 
 /* Estilos del menú del perfil del usuario */

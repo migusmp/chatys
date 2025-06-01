@@ -10,7 +10,16 @@ let generalStatsSocket = null;
 
 export function initPage() {
   document.querySelector('.username').textContent = GlobalState.get('username');
+  const userImg = document.querySelector('.user-image');
+  const img = document.createElement('img');
+  img.src = `/media/user/${GlobalState.get('image')}`; // cambia esta ruta
+  img.alt = `image-${GlobalState.get('username')}`;
+  img.width = 32;
+  img.height = 32;
+  img.className = "profile-icon";
+  img.style.borderRadius = '50%';
 
+  userImg.appendChild(img);
   document.querySelector(".friends").addEventListener("click", () => {
     goto("/friends");
   })
