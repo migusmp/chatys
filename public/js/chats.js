@@ -4,6 +4,7 @@ import { initProfileMenu } from "./components/profileMenu.js";
 import { destroyNotifications, initNotifications } from "./components/notifications.js";
 import { GlobalState } from "./state.js";
 import { goto } from "./router.js";
+import { initFriendsMenu } from "./components/friendsMenu.js";
 
 let generalStatsSocket = null;
 
@@ -32,6 +33,7 @@ export function initPage() {
   GlobalState.initSocket();
   initNotifications();
   initProfileMenu();
+  initFriendsMenu();
 }
 
 export function destroyPage() {

@@ -1,0 +1,4 @@
+Conection os error 111:
+-   docker start shuttle_axum_server_shared_postgres
+-   docker ps | grep shuttle
+-   psql postgres://postgres:postgres@localhost:16787/axum_server

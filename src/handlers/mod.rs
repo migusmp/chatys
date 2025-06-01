@@ -8,7 +8,7 @@ use tokio::fs;
 
 use crate::{db::db::{get_user_friends, Friend}, utils::user_utils::decode_token};
 
-
+#[allow(dead_code)]
 #[derive(Template)]
 #[template(path = "friends.html")]
 struct FriendsTemplate {

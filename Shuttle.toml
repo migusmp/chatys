@@ -4,3 +4,6 @@ assets = [
   "uploads",
   "templates",         # incluye los archivos dentro de public
 ]
+
+[secrets]
+DATABASE_URL="postgres://postgres:postgres@localhost:16787/axum_server"

@@ -41,24 +41,34 @@
     </header>
 
     <div class="main-content">
-        <div id="generalStats">
-            <h2>Estadísticas Generales</h2>
-            <p><strong>Salas totales:</strong> <span id="totalRooms">0</span></p>
-            <p><strong>Salas activas:</strong> <span id="activeRooms">N/A</span></p>
-            <p><strong>Usuarios activos:</strong> <span id="usersActive">0</span></p>
-        </div>
+        <div class="top-section">
+            <div class="left-column">
+                <div id="generalStats">
+                    <h2>Estadísticas Generales</h2>
+                    <p><strong>Salas totales:</strong> <span id="totalRooms">0</span></p>
+                    <p><strong>Salas activas:</strong> <span id="activeRooms">N/A</span></p>
+                    <p><strong>Usuarios activos:</strong> <span id="usersActive">0</span></p>
+                </div>
 
-        <div id="roomSelector">
-            <h2>Unirse a una Sala</h2>
-            <label>
-                Nombre de la sala:
-                <input type="text" id="roomNameInput" placeholder="Ej: sala1" />
-            </label>
-            <button id="joinRoomBtn">Unirse</button>
+                <div id="roomSelector">
+                    <h2>Unirse a una Sala</h2>
+                    <label>
+                        Nombre de la sala:
+                        <input type="text" id="roomNameInput" placeholder="Ej: sala1" />
+                    </label>
+                    <button id="joinRoomBtn">Unirse</button>
+                </div>
+            </div>
+
+            <div id="friendsSection">
+                <h2>Amigos</h2>
+                <ul>
+                </ul>
+            </div>
         </div>
 
         <div id="roomsContainer"></div>
-        
+
     </div>
     <!-- <script type="module" src="static/js/chats.js"></script> -->
 </body>

@@ -4,7 +4,7 @@ import { sendFriendRequest } from "../utils/fetch_api.js";
 let replyTo = null;  // Puedes exportar si quieres que reply.js lo modifique, o mejor manejarlo en reply.js
 
 export function createMessageElement(msg) {
-    console.log("MENSAJEEEE:", msg);
+    //console.log("MENSAJEEEE:", msg);
 
     if (typeof msg !== "object" || msg === null) {
         msg = { message: String(msg), user: "system", image: "system.jpg", userId: -1 };

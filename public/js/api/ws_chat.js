@@ -114,7 +114,7 @@ export const WSChat = (() => {
         };
 
         socket.onmessage = (e) => {
-            console.log(`Mensaje recibido en ${roomId}:`, e.data);
+            //console.log(`Mensaje recibido en ${roomId}:`, e.data);
             if (!messages[roomId]) messages[roomId] = [];
             try {
                 const parsed = JSON.parse(e.data);
@@ -143,7 +143,7 @@ export const WSChat = (() => {
             roomStats[roomId] = {
                 users: parseInt(e.data, 10),
             };
-            console.log(`Estadísticas de ${roomId}:`, roomStats[roomId]);
+            //console.log(`Estadísticas de ${roomId}:`, roomStats[roomId]);
 
             // Actualiza UI si ya se están mostrando salas
             const roomElem = document.querySelector(`[data-room-id="${roomId}"]`);

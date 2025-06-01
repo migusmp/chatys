@@ -179,7 +179,7 @@ export const GlobalState = (() => {
             .then(res => res.json())
             .then(data => {
                 set('friends', data.data);
-                console.log("Lista de amigos cargada:", GlobalState.get('friends'));
+                //console.log("Lista de amigos cargada:", GlobalState.get('friends'));
             })
             .catch(e => {
                 console.error("Error al cargar la lista de amigos:", e);
