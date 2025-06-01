@@ -1,0 +1,82 @@
+:root {
+    --bg-color: #1e1e2f;
+    --card-bg: #2c2c3e;
+    --accent: #4eaaff;
+    --text-color: #ffffff;
+    --text-muted: #cccccc;
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 2rem;
+    margin: 0;
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+h1,
+h2 {
+    margin-top: 0;
+    color: var(--accent);
+}
+
+/* Lista de amigos estilo tarjeta */
+ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+li {
+    background: linear-gradient(135deg, #28314f, #1f2340);
+    padding: 1.2rem 1.5rem;
+    border-radius: 16px;
+    width: 180px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: default;
+}
+
+li:hover {
+    transform: translateY(-8px);
+}
+
+li img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+p {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 4.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card-bg);
+    padding: 1rem 3rem;
+    box-shadow: 0 4px 12px var(--shadow);
+    z-index: 1000;
+    margin-bottom: 0;
+}

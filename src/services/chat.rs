@@ -1,6 +1,9 @@
 use crate::models::chat::ChatState;
 use crate::models::user::Payload;
-use axum::{body::Bytes, extract::ws::{Message, WebSocket}};
+use axum::{
+    body::Bytes,
+    extract::ws::{Message, WebSocket},
+};
 
 use futures::{SinkExt, StreamExt};
 use serde_json::json;
@@ -168,10 +171,14 @@ pub async fn handle_socket(
         state.join_room(&room_id, user.username.clone())
     };
 
-    let join_msg = Message::Text(json!({
-        "user": "system",
-        "message": format!("{} joined the chat.", user.username)
-    }).to_string().into());
+    let join_msg = Message::Text(
+        json!({
+            "user": "system",
+            "message": format!("{} joined the chat.", user.username)
+        })
+        .to_string()
+        .into(),
+    );
 
     {
         let state = state.read().await;
@@ -211,12 +218,16 @@ pub async fn handle_socket(
     while let Some(Ok(msg)) = receiver_ws.next().await {
         match msg {
             Message::Text(text) => {
-                let json_msg = Message::Text(json!({
-                    "userId": user.id,
-                    "user": user.username,
-                    "message": text.to_string(),
-                    "image": user.image,
-                }).to_string().into());
+                let json_msg = Message::Text(
+                    json!({
+                        "userId": user.id,
+                        "user": user.username,
+                        "message": text.to_string(),
+                        "image": user.image,
+                    })
+                    .to_string()
+                    .into(),
+                );
 
                 let state = state.read().await;
                 if let Some(room) = state.rooms.get(&room_id) {
@@ -233,32 +244,42 @@ pub async fn handle_socket(
             Message::Ping(_) | Message::Pong(_) => {
                 // Ignorar, ya que son automáticos
             }
-            Message::Close(_) => break,
-        }
-    }
-
-    // Cleanup
-{
-    let mut state = state.write().await;
-    if let Some(room) = state.rooms.get_mut(&room_id) {
-        room.users.remove(&user.username);
-
-        let leave_msg = Message::Text(json!({
-            "user": "system",
-            "message": format!("{} left the chat.", user.username)
-        }).to_string().into());
-
-        for (user_id, sender) in &room.users {
-            if let Err(e) = sender.send(leave_msg.clone()) {
-                eprintln!("Error enviando mensaje de salida a {}: {}", user_id, e);
+            Message::Close(_) => {
+                let _ = tx.send(Message::Close(None));
+                break;
             }
         }
+    }
 
-        if room.users.is_empty() && room_id != "Global" {
-            state.rooms.remove(&room_id);
+
+    drop(tx);
+
+    // Cleanup
+    {
+        let mut state = state.write().await;
+        if let Some(room) = state.rooms.get_mut(&room_id) {
+            room.users.remove(&user.username);
+
+            let leave_msg = Message::Text(
+                json!({
+                    "user": "system",
+                    "message": format!("{} left the chat.", user.username)
+                })
+                .to_string()
+                .into(),
+            );
+
+            for (user_id, sender) in &room.users {
+                if let Err(e) = sender.send(leave_msg.clone()) {
+                    eprintln!("Error enviando mensaje de salida a {}: {}", user_id, e);
+                }
+            }
+
+            if room.users.is_empty() && room_id != "Global" {
+                state.rooms.remove(&room_id);
+            }
         }
     }
-}
 
     let _ = send_task.await;
 }

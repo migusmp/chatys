@@ -4,20 +4,26 @@ import { sendFriendRequest } from "../utils/fetch_api.js";
 let replyTo = null;  // Puedes exportar si quieres que reply.js lo modifique, o mejor manejarlo en reply.js
 
 export function createMessageElement(msg) {
+    console.log("MENSAJEEEE:", msg);
+
+    if (typeof msg !== "object" || msg === null) {
+        msg = { message: String(msg), user: "system", image: "system.jpg", userId: -1 };
+    }
+    
     const wrapper = document.createElement("div");
     wrapper.className = "message";
     wrapper.dataset.userid = msg.userId;
 
     // Imagen de perfil
-    if (!msg.imagen) {
-        msg.imagen = "default.png"; // Imagen por defecto si no hay imagen
+    if (!msg.image) {
+        msg.image = "default.png"; // Imagen por defecto si no hay imagen
     }
     if (msg.user === "system") {
-        msg.imagen = "system.jpg"; // Imagen para mensajes del sistema
+        msg.image = "system.jpg"; // Imagen para mensajes del sistema
     }
     
     const img = document.createElement("img");
-    img.src = '/media/user/' + msg.imagen;
+    img.src = '/media/user/' + msg.image;
     img.alt = msg.user + " profile";
     img.className = "message-img";
     wrapper.appendChild(img);

@@ -4,25 +4,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="static/styles/index.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/styles/global.css" />
   <title>Real-time Chat App</title>
 </head>
 
 <body>
-  <h1>
-    <i class="fab fa-rust" style="color: #f97316;"></i>
-    Welcome to Rust Real-time Chat
-    <i class="fab fa-rust" style="color: #f97316;"></i>
-  </h1>
-  <button id="go-chats">Go to Chats</button>
 
-  <script type="module" src="static/js/index.js"></script>
-  <script>
-    document.getElementById('go-chats').addEventListener('click', () => {
-      window.location.href = '/chats';
-    });
-  </script>
+  <div id="app"></div>
+
+  <script type="module" src="/static/js/main.js"></script>
 </body>
 
 </html>

@@ -12,7 +12,6 @@ pub mod utils;
 use axum::Extension;
 use axum::{routing::get, Router};
 use tower_http::trace::TraceLayer;
-use crate::handlers::{chats_handler, index_handler, login_handler, register_handler, friends_handler};
 use crate::middlewares::auth::auth;
 use crate::services::ws::handle_ws_connection;
 use crate::state::app_state::AppState;
@@ -23,6 +22,8 @@ use sqlx::{Executor, PgPool};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_http::services::ServeDir;
+
+use handlers::{login_handler, register_handler, index_handler, spa_fallback};
 
 #[shuttle_runtime::main]
 async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::ShuttleAxum {
@@ -46,6 +47,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
     let app_state = Arc::new(AppState::new(pool.clone()));
     let app_state_cloned = app_state.clone();
 
+
     let ws_router = Router::new()
         .route(
             "/ws",
@@ -56,13 +58,15 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
     let router = Router::new()
         .nest("/api", main_router(chat_state, pool.clone()))
         .merge(ws_router)
+        // .route_service("/", ServeDir::new("public/index.html"))
         .route("/", get(index_handler))
         .route("/login", get(login_handler))
         .route("/register", get(register_handler))
-        .route("/chats", get(chats_handler))
-        .route("/friends", get(friends_handler))
+        // .route("/chats", get(chats_handler))
+        // .route("/friends", get(friends_handler))
         .nest_service("/static", ServeDir::new("public"))
         .nest_service("/media/user", ServeDir::new("uploads/user"))
+        .fallback(spa_fallback)
         .layer(TraceLayer::new_for_http())
         .layer(Extension(pool))
         .layer(Extension(app_state));

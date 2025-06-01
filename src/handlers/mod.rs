@@ -1,10 +1,10 @@
 //use std::fs;
-
 use askama::Template;
 use axum::{response::{Html, IntoResponse, Redirect, Response}, Extension};
 use axum_extra::extract::CookieJar;
 use hyper::StatusCode;
 use sqlx::PgPool;
+use tokio::fs;
 
 use crate::{db::db::{get_user_friends, Friend}, utils::user_utils::decode_token};
 
@@ -30,10 +30,33 @@ pub async fn not_found() -> impl axum::response::IntoResponse {
     (axum::http::StatusCode::NOT_FOUND, "Archivo no encontrado")
 }
 
-pub async fn index_handler(jar: CookieJar) -> Response {
+pub async fn spa_fallback(jar: CookieJar) -> impl IntoResponse {
     if jar.get("auth").is_some() {
-        Html(include_str!("../../public/index.html")).into_response()
+        match fs::read_to_string("public/index.html").await {
+            Ok(contents) => Html(contents).into_response(),
+            Err(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Error al cargar la SPA".to_string(),
+            )
+                .into_response(),
+        }
     } else {
+        Redirect::to("/login").into_response()
+    }
+}
+
+pub async fn index_handler(jar: CookieJar) -> impl IntoResponse {
+    if jar.get("auth").is_some() {
+        match fs::read_to_string("public/index.html").await {
+            Ok(contents) => Html(contents).into_response(),
+            Err(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Error al cargar la página".to_string(),
+            )
+                .into_response(),
+        }
+    } else {
+        // Redirige al login si no tiene la cookie
         Redirect::to("/login").into_response()
     }
 }

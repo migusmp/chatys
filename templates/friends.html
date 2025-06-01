@@ -94,20 +94,10 @@
 <body>
     <h1>Lista de Amigos</h1><br><br>
 
-    {% if friends.len() == 0 %}
-    <p>No tienes amigos aún.</p>
-    {% else %}
-    <ul>
-        {% for friend in friends %}
-        <li>
-            {% if friend.username.len() > 0 %}
-            <strong>{{ friend.username }}</strong>
-            {% endif %}
-            <img src="/media/user/{{ friend.image }}" alt="Imagen de {{ friend.username }}">
-        </li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+    <div id="friends-container">
+        <p>No tienes amigos aún.</p>
+        <!-- Este bloque se reemplazará si hay amigos -->
+    </div>
 </body>
 
 </html>
