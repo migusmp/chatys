@@ -62,7 +62,7 @@ export const WSChat = (() => {
                 generalStats = {
                     activeRooms: data.rooms_active,
                     totalRooms: data.rooms_length,
-                    activeUsers: data.users_active.length,
+                    activeUsers: data.users_active,
                 };
 
                 if (generalStatsCallback) {
