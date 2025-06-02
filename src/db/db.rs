@@ -282,7 +282,7 @@ pub async fn get_user_profile_data(
     pool: &PgPool,
 ) -> Result<UserData, sqlx::Error> {
     let query = r#"
-        SELECT id, username, email, name, image
+        SELECT id, username, email, name, created_at, image
         FROM users
         WHERE id= $1
     "#;

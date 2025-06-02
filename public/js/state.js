@@ -1,5 +1,5 @@
 export const GlobalState = (() => {
-    const persistKeys = ['isAuthenticated', 'id', 'username', 'name', 'email', 'image', 'theme'];
+    const persistKeys = ['isAuthenticated', 'id', 'username', 'name', 'email', 'image', 'created_at','theme'];
 
     const state = {
         isAuthenticated: localStorage.getItem('isAuthenticated') === 'true',
@@ -8,6 +8,7 @@ export const GlobalState = (() => {
         name: localStorage.getItem('name') || null,
         email: localStorage.getItem('email') || null,
         image: localStorage.getItem('image') || null,
+        created_at: localStorage.getItem('created_at') || null,
         notifications: [],
         friends: [],
         active_friends: [],
@@ -157,6 +158,7 @@ export const GlobalState = (() => {
                 setPersistent('name', data.data.name);
                 setPersistent('email', data.data.email);
                 setPersistent('image', data.data.image);
+                setPersistent('created_at', data.data.created_at);
 
                 hasFetched = true;
             })
