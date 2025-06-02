@@ -1,3 +1,4 @@
+use crate::models::chat::Room;
 use crate::{db::db::get_user_chat_data, models::chat::ChatState};
 use crate::models::user::Payload;
 use axum::{
@@ -193,11 +194,7 @@ pub async fn handle_socket(
     {
         let state = state.read().await;
         if let Some(room) = state.rooms.get(&room_id) {
-            for (user_id, sender) in &room.users {
-                if let Err(e) = sender.send(join_msg.clone()) {
-                    eprintln!("Error enviando mensaje de bienvenida a {}: {}", user_id, e);
-                }
-            }
+            broadcast_to_room(room, join_msg);
         }
     }
 
@@ -241,11 +238,7 @@ pub async fn handle_socket(
 
                 let state = state.read().await;
                 if let Some(room) = state.rooms.get(&room_id) {
-                    for (user_id, sender) in &room.users {
-                        if let Err(e) = sender.send(json_msg.clone()) {
-                            eprintln!("Error enviando mensaje a {}: {}", user_id, e);
-                        }
-                    }
+                    broadcast_to_room(room, json_msg);
                 }
             }
             Message::Binary(_) => {
@@ -291,5 +284,15 @@ pub async fn handle_socket(
         }
     }
 
-    let _ = send_task.await;
+    if let Err(e) = send_task.await {
+        eprintln!("Error en task de envío: {}", e);
+    }
+}
+
+fn broadcast_to_room(room: &Room, msg: Message) {
+    for (user_id, sender) in &room.users {
+        if let Err(e) = sender.send(msg.clone()) {
+            eprintln!("Error enviando mensaje a {}: {}", user_id, e);
+        }
+    }
 }
