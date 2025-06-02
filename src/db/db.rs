@@ -4,8 +4,8 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::Error;
 use sqlx::PgPool;
 use std::env;
-use std::sync::Arc;
 
+use crate::models::user::UserChatData;
 use crate::models::user::UserData;
 
 // Función para obtener el pool de conexiones a la base de datos
@@ -80,8 +80,8 @@ pub async fn insert_user(
 
 pub async fn update_user_image(
     user_id: i32,
-    image_url: &String,
-    pool: &Arc<PgPool>,
+    new_image_name: String,
+    pool: &PgPool,
 ) -> Result<(), Error> {
     let query = r#"
         UPDATE users
@@ -89,9 +89,9 @@ pub async fn update_user_image(
         WHERE id = $2
     "#;
     sqlx::query(query)
-        .bind(image_url)
+        .bind(new_image_name)
         .bind(user_id)
-        .execute(&**pool) // Ejecutamos sin transacción
+        .execute(&*pool) // Ejecutamos sin transacción
         .await?;
 
     Ok(())
@@ -291,6 +291,24 @@ pub async fn get_user_profile_data(
         .bind(user_id)
         .fetch_one(pool)
         .await?;
+    Ok(user_data)
+}
+
+pub async fn get_user_chat_data(
+    user_id: i32,
+    pool: &PgPool,
+) -> Result<UserChatData, sqlx::Error> {
+    let query = r#"
+        SELECT username, image
+        FROM users
+        WHERE id = $1
+    "#;
+
+    let user_data = sqlx::query_as::<_, UserChatData>(query)
+        .bind(user_id)
+        .fetch_one(pool)
+        .await?;
+
     Ok(user_data)
 }
 

@@ -16,7 +16,7 @@ export function initPage() {
 
     // Datos iniciales (temporal o por fallback)
     const fallbackUser = {
-        photoUrl: "/media/user/default.png",
+        photoUrl: `/media/user/${GlobalState.get('image')}`,
         joinedAt: "2023-01-10"
     };
 
@@ -46,15 +46,41 @@ export function initPage() {
     });
 
     // 📸 Previsualizar imagen seleccionada
-    fileInput.addEventListener("change", (event) => {
+    fileInput.addEventListener("change", async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-
+    
         const reader = new FileReader();
         reader.onload = (e) => {
             profileImage.src = e.target.result;
         };
         reader.readAsDataURL(file);
+    
+        // ⬆️ Subir imagen al servidor
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+    
+            const res = await fetch("/api/user/upload", {
+                method: "POST",
+                credentials: "include",
+                body: formData
+            });
+    
+            if (!res.ok) {
+                const error = await res.text();
+                throw new Error(error || "Error al subir la imagen");
+            }
+    
+            const json = await res.json();
+            console.log("Imagen subida correctamente:", json);
+    
+            // (opcional) refrescar el perfil
+            await GlobalState.fetchProfileInfo();
+        } catch (err) {
+            console.error("Error subiendo la imagen:", err);
+            alert("Error al subir la imagen");
+        }
     });
 
     // Guardar datos

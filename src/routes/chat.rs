@@ -8,12 +8,13 @@ use crate::controller::chat_controller::*;
 use crate::middlewares::auth::auth;
 use crate::models::chat::ChatState;
 
-pub fn chat_router(state: Arc<RwLock<ChatState>>, _pool: PgPool) -> Router {
+pub fn chat_router(state: Arc<RwLock<ChatState>>, pool: PgPool) -> Router {
     Router::new()
         .route("/create/{room_id}", post(create_chat))
         .route("/join/{room_id}", get(join_chat))
         .route("/stats/{room_id}", get(get_room_stats))
         .route("/active-rooms", get(get_active_rooms))
         .layer(from_fn(auth))
+        .layer(Extension(pool))
         .layer(Extension(state))
 }

@@ -1,4 +1,4 @@
-use crate::models::chat::ChatState;
+use crate::{db::db::get_user_chat_data, models::chat::ChatState};
 use crate::models::user::Payload;
 use axum::{
     body::Bytes,
@@ -7,6 +7,7 @@ use axum::{
 
 use futures::{SinkExt, StreamExt};
 use serde_json::json;
+use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
@@ -149,11 +150,20 @@ pub async fn handle_socket(
     room_id: String,
     state: Arc<RwLock<ChatState>>,
     user: Payload,
+    pool: PgPool,
 ) {
     let (sender_ws, mut receiver_ws) = socket.split();
 
     // Canal unidireccional para enviar mensajes al cliente
     let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
+
+    let chat_user = match get_user_chat_data(user.id, &pool).await {
+        Ok(data) => data,
+        Err(e) => {
+            eprintln!("Error obteniendo datos del usuario para el chat: {}", e);
+            return;
+        }
+    };
 
     // Spawn para escribir en WebSocket desde el canal
     let send_task = tokio::spawn(async move {
@@ -221,9 +231,9 @@ pub async fn handle_socket(
                 let json_msg = Message::Text(
                     json!({
                         "userId": user.id,
-                        "user": user.username,
+                        "user": chat_user.username,
                         "message": text.to_string(),
-                        "image": user.image,
+                        "image": chat_user.image,
                     })
                     .to_string()
                     .into(),

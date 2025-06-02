@@ -22,6 +22,13 @@ pub struct UserData {
     created_at: NaiveDateTime,
 }
 
+#[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
+pub struct UserChatData {
+    pub username: String,
+    pub image: String,
+}
+
+
 #[derive(Debug, Deserialize)]
 pub struct LoginUser {
     pub username: String,

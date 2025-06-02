@@ -8,6 +8,7 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -34,8 +35,9 @@ pub async fn join_chat(
     Path(room_id): Path<String>,
     Extension(state): Extension<Arc<RwLock<ChatState>>>,
     Extension(payload): Extension<Payload>,
+    Extension(pool): Extension<PgPool>
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, room_id, state, payload))
+    ws.on_upgrade(move |socket| handle_socket(socket, room_id, state, payload, pool))
 }
 
 pub async fn get_active_rooms(
