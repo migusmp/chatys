@@ -11,7 +11,8 @@ export function initRouter(container) {
     '/': { html: 'static/home.html', js: '/static/js/main.js', css: 'static/styles/index.css' },
     '/chats': { html: 'static/chats.html', js: '/static/js/chats.js', css: 'static/styles/chats.css' },
     '/chats/:roomId': { html: '/static/chat.html', js: '/static/js/chat/chat.js', css: '/static/styles/chat.css' },
-    '/friends' : { html: '/static/friends.html', js: '/static/js/friends.js', css: '/static/styles/friends.css' }
+    '/friends' : { html: '/static/friends.html', js: '/static/js/friends.js', css: '/static/styles/friends.css' },
+    '/profile' : { html: '/static/profile.html', js: '/static/js/profile.js', css: '/static/styles/profile.css' },
   };
 
 

@@ -24,6 +24,10 @@ export function initPage() {
     goto("/friends");
   })
 
+  document.querySelector(".profile").addEventListener("click", () => {
+    goto("/profile");
+  })
+
   const roomInput = document.getElementById("roomNameInput");
   document.getElementById("joinRoomBtn").addEventListener("click", () => {
     if (!roomInput.value.trim()) {
