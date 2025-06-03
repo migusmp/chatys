@@ -1,6 +1,6 @@
-use crate::controller::user_controller::*;
+use crate::controller::user_controller::{*};
 use crate::middlewares::auth::auth;
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post, put};
 use axum::{Router};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
@@ -52,6 +52,16 @@ pub fn user_router(pool: PgPool) -> Router {
                 let pool = pool.clone(); // 👈 clona el pool aquí
                 move |payload, headers, multipart| {
                     upload_image(payload, headers, multipart, pool.clone())
+                }
+            })
+            .route_layer(axum::middleware::from_fn(auth)),
+        )
+        .route(
+            "/delete",
+            delete({
+                let pool = pool.clone();
+                move |payload| {
+                    delete_user_route(payload, pool)
                 }
             })
             .route_layer(axum::middleware::from_fn(auth)),

@@ -27,6 +27,7 @@ use handlers::{login_handler, register_handler, index_handler, spa_fallback};
 
 #[shuttle_runtime::main]
 async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::ShuttleAxum {
+    dotenv::dotenv().ok();
     //let pool = init_db_pool().await;
     // tracing_subscriber::fmt()
     //     .with_max_level(tracing::Level::INFO) // o DEBUG, TRACE

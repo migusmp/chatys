@@ -321,3 +321,11 @@ pub async fn delete_all_db(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM friends").execute(pool).await?;
     Ok(())
 }
+
+pub async fn delete_user(user_id: i32, pool: PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM users WHERE id = $1")
+    .bind(user_id)
+    .execute(&pool)
+    .await?;
+    Ok(())
+}

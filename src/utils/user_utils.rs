@@ -100,9 +100,9 @@ pub async fn create_token_cookie<'a>(name_cookie: &'a str, token: Cow<'a, str>) 
     Cookie::build((name_cookie, token))
         .http_only(true) // Evita que sea accesible desde JavaScript.
         // .same_site(cookie::SameSite::Lax)
-        .same_site(cookie::SameSite::None)
+        .same_site(cookie::SameSite::Lax)
         .secure(true)
-        .partitioned(true)
+        // .partitioned(true)
         .path("/")
         .max_age(time::Duration::days(7))
         .build()
@@ -117,9 +117,13 @@ pub fn append_cookie_to_response(res: &mut Response, cookie: Cookie) {
 }
 
 pub async fn decode_token(auth_token: String) -> Result<Payload, StatusCode> {
+    let secret = std::env::var("SECRET_KEY_JWT").map_err(|e| {
+        eprintln!("Error obteniendo la clave secreta: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     let token_data: TokenData<Payload> = jsonwebtoken::decode(
         &auth_token,
-        &DecodingKey::from_secret("secret".as_ref()),
+        &DecodingKey::from_secret(secret.as_ref()),
         &Validation::default(),
     )
     .map_err(|e| {

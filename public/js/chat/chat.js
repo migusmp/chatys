@@ -41,15 +41,15 @@ export async function initPage(params) {
 
     socket.addEventListener("message", (event) => {
         const msg = JSON.parse(event.data);
-        console.log("MENSAJE ENTRANTE DESDE EL SERVIDOR: ", msg);
         const currentUsername = GlobalState.get('username');
-        const displayName = msg.user === currentUsername ? 'Tú' : msg.user;
+        const isMine = msg.user == currentUsername;
 
         const msgElement = createMessageElement({
             userId: msg.userId,
-            user: displayName,
+            user: isMine ? 'Tú' : msg.user,
             image: msg.image,
-            message: msg.message
+            message: msg.message,
+            isMine: isMine
         });
 
         chatContainer.appendChild(msgElement);

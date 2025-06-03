@@ -23,10 +23,10 @@ export function initPage() {
         modal.classList.add("hidden");
     });
     
-    confirmDelete.addEventListener("click", () => {
+    confirmDelete.addEventListener("click", async () => {
         modal.classList.add("hidden");
         // Aquí va la lógica real para eliminar cuenta
-        alert("Cuenta eliminada (aquí iría la llamada real al backend).");
+        await GlobalState.deleteUserAccount();
     });
 
     modal.addEventListener("click", (event) => {

@@ -7,3 +7,4 @@ assets = [
 
 [secrets]
 DATABASE_URL="postgres://postgres:postgres@localhost:16787/axum_server"
+SECRET_KEY_JWT="sdadakj_19234ÑpoM14I83_.,@?¿98"

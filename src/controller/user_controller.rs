@@ -1,5 +1,5 @@
 use crate::db::db::{
-    get_user_friends, get_user_profile_data, update_name_from_user, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName, UpdateUserPassword
+    delete_user, get_user_friends, get_user_profile_data, update_name_from_user, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName, UpdateUserPassword
 };
 use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, UpdateData};
 use crate::services::user::{login, register};
@@ -77,7 +77,7 @@ pub async fn user_logout() -> impl IntoResponse {
     headers.insert(
         "Set-Cookie",
         HeaderValue::from_static(
-            "auth=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None; Partitioned",
+            "auth=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax",
         ),
     );
 
@@ -222,4 +222,24 @@ pub async fn upload_image(
         ErrorRequest::InternalError
     })?;
     Ok(ApiResponse::success("Image updated"))
+}
+
+pub async fn delete_user_route(
+    Extension(payload): Extension<Payload>,
+    pool: PgPool,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    match delete_user(payload.id, pool).await {
+        Ok(_) => {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                "Set-Cookie",
+                HeaderValue::from_static(
+                    "auth=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax",
+                ),
+            );
+
+            Ok((StatusCode::OK, headers, ApiResponse::success("User deleted successfully")))
+        }
+        Err(_) => Err(ErrorRequest::InternalError),
+    }
 }

@@ -142,6 +142,20 @@ export const GlobalState = (() => {
         window.location.href = "/login";
     }
 
+    async function deleteUserAccount() {
+        try {
+            await fetch('/api/user/delete', {
+                method: "DELETE",
+                credentials: "include",
+            })
+        } catch(e) {
+            console.error("Error al eliminar la cuenta del usuario:",e);
+        }
+
+        GlobalState.clear();
+        window.location.href = "/login";
+    }
+
     async function fetchProfileInfo() {
         return fetch('/api/user/profile', {
             method: 'GET',
@@ -230,6 +244,6 @@ export const GlobalState = (() => {
         on, off, set, get,
         fetchProfileInfo, fetchProfileInfoOnce,
         clear, logout,
-        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState
+        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState, deleteUserAccount
     };
 })();
