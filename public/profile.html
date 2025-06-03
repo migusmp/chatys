@@ -43,12 +43,24 @@
           <label for="joined">Fecha de unión</label>
           <input type="text" id="joined" value="2023-06-02" disabled />
         </div>
+
+        <div id="save-new-data-msg" class="save-new-data-msg hidden"></div>
         
         <div class="buttons-profile">
             <button id="save-profile">Guardar cambios</button>
             <button id="delete-profile">Eliminar cuenta</button>
         </div>
         
+      </div>
+
+      <div id="delete-modal" class="modal hidden">
+        <div class="modal-content">
+          <p>¿Estás seguro de que quieres eliminar tu cuenta?</p>
+          <div class="modal-buttons">
+            <button id="confirm-delete">Sí, eliminar</button>
+            <button id="cancel-delete">Cancelar</button>
+          </div>
+        </div>
       </div>
 </body>
 

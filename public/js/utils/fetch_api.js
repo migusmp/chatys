@@ -11,18 +11,24 @@ export async function sendFriendRequest(userId) {
 }
 
 export async function updateUserData(data) {
-    const encoded = toUrlEncoded(data);
-    await fetch('/api/user/update', {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        credentials: "include",
-        body: encoded
-    })
-    .then(res => res.json())
-    .then(data => console.log("UPDATE RESPONSE:", data))
-    .catch(e => console.error("Error fetching new update data:",e))
+  const encoded = toUrlEncoded(data);
+  try {
+      const res = await fetch('/api/user/update', {
+          method: "PUT",
+          headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+          },
+          credentials: "include",
+          body: encoded
+      });
+
+      const json = await res.json();
+      console.log("UPDATE RESPONSE:", json);
+      return json;
+  } catch (e) {
+      console.error("Error fetching new update data:", e);
+      throw e;
+  }
 }
 
 export function getChangedFields(updated, current) {

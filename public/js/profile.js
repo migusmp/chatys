@@ -7,6 +7,33 @@ export function initPage() {
     const profileImage = document.getElementById("profile-picture");
     const divUploadImage = document.getElementById("upload-success");
     const messageUploadImageSuccessFull = document.getElementById('upload-message');
+    const divSaveUserData = document.getElementById("save-new-data-msg");
+
+    // MODAL ITEMS
+    const deleteBtn = document.getElementById("delete-profile");
+    const modal = document.getElementById("delete-modal");
+    const confirmDelete = document.getElementById("confirm-delete");
+    const cancelDelete = document.getElementById("cancel-delete");
+
+    deleteBtn.addEventListener("click", () => {
+        modal.classList.remove("hidden");
+    });
+    
+    cancelDelete.addEventListener("click", () => {
+        modal.classList.add("hidden");
+    });
+    
+    confirmDelete.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        // Aquí va la lógica real para eliminar cuenta
+        alert("Cuenta eliminada (aquí iría la llamada real al backend).");
+    });
+
+    modal.addEventListener("click", (event) => {
+        if (!event.target.closest(".modal-content")) {
+            modal.classList.add("hidden");
+        }
+    });
 
     const createdAtStr = GlobalState.get('created_at');
     const createdAtDate = createdAtStr ? new Date(createdAtStr) : null;
@@ -112,7 +139,17 @@ export function initPage() {
         console.log("Solo enviar:", changedFields);
 
         try {
-            await updateUserData(changedFields);
+            const data = await updateUserData(changedFields);
+            console.log("DATA RETORNADA: ", data);
+            if (data.status == 'success') {
+                divSaveUserData.classList.remove('hidden');
+                divSaveUserData.style.color = "#00ff6a"; // Verde
+                divSaveUserData.textContent = data.message;
+            } else {
+                divSaveUserData.classList.remove('hidden');
+                divSaveUserData.style.color = "red"; // Verde
+                divSaveUserData.textContent = data.message;
+            }
             await GlobalState.fetchProfileInfo(); // esto hará set(...) y disparará los listeners
         } catch (err) {
             console.error("Error durante la actualización del perfil:", err);
