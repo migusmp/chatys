@@ -221,5 +221,5 @@ pub async fn upload_image(
         eprintln!("Error actualizando la imagen del usuario: {:?}", e);
         ErrorRequest::InternalError
     })?;
-    Ok(ApiResponse::success("Image uploaded successfully"))
+    Ok(ApiResponse::success("Image updated"))
 }

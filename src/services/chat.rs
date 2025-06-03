@@ -19,74 +19,73 @@ pub async fn handle_socket_for_active_rooms(
 
     loop {
         tokio::select! {
-                    _ = interval.tick() => {
-                        let state = state.read().await;
-                        let active_rooms = state.active_rooms();
+                _ = interval.tick() => {
+                    let state = state.read().await;
+                    let active_rooms = state.active_rooms();
+                    let mut enriched_rooms = Vec::new();
 
-                        let mut enriched_rooms = Vec::new();
+                    for room_name in &active_rooms {
+                    let users_in_room = state.rooms.get(room_name)
+                        .map(|room| room.user_count.load(Ordering::SeqCst))
+                        .unwrap_or(0);
 
-        for room_name in &active_rooms {
-            let users_in_room = state.rooms.get(room_name)
-                .map(|room| room.user_count.load(Ordering::SeqCst))
-                .unwrap_or(0);
+                    enriched_rooms.push(json!({
+                        "name": room_name,
+                        "users": users_in_room,
+                    }));
+                }
 
-            enriched_rooms.push(json!({
-                "name": room_name,
-                "users": users_in_room,
-            }));
-        }
+                // Suma total de usuarios activos en todas las salas
+                let total_active_users: usize = state.rooms.values()
+                    .map(|room| room.user_count.load(Ordering::SeqCst))
+                    .sum();
 
-        // Suma total de usuarios activos en todas las salas
-        let total_active_users: usize = state.rooms.values()
-            .map(|room| room.user_count.load(Ordering::SeqCst))
-            .sum();
+                let data = json!({
+                    "rooms_active": enriched_rooms,
+                    "rooms_length": active_rooms.len(),
+                    "users_active": total_active_users,
+                });
 
-        let data = json!({
-            "rooms_active": enriched_rooms,
-            "rooms_length": active_rooms.len(),
-            "users_active": total_active_users,
-        });
-
-                        if let Ok(msg) = serde_json::to_string(&data) {
-                            if sender.send(Message::Text(msg.into())).await.is_err() {
-                                eprintln!("Error enviando estadísticas de salas activas");
-                            }
-                        }
-                    },
-
-                    msg = receiver.next() => {
-                        match msg {
-                            Some(Ok(Message::Text(text))) => {
-                                println!("Mensaje recibido: {}", text);
-                            },
-                            Some(Ok(Message::Binary(data))) => {
-                                println!("Mensaje binario recibido: {:?}", data);
-                            },
-                            Some(Ok(Message::Pong(_))) => {
-                                println!("Pong recibido");
-                            },
-                            Some(Ok(Message::Ping(_))) => {
-                                println!("Ping recibido");
-                            },
-                            Some(Ok(Message::Close(reason))) => {
-                                if let Some(reason) = reason {
-                                    println!("Conexión cerrada: {:?}", reason);
-                                } else {
-                                    println!("Conexión cerrada sin razón");
-                                }
-                                break;
-                            },
-                            Some(Err(e)) => {
-                                eprintln!("Error en recepción del mensaje: {}", e);
-                                break;
-                            },
-                            None => {
-                                eprintln!("Conexión cerrada por el cliente");
-                                break;
-                            }
-                        }
+                if let Ok(msg) = serde_json::to_string(&data) {
+                    if sender.send(Message::Text(msg.into())).await.is_err() {
+                        eprintln!("Error enviando estadísticas de salas activas");
                     }
                 }
+            },
+
+            msg = receiver.next() => {
+                match msg {
+                    Some(Ok(Message::Text(text))) => {
+                        println!("Mensaje recibido: {}", text);
+                    },
+                    Some(Ok(Message::Binary(data))) => {
+                        println!("Mensaje binario recibido: {:?}", data);
+                    },
+                    Some(Ok(Message::Pong(_))) => {
+                        println!("Pong recibido");
+                    },
+                    Some(Ok(Message::Ping(_))) => {
+                        println!("Ping recibido");
+                    },
+                    Some(Ok(Message::Close(reason))) => {
+                        if let Some(reason) = reason {
+                            println!("Conexión cerrada: {:?}", reason);
+                        } else {
+                            println!("Conexión cerrada sin razón");
+                        }
+                        break;
+                    },
+                    Some(Err(e)) => {
+                        eprintln!("Error en recepción del mensaje: {}", e);
+                        break;
+                    },
+                    None => {
+                        eprintln!("Conexión cerrada por el cliente");
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
 

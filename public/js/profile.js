@@ -5,6 +5,8 @@ export function initPage() {
     const profileContainer = document.getElementById("profile-container");
     const fileInput = document.getElementById("file-input");
     const profileImage = document.getElementById("profile-picture");
+    const divUploadImage = document.getElementById("upload-success");
+    const messageUploadImageSuccessFull = document.getElementById('upload-message');
 
     const createdAtStr = GlobalState.get('created_at');
     const createdAtDate = createdAtStr ? new Date(createdAtStr) : null;
@@ -74,6 +76,8 @@ export function initPage() {
     
             const json = await res.json();
             console.log("Imagen subida correctamente:", json);
+            divUploadImage.classList.remove('hidden');
+            messageUploadImageSuccessFull.textContent = json.message;
     
             // (opcional) refrescar el perfil
             await GlobalState.fetchProfileInfo();

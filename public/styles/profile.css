@@ -157,6 +157,20 @@
     background-color: red;
     color: var(--bg-color);
   }
+
+  .upload-success {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #00ff6a;
+    font-weight: bold;
+    font-size: 0.95rem;
+  }
+  
+  .hidden {
+    display: none;
+  }
   
   /* 🌐 Media Queries para responsividad */
   
