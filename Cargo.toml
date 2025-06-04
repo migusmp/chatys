@@ -18,7 +18,7 @@ jsonwebtoken = "9.3.0"
 chrono = "0.4.38"
 headers = "0.4.0"
 reqwest = { version = "0.12", features = ["json"] }
-sqlx = { version = "0.8.3", features = ["macros", "postgres", "runtime-tokio", "time"] }
+sqlx = { version = "0.8.3", features = ["macros", "postgres", "runtime-tokio", "time", "chrono" ] }
 dotenv = "0.15.0"
 rand = "0.8.5"
 uuid = { version = "1.11.1", features = ["v4"] }
@@ -30,6 +30,7 @@ shuttle-shared-db = { version = "0.55.0", features = ["postgres", "sqlx"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 askama = "0.14.0"
+dashmap = "6.1.0"
 
 
 [lib]

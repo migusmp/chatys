@@ -100,9 +100,9 @@ pub async fn create_token_cookie<'a>(name_cookie: &'a str, token: Cow<'a, str>) 
     Cookie::build((name_cookie, token))
         .http_only(true) // Evita que sea accesible desde JavaScript.
         // .same_site(cookie::SameSite::Lax)
-        .same_site(cookie::SameSite::None)
+        .same_site(cookie::SameSite::Lax)
         .secure(true)
-        .partitioned(true)
+        // .partitioned(true)
         .path("/")
         .max_age(time::Duration::days(7))
         .build()
@@ -119,7 +119,7 @@ pub fn append_cookie_to_response(res: &mut Response, cookie: Cookie) {
 pub async fn decode_token(auth_token: String) -> Result<Payload, StatusCode> {
     let token_data: TokenData<Payload> = jsonwebtoken::decode(
         &auth_token,
-        &DecodingKey::from_secret("secret".as_ref()),
+        &DecodingKey::from_secret("sdadakj_19234ÑpoM14I83_.,@?¿98".as_ref()),
         &Validation::default(),
     )
     .map_err(|e| {

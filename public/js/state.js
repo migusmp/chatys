@@ -1,5 +1,5 @@
 export const GlobalState = (() => {
-    const persistKeys = ['isAuthenticated', 'id', 'username', 'name', 'email', 'image', 'theme'];
+    const persistKeys = ['isAuthenticated', 'id', 'username', 'name', 'email', 'image', 'created_at','theme'];
 
     const state = {
         isAuthenticated: localStorage.getItem('isAuthenticated') === 'true',
@@ -8,8 +8,10 @@ export const GlobalState = (() => {
         name: localStorage.getItem('name') || null,
         email: localStorage.getItem('email') || null,
         image: localStorage.getItem('image') || null,
+        created_at: localStorage.getItem('created_at') || null,
         notifications: [],
         friends: [],
+        active_friends: [],
         theme: localStorage.getItem('theme') || 'dark',
     };
 
@@ -18,6 +20,8 @@ export const GlobalState = (() => {
     let socket = null;
 
     async function init() {
+        loadPersistedState();
+        initSocket();
         await fetchProfileInfoOnce();
         await fetchFriendsList();
     }
@@ -26,6 +30,12 @@ export const GlobalState = (() => {
         if (!listeners[key]) listeners[key] = [];
         listeners[key].push(callback);
     }
+
+    function off(key, callback) {
+        if (!listeners[key]) return;
+        listeners[key] = listeners[key].filter(cb => cb !== callback);
+    }
+
 
     function set(key, value) {
         state[key] = value;
@@ -41,20 +51,56 @@ export const GlobalState = (() => {
         return state[key];
     }
 
+    function setMemoryOnly(key, value) {
+        state[key] = value;
+        if (listeners[key]) {
+            listeners[key].forEach(cb => cb(value));
+        }
+    }
+
+    function persist(key, value) {
+        localStorage.setItem(key, value);
+    }
+
+    function setPersistent(key, value) {
+        setMemoryOnly(key, value);
+        if (persistKeys.includes(key)) {
+            persist(key, value);
+        }
+    }
+
+    function loadPersistedState() {
+        persistKeys.forEach(key => {
+            const value = localStorage.getItem(key);
+            if (value !== null) {
+                // Convert boolean strings back to booleans
+                if (key === 'isAuthenticated') {
+                    state[key] = value === 'true';
+                } else {
+                    state[key] = value;
+                }
+            }
+        });
+    }
+
     function updateNotifications(newNotifications) {
         state.notifications.push(...newNotifications);
         if (listeners['notifications']) {
             listeners['notifications'].forEach(cb => cb([...state.notifications]));
         }
     }
-    
+
     function addNotification(notification) {
-        state.notifications.push(notification);
-        if (listeners['notifications']) {
-            listeners['notifications'].forEach(cb => cb([...state.notifications]));
+        const exists = state.notifications.some(n => n.id === notification.id);
+        if (!exists) {
+            state.notifications.push(notification);
+            if (listeners['notifications']) {
+                listeners['notifications'].forEach(cb => cb([...state.notifications]));
+            }
         }
     }
     
+
     function clearNotifications() {
         state.notifications = [];
         if (listeners['notifications']) {
@@ -91,9 +137,23 @@ export const GlobalState = (() => {
         } catch (err) {
             console.error("Error al cerrar sesión en el servidor:", err);
         }
-    
+
         GlobalState.clear();
-        location.reload();
+        window.location.href = "/login";
+    }
+
+    async function deleteUserAccount() {
+        try {
+            await fetch('/api/user/delete', {
+                method: "DELETE",
+                credentials: "include",
+            })
+        } catch(e) {
+            console.error("Error al eliminar la cuenta del usuario:",e);
+        }
+
+        GlobalState.clear();
+        window.location.href = "/login";
     }
 
     async function fetchProfileInfo() {
@@ -105,12 +165,15 @@ export const GlobalState = (() => {
             .then(data => {
                 console.log("Perfil cargado:", data);
                 if (!data?.data) throw new Error('Perfil inválido');
-                set('isAuthenticated', true);
-                set('id', data.data.id);
-                set('username', data.data.username);
-                set('name', data.data.name);
-                set('email', data.data.email);
-                set('image', data.data.image);
+
+                setPersistent('isAuthenticated', true);
+                setPersistent('id', data.data.id);
+                setPersistent('username', data.data.username);
+                setPersistent('name', data.data.name);
+                setPersistent('email', data.data.email);
+                setPersistent('image', data.data.image);
+                setPersistent('created_at', data.data.created_at);
+
                 hasFetched = true;
             })
             .catch(err => {
@@ -129,20 +192,14 @@ export const GlobalState = (() => {
             method: "GET",
             credentials: "include"
         })
-        .then(res => res.json())
-        .then(data => {
-            set('friends', data.data);
-            console.log("Lista de amigos cargada:", GlobalState.get('friends'));
-        })
-        .catch(e => {
-            console.error("Error al cargar la lista de amigos:", e);
-        })
-    }
-
-    async function init() {
-        initSocket();
-        await fetchProfileInfoOnce();
-        await fetchFriendsList();
+            .then(res => res.json())
+            .then(data => {
+                set('friends', data.data);
+                //console.log("Lista de amigos cargada:", GlobalState.get('friends'));
+            })
+            .catch(e => {
+                console.error("Error al cargar la lista de amigos:", e);
+            })
     }
 
     function initSocket() {
@@ -159,9 +216,14 @@ export const GlobalState = (() => {
             console.log('📨 Mensaje del servidor:', event.data);
             try {
                 const msg = JSON.parse(event.data);
-                console.log("Mensaje from /ws:",msg);
+                console.log("Mensaje from /ws:", msg);
                 if (msg.type_msg === 'FR') {
                     addNotification(msg);
+                }
+
+                if (msg.type_msg == 'active_friends') {
+                    set('active_friends', msg.friends);
+                    console.log("Active friends updated:", msg.friends);
                 }
             } catch (e) {
                 console.error('⚠️ Error al parsear JSON:', e);
@@ -179,9 +241,9 @@ export const GlobalState = (() => {
     }
 
     return {
-        on, set, get,
+        on, off, set, get,
         fetchProfileInfo, fetchProfileInfoOnce,
         clear, logout,
-        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket
+        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState, deleteUserAccount
     };
 })();

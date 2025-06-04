@@ -7,11 +7,37 @@ export const WSChat = (() => {
     const sockets = new Map();       // para mensajes de sala
     const statsSockets = new Map();  // para estadísticas de sala
     const roomStats = {};            // usuarios por sala
-    const messages = {};             // historial de mensajes
+    const messages = {};
 
-    function getGeneralStats() {
-        return generalStats;
+    function getSocket(roomId) {
+        return sockets.get(roomId);
     }
+
+    function getStatsSocket(roomId) {
+        return statsSockets.get(roomId);
+    }
+    function leaveRoom(roomId) {
+        const socket = sockets.get(roomId);
+        try {
+            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+                socket.close();
+            }
+        } catch (err) {
+            console.warn(`Error al cerrar socket de ${roomId}`, err);
+        }
+        sockets.delete(roomId);
+
+        const statsSocket = statsSockets.get(roomId);
+        try {
+            if (statsSocket && (statsSocket.readyState === WebSocket.OPEN || statsSocket.readyState === WebSocket.CONNECTING)) {
+                statsSocket.close();
+            }
+        } catch (err) {
+            console.warn(`Error al cerrar stats socket de ${roomId}`, err);
+        }
+        statsSockets.delete(roomId);
+    }
+
 
     function getGeneralStats() {
         return generalStats;
@@ -27,7 +53,7 @@ export const WSChat = (() => {
 
     function connectGeneralStats(onData) {
         generalStatsCallback = onData;
-        
+
         generalStatsSocket = new WebSocket(`${protocol}://${location.host}/api/chat/active-rooms`);
 
         generalStatsSocket.onmessage = (event) => {
@@ -36,7 +62,7 @@ export const WSChat = (() => {
                 generalStats = {
                     activeRooms: data.rooms_active,
                     totalRooms: data.rooms_length,
-                    activeUsers: data.users_active.length,
+                    activeUsers: data.users_active,
                 };
 
                 if (generalStatsCallback) {
@@ -54,13 +80,73 @@ export const WSChat = (() => {
         generalStatsSocket.onclose = () => {
             console.log("Conexión de estadísticas generales cerrada");
         };
+        // Retornamos la función para desconectar y limpiar todo
+        return generalStatsSocket;
+    }
+
+    function closeRoomConnections(roomId) {
+        const oldSocket = sockets.get(roomId);
+        if (oldSocket) {
+            oldSocket.close();
+            sockets.delete(roomId);
+        }
+
+        const oldStatsSocket = statsSockets.get(roomId);
+        if (oldStatsSocket) {
+            oldStatsSocket.close();
+            statsSockets.delete(roomId);
+        }
+    }
+
+    function joinChat(friend_id) {
+        const existing = sockets.get(friend_id);
+        if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+            console.warn(`Ya existe una conexión activa o en proceso con el amigo: ${friend_id}`);
+            return existing;
+        }
+
+        // Cierra conexiones previas con este amigo
+        closeRoomConnections(friend_id);
+
+        const socket = new WebSocket(`${protocol}://${location.host}/ws/${friend_id}`);
+        sockets.set(friend_id, socket);
+
+        socket.onopen = () => {
+            console.log(`Conexión WebSocket abierta con el amigo: ${friend_id}`);
+        };
+
+        socket.onmessage = (e) => {
+            console.log("MESNAJEEEE:", e);
+            if (!messages[friend_id]) messages[friend_id] = [];
+            try {
+                const parsed = JSON.parse(e.data);
+                messages[friend_id].push(parsed);
+            } catch {
+                messages[friend_id].push({ message: e.data });
+            }
+        };
+
+        socket.onerror = (e) => {
+            if (socket.readyState !== WebSocket.CLOSING && socket.readyState !== WebSocket.CLOSED) {
+                console.error(`Error en chat con ${friend_id}:`, e);
+            }
+        };
+
+        socket.onclose = () => {
+            console.log(`Conexión cerrada con el amigo: ${friend_id}`);
+            sockets.delete(friend_id);
+        };
+
+        return socket;
     }
 
     function joinRoom(roomId) {
-        if (sockets.has(roomId)) {
-            console.log(`Ya estás conectado a la sala: ${roomId}`);
-            return sockets.get(roomId);
+        const existing = sockets.get(roomId);
+        if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+            console.warn(`Ya existe una conexión activa o en proceso para la sala: ${roomId}`);
+            return existing;
         }
+        closeRoomConnections(roomId);
 
         const socket = new WebSocket(`${protocol}://${location.host}/api/chat/join/${roomId}`);
         sockets.set(roomId, socket);
@@ -70,7 +156,7 @@ export const WSChat = (() => {
         };
 
         socket.onmessage = (e) => {
-            console.log(`Mensaje recibido en ${roomId}:`, e.data);
+            //console.log(`Mensaje recibido en ${roomId}:`, e.data);
             if (!messages[roomId]) messages[roomId] = [];
             try {
                 const parsed = JSON.parse(e.data);
@@ -81,11 +167,14 @@ export const WSChat = (() => {
         };
 
         socket.onerror = (e) => {
-            console.error(`Error en la sala ${roomId}:`, e);
+            if (socket.readyState !== WebSocket.CLOSING && socket.readyState !== WebSocket.CLOSED) {
+                console.error(`Error en la sala ${roomId}:`, e);
+            }
         };
 
         socket.onclose = () => {
             console.log(`Conexión cerrada para la sala: ${roomId}`);
+            // sockets.delete(roomId);
             sockets.delete(roomId);
         };
 
@@ -96,7 +185,7 @@ export const WSChat = (() => {
             roomStats[roomId] = {
                 users: parseInt(e.data, 10),
             };
-            console.log(`Estadísticas de ${roomId}:`, roomStats[roomId]);
+            //console.log(`Estadísticas de ${roomId}:`, roomStats[roomId]);
 
             // Actualiza UI si ya se están mostrando salas
             const roomElem = document.querySelector(`[data-room-id="${roomId}"]`);
@@ -114,6 +203,7 @@ export const WSChat = (() => {
 
         statsSocket.onclose = () => {
             console.log(`Conexión de estadísticas cerrada para ${roomId}`);
+            // statsSockets.delete(roomId);
             statsSockets.delete(roomId);
         };
 
@@ -126,6 +216,16 @@ export const WSChat = (() => {
             socket.send(msg);
         } else {
             console.error(`No se puede enviar el mensaje, socket no conectado para ${roomId}`);
+        }
+    }
+
+    function sendMessageToFriend(friend_id, msg) {
+        const socket = sockets.get(friend_id);
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const payload = JSON.stringify({ content: msg }); // solo envías el contenido
+            socket.send(payload);
+        } else {
+            console.error(`No se puede enviar el mensaje, socket no conectado para ${friend_id}`);
         }
     }
 
@@ -161,5 +261,10 @@ export const WSChat = (() => {
         getGeneralStats,
         getRoomStats,
         getMessages,
+        getStatsSocket,
+        getSocket,
+        leaveRoom,
+        joinChat,
+        sendMessageToFriend,
     };
 })();

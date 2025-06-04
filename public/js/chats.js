@@ -1,133 +1,63 @@
-import { WSChat } from './ws_chat.js';
-import { GlobalState } from './state.js';
+import { WSChat } from "./api/ws_chat.js";
+import { renderActiveRooms, renderChatStats } from "./components/chat.js";
+import { initProfileMenu } from "./components/profileMenu.js";
+import { destroyNotifications, initNotifications } from "./components/notifications.js";
+import { GlobalState } from "./state.js";
+import { goto } from "./router.js";
+import { initFriendsMenu } from "./components/friendsMenu.js";
 
-const profileIcon = document.querySelector('.profile-icon');
-const username = document.querySelector('.username');
-const profileMenu = document.getElementById('profileMenu');
+let generalStatsSocket = null;
 
-function toggleMenu() {
-    profileMenu.classList.toggle('show');
+export function initPage() {
+  document.querySelector('.username').textContent = GlobalState.get('username');
+  const userImg = document.querySelector('.user-image');
+  const img = document.createElement('img');
+  img.src = `/media/user/${GlobalState.get('image')}`; // cambia esta ruta
+  img.alt = `image-${GlobalState.get('username')}`;
+  img.width = 32;
+  img.height = 32;
+  img.className = "profile-icon";
+  img.style.borderRadius = '50%';
+
+  userImg.appendChild(img);
+  document.querySelector(".friends").addEventListener("click", () => {
+    goto("/friends");
+  })
+
+  document.querySelector(".profile").addEventListener("click", () => {
+    goto("/profile");
+  })
+
+  document.getElementById("dm-btn").addEventListener("click", () => {
+    goto("/dm");
+  })
+
+  const roomInput = document.getElementById("roomNameInput");
+  document.getElementById("joinRoomBtn").addEventListener("click", () => {
+    if (!roomInput.value.trim()) {
+      alert("Por favor, ingresa un nombre de sala.");
+      return;
+    }
+    goto(`/chats/${roomInput.value.trim()}`);
+    roomInput.value = ""; // Limpiar el input después de unirse
+
+  })
+  // Crear la conexión y asignarla a la variable
+  generalStatsSocket = WSChat.connectGeneralStats((stats) => {
+    renderChatStats(stats);
+    renderActiveRooms(stats.activeRooms);
+  });
+  GlobalState.initSocket();
+  initNotifications();
+  initProfileMenu();
+  initFriendsMenu();
 }
 
-profileIcon.addEventListener('click', toggleMenu);
-username.addEventListener('click', toggleMenu);
-
-// Cerrar al hacer clic fuera
-document.addEventListener('click', (e) => {
-    if (!profileMenu.contains(e.target) && e.target !== profileIcon && e.target !== username) {
-        profileMenu.classList.remove('show');
-    }
-});
-
-document.querySelector(".logout").addEventListener("click", () => {
-    GlobalState.logout();
-})
-
-const totalRoomsDiv = document.getElementById("totalRooms");
-const activeRoomsDiv = document.getElementById("activeRooms");
-const activeUsersDiv = document.getElementById("usersActive");
-
-const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    GlobalState.fetchProfileInfoOnce();
-    GlobalState.initSocket();
-
-    GlobalState.on("username", (newUsername) => {
-        console.log("Nombre de usuario actualizado:", newUsername);
-        document.querySelector(".username").textContent = newUsername;
-    });// Poner el nombre de usuario logueado en el apartado del perfil
-
-    GlobalState.on('notifications', (notifications) => {
-        console.log(notifications) // tu función para actualizar la UI
-    });
-
-    WSChat.connectGeneralStats((stats) => {
-        // Actualiza el DOM con los datos recibidos
-        totalRoomsDiv.textContent = stats.totalRooms;
-        activeRoomsDiv.textContent = stats.activeRooms.length;
-        activeUsersDiv.textContent = stats.activeUsers || 0;
-        renderActiveRooms(stats.activeRooms);
-    });
-    const socket = new WebSocket(`${protocol}://${location.host}/ws`);
-
-    socket.onopen = () => {
-        console.log('Conexión WebSocket establecida');
-        // Por ejemplo, enviar un mensaje al servidor al conectarte:
-        // socket.send(JSON.stringify({ type: 'hello', payload: 'Hola servidor' }));
-    };
-
-    // REcibir mensajes del servidor
-    socket.onmessage = (event) => {
-        console.log('Mensaje recibido del servidor:', event.data);
-        const msg = JSON.parse(event.data);
-
-        // Si es una notificación, guárdala
-        if (msg.type_msg === "FR") {
-            GlobalState.addNotification(msg);
-        }
-        // Aquí puedes actualizar la UI con la info recibida
-    };
-
-    socket.onerror = (error) => {
-        console.error('Error en WebSocket:', error);
-    };
-
-    socket.onclose = () => {
-        console.log('Conexión WebSocket cerrada');
-    };
-
-    // Actualizar los contadores al cargar la página
-    activeRoomsDiv.textContent = WSChat.getGeneralStats() ? WSChat.getGeneralStats().activeRooms : 'Cargando...';
-
-    const joinBtn = document.getElementById("joinRoomBtn");
-    const roomInput = document.getElementById("roomNameInput");
-    document.querySelector(".username").textContent = GlobalState.get("username") || "Invitado";
-
-
-
-    joinBtn.addEventListener("click", () => {
-        if (!roomInput.value.trim()) {
-            alert("Por favor, ingresa un nombre de sala.");
-            return;
-        }
-        window.location.href = `static/chat.html?room=${encodeURIComponent(roomInput.value.trim())}`;
-        roomInput.value = ""; // Limpiar el input después de unirse
-    });
-
-});
-
-const roomsContainer = document.getElementById("roomsContainer");
-
-// Renderizar salas
-function renderActiveRooms(rooms) {
-    const container = document.getElementById("roomsContainer");
-    container.innerHTML = ""; // Limpiar antes de volver a pintar
-    if (rooms.length === 0) {
-        container.innerHTML = "<p>No hay salas activas.</p>";
-        return;
-    }
-    rooms.forEach((room) => {
-        const card = document.createElement("div");
-        card.className = "room-card";
-
-        card.innerHTML = `
-        <h3>${room.name}</h3>
-        <p>Usuarios: ${room.users}</p>
-        <button>Unirse</button>
-      `;
-
-        // Añadir evento al botón "Unirse"
-        const joinButton = card.querySelector("button");
-        joinButton.addEventListener("click", () => {
-            WSChat.joinRoom(room.name); // Esta función debe existir ya en tu código
-            window.location.href = `static/chat.html?room=${encodeURIComponent(room.name)}`;
-        });;
-
-        container.appendChild(card);
-    });
+export function destroyPage() {
+  if (generalStatsSocket) {
+    generalStatsSocket.close();  // Cierra el WebSocket
+    generalStatsSocket = null;
+  }
+  destroyNotifications();
 }
 
-// Puedes llamarlo cuando recibas las salas activas del servidor:
-renderActiveRooms(WSChat.getGeneralStats() ? WSChat.getGeneralStats() : []);

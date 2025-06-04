@@ -4,18 +4,19 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="static/styles/chats.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <title>Chat WebSocket</title>
 </head>
 
 <body>
+    <link rel="stylesheet" href="static/styles/chats.css" data-router-style />
     <header class="app-header">
         <div class="header-left">
             <i class="fab fa-rust rust-icon"></i>
             <span class="title">Rusty Chats</span>
         </div>
         <div class="header-right">
+            <span id="dm-btn">DM</span>
             <div class="notification-wrapper">
                 <i class="fas fa-bell notification-icon" style="color: #3a99dd;"></i>
                 <span class="notification-count" id="notificationCount">0</span>
@@ -25,13 +26,13 @@
                 </div>
             </div>
 
-            <i class="fas fa-user-circle profile-icon"></i>
+            <span class="user-image"></span>
             <span class="username"></span>
 
             <div class="profile-menu" id="profileMenu">
                 <ul>
-                    <li><a href="#">Perfil</a></li>
-                    <li><a href="/friends">Amigos</a></li>
+                    <li class="profile"><a>Perfil</a></li>
+                    <li class="friends"><a>Amigos</a></li>
                     <li><a href="#">Configuración</a></li>
                     <li class="logout"><a href="#">Cerrar Sesión</a></li>
                 </ul>
@@ -41,27 +42,36 @@
     </header>
 
     <div class="main-content">
-        <div id="generalStats">
-            <h2>Estadísticas Generales</h2>
-            <p><strong>Salas totales:</strong> <span id="totalRooms">0</span></p>
-            <p><strong>Salas activas:</strong> <span id="activeRooms">N/A</span></p>
-            <p><strong>Usuarios activos:</strong> <span id="usersActive">0</span></p>
-        </div>
+        <div class="top-section">
+            <div class="left-column">
+                <div id="generalStats">
+                    <h2>Estadísticas Generales</h2>
+                    <p><strong>Salas totales:</strong> <span id="totalRooms">0</span></p>
+                    <p><strong>Salas activas:</strong> <span id="activeRooms">N/A</span></p>
+                    <p><strong>Usuarios activos:</strong> <span id="usersActive">0</span></p>
+                </div>
 
-        <div id="roomSelector">
-            <h2>Unirse a una Sala</h2>
-            <label>
-                Nombre de la sala:
-                <input type="text" id="roomNameInput" placeholder="Ej: sala1" />
-            </label>
-            <button id="joinRoomBtn">Unirse</button>
+                <div id="roomSelector">
+                    <h2>Unirse a una Sala</h2>
+                    <label>
+                        Nombre de la sala:
+                        <input type="text" id="roomNameInput" placeholder="Ej: sala1" />
+                    </label>
+                    <button id="joinRoomBtn">Unirse</button>
+                </div>
+            </div>
+
+            <div id="friendsSection">
+                <h2>Amigos</h2>
+                <ul>
+                </ul>
+            </div>
         </div>
 
         <div id="roomsContainer"></div>
-        
+
     </div>
-    <script type="module" src="static/js/chats.js"></script>
-    <script type="module" src="static/js/notifications.js"></script>
+    <!-- <script type="module" src="static/js/chats.js"></script> -->
 </body>
 
 </html>

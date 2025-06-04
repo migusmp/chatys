@@ -1,6 +1,7 @@
 use crate::utils::jwt::generate_token;
 use crate::utils::responses::ErrorResponse;
 use axum::{http::StatusCode, response::IntoResponse, Json};
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Clone)]
@@ -18,7 +19,15 @@ pub struct UserData {
     name: String,
     email: String,
     image: String,
+    created_at: NaiveDateTime,
 }
+
+#[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
+pub struct UserChatData {
+    pub username: String,
+    pub image: String,
+}
+
 
 #[derive(Debug, Deserialize)]
 pub struct LoginUser {

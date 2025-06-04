@@ -1,50 +1,27 @@
-use serde::{Deserialize, Serialize};
+use dashmap::DashMap;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
 
-use crate::services::ws::notify_user_with_active_friends;
-
-#[derive(Serialize, Deserialize)]
-pub struct FriendNotification {
-    pub id: Option<i32>,
-    pub type_msg: String,
-    pub status: String,
-    pub user_id: i32,
-    pub sender_id: i32,
-    pub user_username: String,
-    pub message: String,
-}
-#[derive(Serialize, Deserialize, sqlx::FromRow, Debug)]
-pub struct FriendNotificationRow {
-    pub id: i32,
-    pub type_msg: String,
-    pub status: String,
-    pub user_id: i32,
-    pub sender_id: i32,
-    pub sender_name: Option<String>,
-    pub message: String,
-}
-
-pub struct AppConfig {
-    pub app_name: String,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            app_name: String::from("Migus App"),
-        }
-    }
-}
+use crate::{
+    services::ws::notify_user_with_active_friends,
+    state::{
+        chat_message::ChatMessage,
+        types::{
+            AppConfig, DirectMessageChannels, FriendNotification, FriendNotificationRow,
+            UndeliveredMessages,
+        },
+    },
+};
 
 pub struct AppState {
     pub db_pool: PgPool,
+    pub direct_message_channels: DirectMessageChannels, // AÑADIDO RECIENTEMENTE
     pub global_broadcast: broadcast::Sender<String>,
     pub connected_users: Arc<Mutex<HashMap<i32, mpsc::Sender<String>>>>,
     pub friend_notifications: Arc<Mutex<HashMap<i32, mpsc::Sender<String>>>>,
-    pub undelivered_messages: Arc<Mutex<HashMap<i32, Vec<String>>>>,
+    pub undelivered_messages: UndeliveredMessages,
     pub config: AppConfig,
 }
 
@@ -58,8 +35,42 @@ impl AppState {
             friend_notifications: Arc::new(Mutex::new(HashMap::new())),
             undelivered_messages: Arc::new(Mutex::new(HashMap::new())),
             config: AppConfig::default(),
+            direct_message_channels: DashMap::new(),
         }
     }
+
+    // <------------------------- FUNCIONES PARA DIRECT_MESSAGE_CHANNELS ---------------------------->
+
+    pub fn register_user_channel(&self, user_id: i32) -> mpsc::Receiver<ChatMessage> {
+        let (tx, rx) = mpsc::channel(100);
+        self.direct_message_channels.insert(user_id, tx);
+        rx
+    }
+
+    pub fn unregister_user_channel(&self, user_id: i32) {
+        self.direct_message_channels.remove(&user_id);
+    }
+
+    pub async fn send_direct_message(&self, message: ChatMessage) {
+        // Enviar al receptor (to_user)
+        if let Some(sender) = self.direct_message_channels.get(&message.to_user) {
+            if sender.send(message.clone()).await.is_err() {
+                println!("❌ Error enviando mensaje a {}", message.to_user);
+                self.store_undelivered_message(message.to_user, message.content.clone())
+                    .await;
+            }
+        }
+
+        // Enviar al emisor (from_user)
+        if let Some(sender) = self.direct_message_channels.get(&message.from_user) {
+            if sender.send(message.clone()).await.is_err() {
+                println!("❌ Error enviando mensaje a {}", message.from_user);
+                // Este mensaje no es "no entregado" realmente, pero puedes almacenarlo si lo deseas
+            }
+        }
+    }
+
+    // <--------------------------------------------------------------------------------------------->
 
     // Agrega una conexión del usuario aconnected_users
     pub async fn add_user_connection(&self, user_id: i32, sender: mpsc::Sender<String>) {
@@ -108,10 +119,7 @@ impl AppState {
         let notifications_map = self.friend_notifications.lock().await;
         if let Some(sender) = notifications_map.get(&user_id) {
             for notif in notifications {
-                println!(
-                    "Entregando notificación a usuario {}: {:?}",
-                    user_id, notif
-                );
+                println!("Entregando notificación a usuario {}: {:?}", user_id, notif);
                 // 3. Convertir a FriendNotification y luego a JSON
                 let notification = FriendNotificationRow {
                     id: notif.id,
@@ -159,7 +167,10 @@ impl AppState {
             message: message_text,
         };
 
-        println!("Usuario que ha enviado la solicitud: id: {}, nombre: {}", user_id, user_username);
+        println!(
+            "Usuario que ha enviado la solicitud: id: {}, nombre: {}",
+            user_id, user_username
+        );
 
         let inserted_id = match self
             .insert_friend_notification_to_db(
@@ -183,7 +194,6 @@ impl AppState {
 
         // Guardar en la base de datos
         // TODO
-        
 
         let mut notifications = self.friend_notifications.lock().await;
         if let Some(sender) = notifications.get(&friend_id) {
@@ -195,7 +205,7 @@ impl AppState {
                     drop(notifications); // liberar lock antes de await
                     self.store_undelivered_message(friend_id, json_message)
                         .await;
-                    return Err(format!("Unable to send notification to {}", friend_id))
+                    return Err(format!("Unable to send notification to {}", friend_id));
                 }
             }
         } else {
@@ -273,12 +283,9 @@ impl AppState {
     }
 
     pub async fn get_user_friends(&self, user_id: i32) -> Result<Vec<i32>, sqlx::Error> {
-        let friends = sqlx::query!(
-            "SELECT friend_id FROM friends WHERE user_id = $1",
-            user_id
-        )
-        .fetch_all(&self.db_pool)
-        .await?;
+        let friends = sqlx::query!("SELECT friend_id FROM friends WHERE user_id = $1", user_id)
+            .fetch_all(&self.db_pool)
+            .await?;
 
         Ok(friends.into_iter().map(|f| f.friend_id).collect())
     }

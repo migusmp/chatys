@@ -1,14 +1,16 @@
-use crate::models::chat::ChatState;
 use crate::models::user::Payload;
-use axum::{body::Bytes, extract::ws::{Message, WebSocket}};
+use crate::{db::db::get_user_chat_data, models::chat::ChatState};
+use axum::extract::ws::{Message, WebSocket};
 
 use futures::{SinkExt, StreamExt};
 use serde_json::json;
+use sqlx::PgPool;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 
 pub async fn handle_socket_for_active_rooms(
-    socket: WebSocket,
+    socket: axum::extract::ws::WebSocket,
     state: Arc<RwLock<ChatState>>,
     _user: Payload,
 ) {
@@ -17,64 +19,73 @@ pub async fn handle_socket_for_active_rooms(
 
     loop {
         tokio::select! {
-                    _ = interval.tick() => {
-                        let state = state.read().await;
-                        let (rooms_active, users_active, rooms_active_length) = state.active_rooms();
-        let mut enriched_rooms = Vec::new();
+                _ = interval.tick() => {
+                    let state = state.read().await;
+                    let active_rooms = state.active_rooms();
+                    let mut enriched_rooms = Vec::new();
 
-        for room in &rooms_active {
-            let user_count = state.get_room_user_count(room);
-            enriched_rooms.push(json!({
-                "name": room,
-                "users": user_count,
-            }));
-        }
+                    for room_name in &active_rooms {
+                    let users_in_room = state.rooms.get(room_name)
+                        .map(|room| room.user_count.load(Ordering::SeqCst))
+                        .unwrap_or(0);
 
-        let data = json!({
-            "rooms_active": enriched_rooms,
-            "rooms_length": rooms_active_length,
-            "users_active": users_active,
-        });
-                        // Parse JSON to String.
-                        if let Ok(msg) = serde_json::to_string(&data) {
-                            if sender.send(Message::Text(msg.into())).await.is_err() {
-                                eprintln!("Error to send rooms active stats");
-                            }
-                        }
-                    }
-                    msg = receiver.next() => {
-                        match msg {
-                            Some(Ok(Message::Text(text))) => {
-                                println!("Mensaje recibido: {}", text);
-                            },
-                            Some(Ok(Message::Binary(data))) => {
-                                println!("Mensaje binario recibido: {:?}", data);
-                            },
-                            Some(Ok(Message::Pong(_))) => {
-                                println!("Pong recibido");
-                            },
-                            Some(Ok(Message::Ping(_))) => {
-                                println!("Ping recibido");
-                            }
-                            Some(Ok(Message::Close(reason))) => {
-                                if let Some(reason) = reason {
-                                    println!("Conexión cerrada: {:?}", reason);
-                                } else {
-                                    println!("Conexión cerrada sin razón");
-                                }
-                                break; // Salir si la conexión se cierra
-                            },
-                            Some(Err(e)) => {
-                                eprintln!("Error en la recepción del mensaje: {}", e);
-                                break; // Salir si hay error en la recepción
-                            },
-                            None => {
-                                eprintln!("Conexión cerrada por el cliente");
-                                break; // La conexión se ha cerrado
-                            }
-                        }
+                    enriched_rooms.push(json!({
+                        "name": room_name,
+                        "users": users_in_room,
+                    }));
+                }
+
+                // Suma total de usuarios activos en todas las salas
+                let total_active_users: usize = state.rooms.values()
+                    .map(|room| room.user_count.load(Ordering::SeqCst))
+                    .sum();
+
+                let data = json!({
+                    "rooms_active": enriched_rooms,
+                    "rooms_length": active_rooms.len(),
+                    "users_active": total_active_users,
+                });
+
+                if let Ok(msg) = serde_json::to_string(&data) {
+                    if sender.send(Message::Text(msg.into())).await.is_err() {
+                        eprintln!("Error enviando estadísticas de salas activas");
                     }
                 }
+            },
+
+            msg = receiver.next() => {
+                match msg {
+                    Some(Ok(Message::Text(text))) => {
+                        println!("Mensaje recibido: {}", text);
+                    },
+                    Some(Ok(Message::Binary(data))) => {
+                        println!("Mensaje binario recibido: {:?}", data);
+                    },
+                    Some(Ok(Message::Pong(_))) => {
+                        println!("Pong recibido");
+                    },
+                    Some(Ok(Message::Ping(_))) => {
+                        println!("Ping recibido");
+                    },
+                    Some(Ok(Message::Close(reason))) => {
+                        if let Some(reason) = reason {
+                            println!("Conexión cerrada: {:?}", reason);
+                        } else {
+                            println!("Conexión cerrada sin razón");
+                        }
+                        break;
+                    },
+                    Some(Err(e)) => {
+                        eprintln!("Error en recepción del mensaje: {}", e);
+                        break;
+                    },
+                    None => {
+                        eprintln!("Conexión cerrada por el cliente");
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -145,16 +156,25 @@ pub async fn handle_socket(
     socket: WebSocket,
     room_id: String,
     state: Arc<RwLock<ChatState>>,
-    user: Payload,
+    user: Payload, // Aquí asumo que Payload tiene campos .id y .username
+    pool: PgPool,
 ) {
-    let (sender_ws, mut receiver_ws) = socket.split();
+    let (mut sender_ws, mut receiver_ws) = socket.split();
 
     // Canal unidireccional para enviar mensajes al cliente
     let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
 
-    // Spawn para escribir en WebSocket desde el canal
+    // Obtener datos del usuario para chat (como username, imagen, etc)
+    let chat_user = match get_user_chat_data(user.id, &pool).await {
+        Ok(data) => data,
+        Err(e) => {
+            eprintln!("Error obteniendo datos del usuario para el chat: {}", e);
+            return;
+        }
+    };
+
+    // Spawn para enviar mensajes al WebSocket del cliente
     let send_task = tokio::spawn(async move {
-        let mut sender_ws = sender_ws;
         while let Some(msg) = rx.recv().await {
             if let Err(e) = sender_ws.send(msg).await {
                 eprintln!("Error enviando mensaje al cliente: {}", e);
@@ -163,29 +183,29 @@ pub async fn handle_socket(
         }
     });
 
-    let user_channel = {
-        let mut state = state.write().await;
-        state.join_room(&room_id, user.username.clone())
+    // El usuario se une a la sala y se incrementa el contador
+    let mut user_channel_rx = {
+        let mut state_guard = state.write().await;
+        state_guard.join_room(&room_id)
     };
 
-    let join_msg = Message::Text(json!({
-        "user": "system",
-        "message": format!("{} joined the chat.", user.username)
-    }).to_string().into());
-
+    // Enviar mensaje de "usuario unido" a la sala
     {
-        let state = state.read().await;
-        if let Some(room) = state.rooms.get(&room_id) {
-            for (user_id, sender) in &room.users {
-                if let Err(e) = sender.send(join_msg.clone()) {
-                    eprintln!("Error enviando mensaje de bienvenida a {}: {}", user_id, e);
-                }
-            }
+        let state_guard = state.read().await;
+        if let Some(room) = state_guard.rooms.get(&room_id) {
+            let join_msg = Message::Text(
+                json!({
+                    "user": "system",
+                    "message": format!("{} joined the chat.", user.username)
+                })
+                .to_string()
+                .into(),
+            );
+            let _ = room.broadcaster.send(join_msg);
         }
     }
 
-    // Suscripción a canal de la sala
-    let mut user_channel_rx = user_channel.subscribe();
+    // Suscribirse para recibir mensajes broadcast de la sala y enviarlos al cliente
     let tx_clone = tx.clone();
     tokio::spawn(async move {
         while let Ok(msg) = user_channel_rx.recv().await {
@@ -195,13 +215,13 @@ pub async fn handle_socket(
         }
     });
 
-    // Keep-alive: enviar Ping cada 30s
+    // Keep-alive: enviar ping cada 30 segundos para mantener la conexión viva
     let tx_ping = tx.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
         loop {
             interval.tick().await;
-            if tx_ping.send(Message::Ping(Bytes::from(vec![]))).is_err() {
+            if tx_ping.send(Message::Ping(Vec::new().into())).is_err() {
                 break;
             }
         }
@@ -211,54 +231,63 @@ pub async fn handle_socket(
     while let Some(Ok(msg)) = receiver_ws.next().await {
         match msg {
             Message::Text(text) => {
-                let json_msg = Message::Text(json!({
-                    "userId": user.id,
-                    "user": user.username,
-                    "message": text.to_string(),
-                    "image": user.image,
-                }).to_string().into());
+                let json_msg = Message::Text(
+                    json!({
+                        "userId": user.id,
+                        "user": chat_user.username,
+                        "message": text.to_string(),
+                        "image": chat_user.image,
+                    })
+                    .to_string()
+                    .into(),
+                );
 
-                let state = state.read().await;
-                if let Some(room) = state.rooms.get(&room_id) {
-                    for (user_id, sender) in &room.users {
-                        if let Err(e) = sender.send(json_msg.clone()) {
-                            eprintln!("Error enviando mensaje a {}: {}", user_id, e);
-                        }
-                    }
+                // Broadcast a todos los usuarios de la sala
+                let state_guard = state.read().await;
+                if let Some(room) = state_guard.rooms.get(&room_id) {
+                    let _ = room.broadcaster.send(json_msg);
                 }
             }
             Message::Binary(_) => {
-                // Similar al anterior, puedes manejarlo igual
+                // Puedes implementar el manejo si quieres
             }
             Message::Ping(_) | Message::Pong(_) => {
-                // Ignorar, ya que son automáticos
+                // Ignorar, se maneja automáticamente
             }
-            Message::Close(_) => break,
+            Message::Close(_) => {
+                // Mandar close al canal de envío
+                let _ = tx.send(Message::Close(None));
+                break;
+            }
         }
     }
 
-    // Cleanup
-{
-    let mut state = state.write().await;
-    if let Some(room) = state.rooms.get_mut(&room_id) {
-        room.users.remove(&user.username);
+    // Usuario se desconecta: decrementamos contador y limpiamos estado
+    {
+        let mut state_guard = state.write().await;
+        state_guard.leave_room(&room_id);
 
-        let leave_msg = Message::Text(json!({
-            "user": "system",
-            "message": format!("{} left the chat.", user.username)
-        }).to_string().into());
+        if let Some(room) = state_guard.rooms.get(&room_id) {
+            let leave_msg = Message::Text(
+                json!({
+                    "user": "system",
+                    "message": format!("{} left the chat.", user.username)
+                })
+                .to_string()
+                .into(),
+            );
+            let _ = room.broadcaster.send(leave_msg);
 
-        for (user_id, sender) in &room.users {
-            if let Err(e) = sender.send(leave_msg.clone()) {
-                eprintln!("Error enviando mensaje de salida a {}: {}", user_id, e);
+            // Si no quedan usuarios, eliminar sala (opcional)
+            if room.user_count.load(Ordering::SeqCst) == 0 && room_id != "Global" {
+                state_guard.rooms.remove(&room_id);
             }
         }
-
-        if room.users.is_empty() && room_id != "Global" {
-            state.rooms.remove(&room_id);
-        }
     }
-}
 
-    let _ = send_task.await;
+    drop(tx);
+
+    if let Err(e) = send_task.await {
+        eprintln!("Error en task de envío: {}", e);
+    }
 }

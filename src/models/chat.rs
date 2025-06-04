@@ -1,7 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{atomic::{AtomicUsize, Ordering}, Arc}};
 
 use axum::extract::ws::Message;
 use tokio::sync::broadcast;
+
+const BROADCAST_CAPACITY: usize = 100;
 
 #[derive(Default)]
 pub struct ChatState {
@@ -10,64 +12,57 @@ pub struct ChatState {
 
 #[derive(Clone)]
 pub struct Room {
-    pub users: HashMap<String, broadcast::Sender<Message>>,
+    pub broadcaster: broadcast::Sender<Message>,
+    pub user_count: Arc<AtomicUsize>,
 }
 
 impl ChatState {
-    // Crear una nueva sala.
+    // Crear una nueva sala
     pub fn create_room(&mut self, room_id: String) {
-        self.rooms.insert(
-            room_id,
-            Room {
-                users: HashMap::new(),
-            },
-        );
+        let (tx, _) = broadcast::channel(BROADCAST_CAPACITY);
+        self.rooms.insert(room_id, Room { 
+            broadcaster: tx,
+            user_count: Arc::new(AtomicUsize::new(0)),
+        });
     }
 
-    pub fn join_room(&mut self, room_id: &str, user_id: String) -> broadcast::Sender<Message> {
-        // Asegurar que la sala exista
-        let room = self
-            .rooms
-            .entry(room_id.to_string())
-            .or_insert_with(|| Room {
-                users: HashMap::new(),
-            });
-
-        // Si el usuario ya existe, devolver su canal existente
-        if let Some(existing_sender) = room.users.get(&user_id) {
-            existing_sender.clone()
-        } else {
-            // Crear un nuevo canal y añadirlo al mapa de usuarios
-            let (tx, _rx) = broadcast::channel(52);
-            room.users.insert(user_id, tx.clone());
-            tx
-        }
-    }
-
-    pub fn leave_room(&mut self, room_id: &str, user_id: &str) {
-        if let Some(room) = self.rooms.get_mut(room_id) {
-            room.users.remove(user_id);
-        }
-    }
-
-    pub fn get_room_user_count(&self, room_id: &String) -> Option<usize> {
-        self.rooms.get(room_id).map(|room| room.users.len())
-    }
-
-    pub fn active_rooms(&self) -> (Vec<String>, Vec<String>, usize) {
-        let mut active_rooms = vec![];
-        let mut users_active = vec![];
-
-        for (room_id, room) in &self.rooms {
-            active_rooms.push(room_id.clone());
-
-            for user in room.users.keys() {
-                if !users_active.contains(user) {
-                    users_active.push(user.clone());
-                }
+    // Un usuario se une a la sala y obtiene un receiver
+    pub fn join_room(&mut self, room_id: &str) -> broadcast::Receiver<Message> {
+        let room = self.rooms.entry(room_id.to_string()).or_insert_with(|| {
+            let (tx, _) = broadcast::channel(BROADCAST_CAPACITY);
+            Room { 
+                broadcaster: tx,
+                user_count: Arc::new(AtomicUsize::new(0)),
             }
-        }
+        });
 
-        (active_rooms, users_active, self.rooms.len())
+        // Incrementar contador atómicamente
+        room.user_count.fetch_add(1, Ordering::SeqCst);
+
+        room.broadcaster.subscribe()
+    }
+
+    // Un usuario sale de la sala: decrementamos contador
+    pub fn leave_room(&mut self, room_id: &str) {
+        if let Some(room) = self.rooms.get(room_id) {
+            room.user_count.fetch_sub(1, Ordering::SeqCst);
+        }
+    }
+
+    // Obtener número de usuarios conectados
+    pub fn get_room_user_count(&self, room_id: &str) -> Option<usize> {
+        self.rooms.get(room_id).map(|room| room.user_count.load(Ordering::SeqCst))
+    }
+
+    // Listado de salas activas
+    pub fn active_rooms(&self) -> Vec<String> {
+        self.rooms.keys().cloned().collect()
+    }
+
+    // Enviar mensaje a todos los suscriptores de una sala
+    pub fn send_to_room(&self, room_id: &str, msg: Message) {
+        if let Some(room) = self.rooms.get(room_id) {
+            let _ = room.broadcaster.send(msg);
+        }
     }
 }
