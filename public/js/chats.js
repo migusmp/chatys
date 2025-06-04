@@ -28,6 +28,10 @@ export function initPage() {
     goto("/profile");
   })
 
+  document.getElementById("dm-btn").addEventListener("click", () => {
+    goto("/dm");
+  })
+
   const roomInput = document.getElementById("roomNameInput");
   document.getElementById("joinRoomBtn").addEventListener("click", () => {
     if (!roomInput.value.trim()) {

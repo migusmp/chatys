@@ -11,8 +11,14 @@ export function initRouter(container) {
     '/': { html: 'static/home.html', js: '/static/js/main.js', css: 'static/styles/index.css' },
     '/chats': { html: 'static/chats.html', js: '/static/js/chats.js', css: 'static/styles/chats.css' },
     '/chats/:roomId': { html: '/static/chat.html', js: '/static/js/chat/chat.js', css: '/static/styles/chat.css' },
-    '/friends' : { html: '/static/friends.html', js: '/static/js/friends.js', css: '/static/styles/friends.css' },
-    '/profile' : { html: '/static/profile.html', js: '/static/js/profile.js', css: '/static/styles/profile.css' },
+    '/friends': { html: '/static/friends.html', js: '/static/js/friends.js', css: '/static/styles/friends.css' },
+    '/profile': { html: '/static/profile.html', js: '/static/js/profile.js', css: '/static/styles/profile.css' },
+    '/dm': { html: '/static/dm-page/html/dm.html', js: '/static/dm-page/js/dm.js', css: '/static/dm-page/css/dm.css' },
+    '/dm/:username': {
+      html: '/static/dm-page/html/dm.html',
+      js: ['/static/dm-page/js/dm.js', '/static/dm-page/js/dm_chat.js'],
+      css: '/static/dm-page/css/dm_chat.css'
+    }
   };
 
 
@@ -115,22 +121,29 @@ export function initRouter(container) {
 
     // Importar JS y llamar initPage con manejo de errores
     if (route.js) {
-      try {
-        if (cacheJsModules.has(route.js)) {
-          activeModule = cacheJsModules.get(route.js);
-        } else {
-          activeModule = await import(route.js);
-          cacheJsModules.set(route.js, activeModule);
+      const jsPaths = Array.isArray(route.js) ? route.js : [route.js];
+
+      activeModule = null;
+      for (const jsPath of jsPaths) {
+        try {
+          let module;
+          if (cacheJsModules.has(jsPath)) {
+            module = cacheJsModules.get(jsPath);
+          } else {
+            module = await import(jsPath + `?t=${Date.now()}`);
+            cacheJsModules.set(jsPath, module);
+          }
+          if (module && module.initPage) {
+            await module.initPage(params);
+          }
+          // Guardamos el último como el principal (opcional)
+          activeModule = module;
+        } catch (e) {
+          console.error("Error loading script:", jsPath, e);
         }
-        if (activeModule && activeModule.initPage) {
-          activeModule.initPage(params);
-        }
-      } catch (e) {
-        console.error("Error loading JS module:", e);
-        container.innerHTML = "<h2>Error loading script</h2>";
-        activeModule = null;
       }
     }
+
 
     if (push) {
       history.pushState({ path }, '', path);
@@ -149,15 +162,12 @@ export function initRouter(container) {
     const params = {}; // aquí parsea params de la URL si tienes rutas dinámicas
 
     if (path.startsWith('/chats/')) {
-      // Extraemos roomId de la ruta: /chats/:roomId
       const roomId = path.split('/')[2];
-      params.roomId = roomId;
-
-      // Llama a loadChatPage con esos params
-      await loadChatPage(params);
-    }
-    else {
-      // otras rutas...
+      await loadChatPage({ roomId });
+    } else if (path.startsWith('/dm/')) {
+      // No es necesario manejarlo aquí porque ya lo hace loadRoute
+      return;
+    } else {
       container.innerHTML = '<h1>Página no encontrada</h1>';
     }
   }
