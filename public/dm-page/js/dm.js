@@ -1,5 +1,5 @@
-import { goto } from "../../js/router.js"; // Solo si lo usas para otras cosas
 import { initChatPage } from "./dm_chat.js";
+import { initFriendsMenuDm } from "./initFriendsMenu.js";
 
 export async function initPage() {
     const sidebar = document.getElementById("sidebar");
@@ -10,34 +10,16 @@ export async function initPage() {
         return;
     }
 
-    // Simular una lista de amigos
-    const friends = [
-        { username: "juan", displayName: "Juan Pérez" },
-        { username: "ana", displayName: "Ana López" },
-        { username: "mario", displayName: "Mario Ruiz" }
-    ];
-
-    sidebar.innerHTML = "<h2>Amigos</h2>";
-
-    friends.forEach(friend => {
-        const div = document.createElement("div");
-        div.className = "friend";
-        div.textContent = friend.displayName;
-        div.style.cursor = "pointer";
-        div.addEventListener("click", () => {
-            loadChat(friend.username);
-        });
-        sidebar.appendChild(div);
-    });
+    initFriendsMenuDm();
 
     // Mensaje inicial en el chat
     chatContainer.innerHTML = `<h2>Selecciona un amigo para chatear</h2>`;
 }
 
 // Aquí llamas directamente a initPage de dm_chat.js
-async function loadChat(username) {
+export async function loadChat(friend) {
     try {
-        await initChatPage({ username }); // pasas el username como parámetro
+        await initChatPage(friend); // pasas el username como parámetro
     } catch (err) {
         const chatContainer = document.getElementById("chat-container");
         if (chatContainer) {

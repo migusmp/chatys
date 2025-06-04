@@ -1,0 +1,8 @@
+/* Estilos del chat */
+#inputContainer {
+    display: flex;
+    padding: 1rem;
+    background-color: #2a2a3b;
+    border-top: 1px solid #3c3c4f;
+    gap: 0.5rem;
+  }

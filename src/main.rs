@@ -49,6 +49,8 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
     let chat_state = Arc::new(RwLock::new(chat_state_init));
     let app_state = Arc::new(AppState::new(pool.clone()));
     let app_state_cloned = app_state.clone();
+    let pool_for_chats = pool.clone();
+    let pool_for_router = pool.clone();
 
 
     let ws_router = Router::new()
@@ -59,13 +61,13 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
         .route(
             "/ws/{chat_id}",
             get(move |ws: WebSocketUpgrade, Extension(app_state): Extension<Arc<AppState>>, Extension(payload): Extension<Payload>, Path(chat_id): Path<String>| {
-                handle_socket_connection_for_direct_chat(ws, app_state.clone(), payload, Path(chat_id))
+                handle_socket_connection_for_direct_chat(ws, app_state.clone(), payload, pool.clone(), Path(chat_id))
             }),
         )
         .layer(axum::middleware::from_fn(auth));
 
     let router = Router::new()
-        .nest("/api", main_router(chat_state, pool.clone()))
+        .nest("/api", main_router(chat_state, pool_for_chats))
         .merge(ws_router)
         // .route_service("/", ServeDir::new("public/index.html"))
         .route("/", get(index_handler))
@@ -77,7 +79,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
         .nest_service("/media/user", ServeDir::new("uploads/user"))
         .fallback(spa_fallback)
         .layer(TraceLayer::new_for_http())
-        .layer(Extension(pool))
+        .layer(Extension(pool_for_router))
         .layer(Extension(app_state));
         
     

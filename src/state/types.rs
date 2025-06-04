@@ -12,6 +12,11 @@ use crate::state::chat_message::ChatMessage;
 pub type DirectMessageChannels = DashMap<i32, tokio::sync::mpsc::Sender<ChatMessage>>;
 pub type UndeliveredMessages = Arc<Mutex<HashMap<i32, Vec<String>>>>;
 
+#[derive(Deserialize)]
+pub struct IncomingMessage {
+    pub content: String,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct FriendNotification {
     pub id: Option<i32>,

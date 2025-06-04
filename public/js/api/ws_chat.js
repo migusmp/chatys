@@ -98,6 +98,48 @@ export const WSChat = (() => {
         }
     }
 
+    function joinChat(friend_id) {
+        const existing = sockets.get(friend_id);
+        if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+            console.warn(`Ya existe una conexión activa o en proceso con el amigo: ${friend_id}`);
+            return existing;
+        }
+
+        // Cierra conexiones previas con este amigo
+        closeRoomConnections(friend_id);
+
+        const socket = new WebSocket(`${protocol}://${location.host}/ws/${friend_id}`);
+        sockets.set(friend_id, socket);
+
+        socket.onopen = () => {
+            console.log(`Conexión WebSocket abierta con el amigo: ${friend_id}`);
+        };
+
+        socket.onmessage = (e) => {
+            console.log("MESNAJEEEE:", e);
+            if (!messages[friend_id]) messages[friend_id] = [];
+            try {
+                const parsed = JSON.parse(e.data);
+                messages[friend_id].push(parsed);
+            } catch {
+                messages[friend_id].push({ message: e.data });
+            }
+        };
+
+        socket.onerror = (e) => {
+            if (socket.readyState !== WebSocket.CLOSING && socket.readyState !== WebSocket.CLOSED) {
+                console.error(`Error en chat con ${friend_id}:`, e);
+            }
+        };
+
+        socket.onclose = () => {
+            console.log(`Conexión cerrada con el amigo: ${friend_id}`);
+            sockets.delete(friend_id);
+        };
+
+        return socket;
+    }
+
     function joinRoom(roomId) {
         const existing = sockets.get(roomId);
         if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
@@ -177,6 +219,16 @@ export const WSChat = (() => {
         }
     }
 
+    function sendMessageToFriend(friend_id, msg) {
+        const socket = sockets.get(friend_id);
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const payload = JSON.stringify({ content: msg }); // solo envías el contenido
+            socket.send(payload);
+        } else {
+            console.error(`No se puede enviar el mensaje, socket no conectado para ${friend_id}`);
+        }
+    }
+
     function closeRoom(roomId) {
         const socket = sockets.get(roomId);
         const statsSocket = statsSockets.get(roomId);
@@ -212,5 +264,7 @@ export const WSChat = (() => {
         getStatsSocket,
         getSocket,
         leaveRoom,
+        joinChat,
+        sendMessageToFriend,
     };
 })();
