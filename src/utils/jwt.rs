@@ -4,11 +4,10 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 use crate::models::user::Payload;
 
 pub fn generate_token(payload: &Payload) -> Result<String> {
-    let secret = std::env::var("SECRET_KEY_JWT").unwrap();
     let token = encode(
         &Header::default(),
         payload,
-        &EncodingKey::from_secret(secret.as_ref()),
+        &EncodingKey::from_secret("sdadakj_19234ÑpoM14I83_.,@?¿98".as_ref()),
     )?;
 
     Ok(token)

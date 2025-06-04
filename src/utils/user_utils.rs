@@ -117,13 +117,9 @@ pub fn append_cookie_to_response(res: &mut Response, cookie: Cookie) {
 }
 
 pub async fn decode_token(auth_token: String) -> Result<Payload, StatusCode> {
-    let secret = std::env::var("SECRET_KEY_JWT").map_err(|e| {
-        eprintln!("Error obteniendo la clave secreta: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
     let token_data: TokenData<Payload> = jsonwebtoken::decode(
         &auth_token,
-        &DecodingKey::from_secret(secret.as_ref()),
+        &DecodingKey::from_secret("sdadakj_19234ÑpoM14I83_.,@?¿98".as_ref()),
         &Validation::default(),
     )
     .map_err(|e| {

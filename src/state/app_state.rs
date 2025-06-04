@@ -1,50 +1,18 @@
-use serde::{Deserialize, Serialize};
+use dashmap::DashMap;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
 
-use crate::services::ws::notify_user_with_active_friends;
-
-#[derive(Serialize, Deserialize)]
-pub struct FriendNotification {
-    pub id: Option<i32>,
-    pub type_msg: String,
-    pub status: String,
-    pub user_id: i32,
-    pub sender_id: i32,
-    pub user_username: String,
-    pub message: String,
-}
-#[derive(Serialize, Deserialize, sqlx::FromRow, Debug)]
-pub struct FriendNotificationRow {
-    pub id: i32,
-    pub type_msg: String,
-    pub status: String,
-    pub user_id: i32,
-    pub sender_id: i32,
-    pub sender_name: Option<String>,
-    pub message: String,
-}
-
-pub struct AppConfig {
-    pub app_name: String,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            app_name: String::from("Migus App"),
-        }
-    }
-}
+use crate::{services::ws::notify_user_with_active_friends, state::{chat_message::ChatMessage, types::{AppConfig, DirectMessageChannels, FriendNotification, FriendNotificationRow, UndeliveredMessages}}};
 
 pub struct AppState {
     pub db_pool: PgPool,
+    pub direct_message_channels: DirectMessageChannels, // AÑADIDO RECIENTEMENTE
     pub global_broadcast: broadcast::Sender<String>,
     pub connected_users: Arc<Mutex<HashMap<i32, mpsc::Sender<String>>>>,
     pub friend_notifications: Arc<Mutex<HashMap<i32, mpsc::Sender<String>>>>,
-    pub undelivered_messages: Arc<Mutex<HashMap<i32, Vec<String>>>>,
+    pub undelivered_messages: UndeliveredMessages,
     pub config: AppConfig,
 }
 
@@ -58,8 +26,33 @@ impl AppState {
             friend_notifications: Arc::new(Mutex::new(HashMap::new())),
             undelivered_messages: Arc::new(Mutex::new(HashMap::new())),
             config: AppConfig::default(),
+            direct_message_channels: DashMap::new(),
         }
     }
+
+    // <------------------------- FUNCIONES PARA DIRECT_MESSAGE_CHANNELS ---------------------------->
+
+    pub fn register_user_channel(&self, user_id: i32) -> mpsc::Receiver<ChatMessage> {
+        let (tx, rx) = mpsc::channel(100);
+        self.direct_message_channels.insert(user_id, tx);
+        rx
+    }
+
+    pub fn unregister_user_channel(&self, user_id: i32) {
+        self.direct_message_channels.remove(&user_id);
+    }
+
+    pub async fn send_direct_message(&self, message: ChatMessage) {
+        if let Some(sender) = self.direct_message_channels.get(&message.to_user) {
+            // Si el usuario está conectado
+            if sender.send(message.clone()).await.is_err() {
+                println!("Error enviando mensaje a {}", message.to_user);
+                self.store_undelivered_message(message.to_user, message.content).await;
+            }
+        }
+    }
+
+    // <--------------------------------------------------------------------------------------------->
 
     // Agrega una conexión del usuario aconnected_users
     pub async fn add_user_connection(&self, user_id: i32, sender: mpsc::Sender<String>) {

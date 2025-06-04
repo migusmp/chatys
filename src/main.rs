@@ -9,11 +9,13 @@ pub mod services;
 pub mod state;
 pub mod utils;
 
+use axum::extract::{Path, WebSocketUpgrade};
 use axum::Extension;
 use axum::{routing::get, Router};
 use tower_http::trace::TraceLayer;
 use crate::middlewares::auth::auth;
-use crate::services::ws::handle_ws_connection;
+use crate::models::user::Payload;
+use crate::services::ws::{handle_ws_connection, handle_socket_connection_for_direct_chat};
 use crate::state::app_state::AppState;
 use crate::{
     models::chat::ChatState, routes::main_router::main_router,
@@ -54,7 +56,13 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
             "/ws",
             get(move |payload, ws| handle_ws_connection(ws, app_state_cloned, payload)),
         )
-        .route_layer(axum::middleware::from_fn(auth));
+        .route(
+            "/ws/{chat_id}",
+            get(move |ws: WebSocketUpgrade, Extension(app_state): Extension<Arc<AppState>>, Extension(payload): Extension<Payload>, Path(chat_id): Path<String>| {
+                handle_socket_connection_for_direct_chat(ws, app_state.clone(), payload, Path(chat_id))
+            }),
+        )
+        .layer(axum::middleware::from_fn(auth));
 
     let router = Router::new()
         .nest("/api", main_router(chat_state, pool.clone()))
