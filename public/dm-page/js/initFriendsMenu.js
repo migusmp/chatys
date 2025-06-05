@@ -38,8 +38,14 @@ export function initFriendsMenuDm() {
             const li = document.createElement("li");
             li.className = "friend-item";
 
+            const friendData = {
+                ...friend,
+                isActive
+            };
+
             li.addEventListener("click", () => {
-                loadChat(friend);
+                console.log("FRIEND: ", friend);
+                loadChat(friendData);
             });
 
             const imgWrapper = document.createElement("div");

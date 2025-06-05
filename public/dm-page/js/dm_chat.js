@@ -14,7 +14,7 @@ export async function initChatPage(friend) {
         console.error("No se encontró el contenedor #chat-container");
         return;
     }
-    
+
 
     try {
         const res = await fetch('/static/dm-page/html/dm_chat.html');
@@ -30,28 +30,59 @@ export async function initChatPage(friend) {
         if (headerSection) {
             const profileContainer = document.createElement('div');
             profileContainer.classList.add('chat-friend-profile');
-            profileContainer.style.display = 'flex';
-            profileContainer.style.alignItems = 'center';
-            profileContainer.style.gap = '0.5rem';
-        
+
+
             const profileImg = document.createElement('img');
+            profileImg.classList.add('profileImageDmChat');
             profileImg.src = `/media/user/${friend.image}`; // Usa una imagen por defecto si no hay
             profileImg.alt = `${friend.username} profile`;
-            profileImg.style.width = '40px';
-            profileImg.style.height = '40px';
-            profileImg.style.borderRadius = '50%';
-            profileImg.style.objectFit = 'cover';
-        
+
+            // Crear wrapper para imagen + estado
+            const avatarWrapper = document.createElement('div');
+            avatarWrapper.classList.add('chat-avatar-wrapper');
+
+            // Añadir imagen al wrapper
+            avatarWrapper.appendChild(profileImg);
+
+            // Añadir círculo verde si está activo
+            const statusDot = document.createElement('div');
+            if (friend.isActive) {
+                statusDot.classList.add('chat-status-dot', 'online'); // CSS manejará el estilo verde
+            } else {
+                statusDot.classList.add('chat-status-dot', 'offline');
+            }
+            avatarWrapper.appendChild(statusDot);
+
+            // Parte del Usuario y de su estado en el header, En linea o Desconectado
             const usernameSpan = document.createElement('span');
+            usernameSpan.classList.add('username-span-dm');
             usernameSpan.textContent = friend.username;
-            usernameSpan.style.fontWeight = 'bold';
-        
-            profileContainer.appendChild(profileImg);
-            profileContainer.appendChild(usernameSpan);
-        
+
+            const statusTextSpan = document.createElement('span');
+            statusTextSpan.classList.add('status-text-dm');
+            statusTextSpan.textContent = friend.isActive ? 'En línea' : 'Desconectado';
+
+            // 👉 Crear wrapper para el nombre + estado
+            const nameAndStatusWrapper = document.createElement('div');
+            nameAndStatusWrapper.classList.add('username-status-wrapper');
+            nameAndStatusWrapper.appendChild(usernameSpan);
+            nameAndStatusWrapper.appendChild(statusTextSpan);
+
+            // Añadir al perfil
+            profileContainer.appendChild(avatarWrapper);
+            profileContainer.appendChild(nameAndStatusWrapper);
             headerSection.appendChild(profileContainer);
+
+
+            GlobalState.on('active_friends', (activeList) => {
+                const isNowActive = activeList.includes(friend.id);
+                statusDot.classList.remove('online', 'offline');
+                statusDot.classList.add(isNowActive ? 'online' : 'offline');
+
+                statusTextSpan.textContent = isNowActive ? 'En línea' : 'Desconectado';
+            });
         }
-        
+
 
         const messagesDiv = container.querySelector('.chat-messages');
 
@@ -64,9 +95,9 @@ export async function initChatPage(friend) {
 
         // CUANDO SE RECIBE UN MENSAJE SE DEBE DE CREAR
         socket.addEventListener("message", (e) => {
-            
+
             const msg = JSON.parse(e.data);
-            console.log("NUEVO MENSAJEEE:",msg);
+            console.log("NUEVO MENSAJEEE:", msg);
             const currentUserId = GlobalState.get('id');
             const isMine = msg.from_user == currentUserId;
 
@@ -75,7 +106,7 @@ export async function initChatPage(friend) {
                 user: isMine ? 'Tú' : msg.from_username,
                 image: msg.from_username_image,
                 message: msg.content,
-                isMine: isMine,    
+                isMine: isMine,
             })
 
             messagesDiv.appendChild(msgElement);
@@ -92,7 +123,7 @@ export async function initChatPage(friend) {
                     messageInput.value = ''; // Limpiar input después de enviar
                 }
             });
-        
+
             messageInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
                     event.preventDefault(); // Por si es un <textarea>, evita saltos de línea
