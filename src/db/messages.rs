@@ -10,19 +10,22 @@ pub async fn get_or_create_direct_conversation(
         r#"
         SELECT c.id as conversation_id
         FROM conversations c
-        JOIN conversation_participants cp1 ON cp1.conversation_id = c.id AND cp1.user_id = $1
-        JOIN conversation_participants cp2 ON cp2.conversation_id = c.id AND cp2.user_id = $2
-        GROUP BY c.id
-        HAVING COUNT(*) = 2
+        WHERE c.is_group = false
+        AND (
+            SELECT array_agg(user_id ORDER BY user_id)
+            FROM conversation_participants cp
+            WHERE cp.conversation_id = c.id
+        ) = ARRAY[LEAST($1::int, $2::int), GREATEST($1::int, $2::int)]::int[]
+        LIMIT 1
         "#,
         from_user_id,
         to_user_id
     )
     .fetch_optional(pool)
-    .await?
-    {
+    .await? {
         return Ok(row.conversation_id);
     }
+
 
     // Crear nueva conversación si no existe
     let conversation = sqlx::query!(
