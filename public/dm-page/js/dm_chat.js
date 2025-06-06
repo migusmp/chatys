@@ -15,6 +15,7 @@ export async function initChatPage(friend) {
         console.error("No se encontró el contenedor #chat-container");
         return;
     }
+    
 
     try {
         const res = await fetch('/static/dm-page/html/dm_chat.html');

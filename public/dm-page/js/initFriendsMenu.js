@@ -2,6 +2,7 @@ import { connectToFriend } from './socketManager.js'; // ruta según tu estructu
 import { GlobalState } from "../../js/state.js";
 import { loadChat } from "./dm.js";
 import { createDmMessageElement } from './message.js';
+import { goto } from '../../js/router.js';
 
 export let currentChatContainer = null;
 
@@ -89,6 +90,7 @@ export function initFriendsMenuDm() {
 
             li.addEventListener("click", () => {
                 console.log("FRIEND: ", friend);
+                goto(`/dm/${friend.username}`);
                 loadChat(friendData);
                 connectToFriend(friend.id, handleIncomingMessageGlobal);
             });

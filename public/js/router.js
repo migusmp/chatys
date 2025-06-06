@@ -17,7 +17,7 @@ export function initRouter(container) {
     '/dm/:username': {
       html: '/static/dm-page/html/dm.html',
       js: ['/static/dm-page/js/dm.js', '/static/dm-page/js/dm_chat.js'],
-      css: '/static/dm-page/css/dm_chat.css'
+      css: '/static/dm-page/css/dm.css'
     }
   };
 
