@@ -89,6 +89,7 @@ export function initFriendsMenuDm() {
             li.addEventListener("click", () => {
                 console.log("FRIEND: ", friend);
                 loadChat(friendData);
+                connectToFriend(friend.id, handleIncomingMessageGlobal);
             });
 
             const imgWrapper = document.createElement("div");
