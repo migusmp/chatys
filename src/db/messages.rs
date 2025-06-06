@@ -1,4 +1,25 @@
+use serde::Serialize;
 use sqlx::PgPool;
+use time::OffsetDateTime;
+
+use crate::db::offset_date_time_serde;
+
+#[derive(sqlx::FromRow)]
+struct ConversationId {
+    pub conversation_id: i32,
+}
+
+
+#[derive(sqlx::FromRow, Serialize)]
+pub struct Message {
+    pub id: i32,
+    pub conversation_id: i32,
+    pub sender_id: i32,
+    pub content: String,
+    #[serde(with = "offset_date_time_serde")]
+    pub created_at: Option<OffsetDateTime>,
+    pub read_by: serde_json::Value,
+}
 
 pub async fn get_or_create_direct_conversation(
     from_user_id: i32,
@@ -84,4 +105,54 @@ pub async fn update_updated_at_from_conversation(conversation_id: i32, pool: &Pg
         conversation_id
     ).execute(pool).await?;
     Ok(())
+}
+
+pub async fn find_conversation_id(
+    sender_id: i32,
+    receiver_id: i32,
+    pool: &PgPool,
+) -> Result<i32, sqlx::Error> {
+    let conversation = sqlx::query_as!(
+        ConversationId,
+        r#"
+        SELECT cp.conversation_id
+        FROM conversation_participants cp
+        JOIN conversations c ON c.id = cp.conversation_id
+        WHERE (cp.user_id = $1 OR cp.user_id = $2) AND c.is_group = false
+        GROUP BY cp.conversation_id
+        HAVING COUNT(DISTINCT cp.user_id) = 2
+        LIMIT 1
+        "#,
+        sender_id,
+        receiver_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(conversation.conversation_id)
+}
+
+// Función para obtener mensajes paginados de una conversación
+pub async fn get_messages(
+    conversation_id: i32,
+    limit: u32,
+    offset: u32,
+    pool: &PgPool,
+) -> Result<Vec<Message>, sqlx::Error> {
+    let messages = sqlx::query_as::<_, Message>(
+        r#"
+        SELECT id, conversation_id, sender_id, content, created_at, read_by
+        FROM messages
+        WHERE conversation_id = $1
+        ORDER BY created_at ASC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(conversation_id)
+    .bind(limit as i64)
+    .bind(offset as i64)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(messages)
 }

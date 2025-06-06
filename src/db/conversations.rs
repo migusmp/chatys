@@ -3,13 +3,20 @@ use sqlx::PgPool;
 
 use sqlx::types::time::OffsetDateTime;
 
+use crate::db::offset_date_time_serde;
+
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct ConversationSummary {
     pub conversation_id: i32,
     pub is_group: Option<bool>,
+
+    #[serde(with = "offset_date_time_serde")]
     pub updated_at: Option<OffsetDateTime>,
+
     pub last_message_content: Option<String>,
     pub last_message_sender_id: Option<i32>,
+
+    #[serde(with = "offset_date_time_serde")]
     pub last_message_created_at: Option<OffsetDateTime>,
 }
 
