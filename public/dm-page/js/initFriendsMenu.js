@@ -33,6 +33,7 @@ export function initFriendsMenuDm() {
             // Puedes mostrar notificaciones aquí si quieres
             return;
         }
+
         const currentChatContenedor = getCurrentChatContainer();
         if (!currentChatContenedor) return;
     

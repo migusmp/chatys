@@ -3,6 +3,9 @@ import { GlobalState } from "../../js/state.js";
 import { createDmMessageElement } from "./message.js";
 import { connectToFriend, getSocketDm, disconnectFromFriend } from "./socketManager.js";
 import { setCurrentChatContainer } from './initFriendsMenu.js'; // ✅ Importar correctamente
+import { obtainMessagesFromConversation } from "../../js/utils/fetch_api.js";
+
+// Importo la función que obtiene mensajes (añade esta importación si no la tienes)
 
 let socket = null;
 
@@ -48,6 +51,33 @@ export async function initChatPage(friend) {
         if (title) {
             title.textContent = `Chat con ${friend.username}`;
         }
+
+        // === NUEVO: Cargar y renderizar mensajes ===
+        const currentUserId = GlobalState.get("id");
+
+        // Limpio mensajes previos
+        if (messagesDiv) messagesDiv.innerHTML = "";
+
+        const messages = await obtainMessagesFromConversation(currentUserId, friend.id);
+        if (messages && messages.length > 0) {
+            for (const msg of messages) {
+                const isMine = msg.sender_id == currentUserId;
+
+                const msgElement = createDmMessageElement({
+                    userId: msg.sender_id,
+                    user: isMine ? "Tú" : friend.username,
+                    image: isMine ? GlobalState.get("image") : friend.image,
+                    message: msg.content,
+                    isMine,
+                    createdAt: msg.created_at,
+                });
+                messagesDiv.appendChild(msgElement);
+            }
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        } else {
+            if (messagesDiv) messagesDiv.innerHTML = "<p>No hay mensajes en esta conversación.</p>";
+        }
+        // === FIN nuevo código mensajes ===
 
         // ✅ Guardar contenedor usando setter
         setCurrentChatContainer(container);
