@@ -1,0 +1,64 @@
+use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
+use time::OffsetDateTime;
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct UndeliveredMessage {
+    pub undelivered_id: i32,
+    pub message_id: i32,
+    pub conversation_id: i32,
+    pub sender_id: i32,
+    pub content: String,
+    pub created_at: Option<OffsetDateTime>,
+}
+
+pub async fn get_undelivered_messages(
+    recipient_id: i32,
+    pool: &PgPool,
+) -> Result<Vec<UndeliveredMessage>, sqlx::Error> {
+    let records = sqlx::query_as!(
+        UndeliveredMessage,
+        r#"
+        SELECT 
+            undelivered_messages.id as undelivered_id,
+            messages.id as message_id,
+            messages.conversation_id,
+            messages.sender_id,
+            messages.content,
+            messages.created_at
+        FROM undelivered_messages
+        JOIN messages ON messages.id = undelivered_messages.message_id
+        WHERE undelivered_messages.recipient_id = $1
+        ORDER BY messages.created_at ASC
+        "#,
+        recipient_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(records)
+}
+
+pub async fn set_undelivered_message(message_id: i32, user_id_to_send_notification: i32, pool: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+            INSERT INTO undelivered_messages (message_id, recipient_id) VALUES ($1, $2)
+        "#,
+        message_id,
+        user_id_to_send_notification
+    ).execute(pool).await?;
+
+    Ok(())
+}
+
+pub async fn delete_undelivered_message(undelivered_message_id: i32, pool: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+            DELETE FROM undelivered_messages 
+            WHERE id = $1
+        "#,
+        undelivered_message_id
+    ).execute(pool).await?;
+
+    Ok(())
+}

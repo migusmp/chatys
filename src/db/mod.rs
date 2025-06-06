@@ -1,6 +1,7 @@
 pub mod db;
 pub mod messages;
 pub mod conversations;
+pub mod undelivered_messages;
 
 pub mod offset_date_time_serde {
     use serde::{self, Deserialize, Deserializer, Serializer};

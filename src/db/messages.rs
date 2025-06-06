@@ -75,20 +75,22 @@ pub async fn save_message(
     sender_id: i32,
     content: &str,
     pool: &PgPool,
-) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+) -> Result<i32, sqlx::Error> {
+    // INSERT que devuelve el id del nuevo mensaje
+    let result = sqlx::query!(
         r#"
         INSERT INTO messages (conversation_id, sender_id, content, created_at)
         VALUES ($1, $2, $3, NOW())
+        RETURNING id
         "#,
         conversation_id,
         sender_id,
         content
     )
-    .execute(pool)
+    .fetch_one(pool)
     .await?;
 
-    // También puedes actualizar el updated_at de la conversación
+    // Actualiza el updated_at de la conversación
     sqlx::query!(
         "UPDATE conversations SET updated_at = NOW() WHERE id = $1",
         conversation_id
@@ -96,7 +98,7 @@ pub async fn save_message(
     .execute(pool)
     .await?;
 
-    Ok(())
+    Ok(result.id)
 }
 
 pub async fn update_updated_at_from_conversation(conversation_id: i32, pool: &PgPool) -> Result<(), sqlx::Error> {

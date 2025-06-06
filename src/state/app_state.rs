@@ -5,14 +5,13 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
 
 use crate::{
-    services::ws::notify_user_with_active_friends,
-    state::{
+    db::undelivered_messages::get_undelivered_messages, services::ws::notify_user_with_active_friends, state::{
         chat_message::ChatMessage,
         types::{
             AppConfig, DirectMessageChannels, FriendNotification, FriendNotificationRow,
             UndeliveredMessages,
         },
-    },
+    }
 };
 
 pub struct AppState {
@@ -37,6 +36,10 @@ impl AppState {
             config: AppConfig::default(),
             direct_message_channels: DashMap::new(),
         }
+    }
+
+    pub fn is_user_connected(&self, user_id: i32) -> bool {
+        self.direct_message_channels.contains_key(&user_id)
     }
 
     // <------------------------- FUNCIONES PARA DIRECT_MESSAGE_CHANNELS ---------------------------->
@@ -103,7 +106,7 @@ impl AppState {
 
     // Entrega todas las notificaciones pendientes de un usuario (si está conectado)
     pub async fn deliver_undelivered_messages(&self, user_id: i32) {
-        // 1. Consulta notificaciones no vistas
+        // 1. Entregar notificaciones de amistad (igual que antes)
         let notifications = sqlx::query_as::<_, FriendNotificationRow>(
             r#"
             SELECT id, type_msg, status, user_id, sender_id, sender_name, message
@@ -116,27 +119,58 @@ impl AppState {
         .fetch_all(&self.db_pool)
         .await
         .unwrap_or_default();
-
-        // 2. Obtener el sender para el usuario
+    
         let notifications_map = self.friend_notifications.lock().await;
         if let Some(sender) = notifications_map.get(&user_id) {
             for notif in notifications {
-                println!("Entregando notificación a usuario {}: {:?}", user_id, notif);
-                // 3. Convertir a FriendNotification y luego a JSON
-                let notification = FriendNotificationRow {
-                    id: notif.id,
-                    type_msg: notif.type_msg,
-                    status: notif.status,
-                    user_id: notif.user_id,
-                    sender_id: notif.sender_id,
-                    sender_name: notif.sender_name,
-                    message: notif.message,
-                };
-
-                if let Ok(json_msg) = serde_json::to_string(&notification) {
+                if let Ok(json_msg) = serde_json::to_string(&notif) {
                     let _ = sender.try_send(json_msg);
                 }
             }
+        }
+        drop(notifications_map);
+    
+        // 2. Entregar mensajes pendientes usando get_undelivered_messages
+        let undelivered_messages = match get_undelivered_messages(user_id, &self.db_pool).await {
+            Ok(msgs) => msgs,
+            Err(e) => {
+                eprintln!("Error al obtener mensajes no entregados para {}: {}", user_id, e);
+                return;
+            }
+        };
+    
+        // Obtener canal para enviar mensajes de chat
+        let connected = self.connected_users.lock().await;
+        let tx = match connected.get(&user_id) {
+            Some(tx) => tx.clone(),
+            None => {
+                println!("No se encontró canal para usuario {}", user_id);
+                return;
+            }
+        };
+        drop(connected);
+    
+        for msg in undelivered_messages {
+            let json_msg = serde_json::json!({
+                "type_msg": "chat_message",
+                "undelivered_id": msg.undelivered_id,
+                "message_id": msg.message_id,
+                "conversation_id": msg.conversation_id,
+                "sender_id": msg.sender_id,
+                "content": msg.content,
+                "created_at": msg.created_at.map(|dt| dt.format(&time::format_description::well_known::Rfc3339).unwrap_or_default()),
+            })
+            .to_string();
+    
+            if let Err(e) = tx.send(json_msg).await {
+                eprintln!("Error enviando mensaje no entregado a usuario {}: {}", user_id, e);
+            }
+            // } else {
+            //     // Borra mensaje no entregado solo si fue enviado con éxito
+            //     if let Err(e) = delete_undelivered_message(msg.undelivered_id, &self.db_pool).await {
+            //         eprintln!("Error eliminando mensaje no entregado id {}: {}", msg.undelivered_id, e);
+            //     }
+            // }
         }
     }
     pub async fn mark_notification_seen(
