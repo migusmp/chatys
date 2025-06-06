@@ -1,3 +1,5 @@
+import { getSocketDm } from "../../dm-page/js/socketManager.js";
+
 export const WSChat = (() => {
     let generalStatsSocket = null;
     let generalStats = null;
@@ -220,7 +222,7 @@ export const WSChat = (() => {
     }
 
     function sendMessageToFriend(friend_id, msg) {
-        const socket = sockets.get(friend_id);
+        const socket = getSocketDm(friend_id);
         if (socket && socket.readyState === WebSocket.OPEN) {
             const payload = JSON.stringify({ content: msg }); // solo envías el contenido
             socket.send(payload);
