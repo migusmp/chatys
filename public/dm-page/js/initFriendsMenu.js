@@ -23,9 +23,9 @@ export function initFriendsMenuDm() {
 
     friendsList.className = "friend-list";
 
-
     // Listener global que se conecta una sola vez
     function handleIncomingMessageGlobal(msg) {
+        console.log("MENSAJE QUE ACABA DE LLEGAR: ", msg);
         const activeFriendId = GlobalState.get("activeChatFriendId");
         const currentUserId = GlobalState.get("id");
     
@@ -37,7 +37,7 @@ export function initFriendsMenuDm() {
         if (!currentChatContenedor) return;
     
         const messagesDiv = currentChatContenedor.querySelector('.chat-messages');
-        const isMine = msg.from_user === currentUserId;
+        const isMine = msg.from_user == currentUserId;
     
         const msgElement = createDmMessageElement({
             userId: msg.from_user,

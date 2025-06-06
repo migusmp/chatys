@@ -23,6 +23,26 @@ export async function initChatPage(friend) {
 
         container.innerHTML = chatDiv.outerHTML;
 
+        // === INICIO: Código para actualizar header dinámicamente según online ===
+
+        function updateHeader() {
+            const activeFriends = GlobalState.get('active_friends') || [];
+            const isOnline = activeFriends.includes(friend.id);
+            renderChatHeader(friend, isOnline);
+        }
+
+        updateHeader();
+
+        const onActiveFriendsChange = () => updateHeader();
+        GlobalState.on('active_friends', onActiveFriendsChange);
+
+        // Limpiar listener al destruir la página
+        window.cleanupChatPage = () => {
+            GlobalState.off('active_friends', onActiveFriendsChange);
+        };
+
+        // === FIN código header ===
+
         const messagesDiv = container.querySelector('.chat-messages');
         const title = container.querySelector('.chat-title');
         if (title) {
@@ -73,4 +93,55 @@ export function destroyPage() {
     // ✅ Limpiar el estado correctamente
     setCurrentChatContainer(null);
     GlobalState.set("activeChatFriendId", null);
+
+    if (window.cleanupChatPage) {
+        window.cleanupChatPage();
+        window.cleanupChatPage = null;
+    }
+}
+
+function renderChatHeader(friend, isOnline) {
+    const headerSection = document.querySelector('.chat-dm-header');
+    if (!headerSection) return;
+  
+    headerSection.innerHTML = ''; // limpiar contenido previo
+  
+    const profileContainer = document.createElement('div');
+    profileContainer.classList.add('chat-friend-profile');
+  
+    // Avatar + status dot
+    const avatarWrapper = document.createElement('div');
+    avatarWrapper.classList.add('chat-avatar-wrapper');
+  
+    const profileImg = document.createElement('img');
+    profileImg.src = `/media/user/${friend.image || 'default.png'}`;
+    profileImg.alt = `${friend.username} profile`;
+    profileImg.classList.add('profileImageDmChat');
+  
+    const statusDot = document.createElement('span');
+    statusDot.classList.add('chat-status-dot');
+    statusDot.classList.add(isOnline ? 'online' : 'offline');
+  
+    avatarWrapper.appendChild(profileImg);
+    avatarWrapper.appendChild(statusDot);
+  
+    // Username + status text
+    const usernameStatusWrapper = document.createElement('div');
+    usernameStatusWrapper.classList.add('username-status-wrapper');
+  
+    const usernameSpan = document.createElement('span');
+    usernameSpan.classList.add('username-span-dm');
+    usernameSpan.textContent = friend.username;
+  
+    const statusText = document.createElement('span');
+    statusText.classList.add('status-text-dm');
+    statusText.textContent = isOnline ? 'En línea' : 'Desconectado';
+  
+    usernameStatusWrapper.appendChild(usernameSpan);
+    usernameStatusWrapper.appendChild(statusText);
+  
+    profileContainer.appendChild(avatarWrapper);
+    profileContainer.appendChild(usernameStatusWrapper);
+  
+    headerSection.appendChild(profileContainer);
 }
