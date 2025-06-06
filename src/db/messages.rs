@@ -74,3 +74,11 @@ pub async fn save_message(
 
     Ok(())
 }
+
+pub async fn update_updated_at_from_conversation(conversation_id: i32, pool: &PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE conversations SET updated_at = NOW() WHERE id = $1",
+        conversation_id
+    ).execute(pool).await?;
+    Ok(())
+}

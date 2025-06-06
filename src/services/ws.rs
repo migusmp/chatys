@@ -13,7 +13,7 @@ use sqlx::PgPool;
 use tokio::sync::mpsc;
 
 use crate::{
-    db::db::get_user_chat_data, models::user::Payload, state::{app_state::AppState, chat_message::ChatMessage, types::IncomingMessage}
+    db::{db::get_user_chat_data, messages::{get_or_create_direct_conversation, save_message, update_updated_at_from_conversation}}, models::user::Payload, state::{app_state::AppState, chat_message::ChatMessage, types::IncomingMessage}
 };
 
 // MÉTODO PARA REGISTRAR CHATS INDIVIDUALES
@@ -82,6 +82,24 @@ async fn handle_socket(
             println!("📥 Mensaje recibido de {}: {}", from_user_id, text);
             match serde_json::from_str::<IncomingMessage>(&text) {
                 Ok(incoming) => {
+
+                    let conversation_id = match get_or_create_direct_conversation(from_user_id, to_user_id, &pool).await {
+                        Ok(id) => id,
+                        Err(e) => {
+                            eprintln!("Error obteniendo o creando conversacion: {}", e);
+                            continue;
+                        }
+                    };
+
+                    if let Err(e) = save_message(conversation_id, from_user_id, &incoming.content, &pool).await {
+                        eprintln!("Error guardando el mensaje: {}", e);
+                    }
+
+                    if let Err(e) = update_updated_at_from_conversation(conversation_id, &pool).await {
+                        eprintln!("Error a actualizar updated_at en la conversacion {}: {}", conversation_id, e);
+                    }
+
+
                     let msg = ChatMessage {
                         from_user: from_user_id,
                         to_user: to_user_id,
