@@ -19,6 +19,7 @@ export async function initPage() {
 // Aquí llamas directamente a initPage de dm_chat.js
 export async function loadChat(friend) {
     try {
+        console.log("CARGANDO CHAT DE FRIEND:", friend);
         await initChatPage(friend); // pasas el username como parámetro
     } catch (err) {
         const chatContainer = document.getElementById("chat-container");

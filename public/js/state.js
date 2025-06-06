@@ -1,5 +1,5 @@
 export const GlobalState = (() => {
-    const persistKeys = ['isAuthenticated', 'id', 'username', 'name', 'email', 'image', 'created_at','theme'];
+    const persistKeys = ['isAuthenticated', 'id', 'username', 'name', 'email', 'image', 'created_at','theme', 'activeChatFriendId'];
 
     const state = {
         isAuthenticated: localStorage.getItem('isAuthenticated') === 'true',
@@ -25,6 +25,9 @@ export const GlobalState = (() => {
         await fetchProfileInfoOnce();
         await fetchFriendsList();
     }
+    function setActiveChatFriendId(id) {
+        GlobalState.set('activeChatFriendId', id);
+      }
 
     function on(key, callback) {
         if (!listeners[key]) listeners[key] = [];
@@ -244,6 +247,6 @@ export const GlobalState = (() => {
         on, off, set, get,
         fetchProfileInfo, fetchProfileInfoOnce,
         clear, logout,
-        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState, deleteUserAccount
+        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState, deleteUserAccount, setActiveChatFriendId
     };
 })();

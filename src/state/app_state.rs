@@ -55,10 +55,12 @@ impl AppState {
         // Enviar al receptor (to_user)
         if let Some(sender) = self.direct_message_channels.get(&message.to_user) {
             if sender.send(message.clone()).await.is_err() {
-                println!("❌ Error enviando mensaje a {}", message.to_user);
-                self.store_undelivered_message(message.to_user, message.content.clone())
-                    .await;
+                println!("❌ Error enviando mensaje a {} (canal roto)", message.to_user);
+                self.store_undelivered_message(message.to_user, message.content.clone()).await;
             }
+        } else {
+            println!("📭 Usuario {} no está conectado. Mensaje no entregado", message.to_user);
+            self.store_undelivered_message(message.to_user, message.content.clone()).await;
         }
 
         // Enviar al emisor (from_user)

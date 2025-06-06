@@ -30,17 +30,20 @@ CREATE TABLE IF NOT EXISTS friends (
 );
 
 CREATE TABLE IF NOT EXISTS conversations (
-    id SERIAL PRIMARY KEY
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    type VARCHAR(20), -- opcional, ej: 'private', 'group'
+    is_group BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS messages (
     id SERIAL PRIMARY KEY,
-    conversation_id INT NOT NULL,
-    sender_id INT NOT NULL,
+    conversation_id INT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    timestamp TIMESTAMPTZ DEFAULT NOW(),
-    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
-    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    read_by JSONB DEFAULT '[]' -- contiene un array de user_ids que leyeron el mensaje
 );
 
 CREATE TABLE IF NOT EXISTS conversation_participants (
