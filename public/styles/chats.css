@@ -242,6 +242,15 @@ button:hover {
     align-items: center;
     gap: 0.5rem;
 }
+#dm-btn {
+    width: 30px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+#dm-btn svg:hover {
+    transform: scale(1.1);
+}
 
 /* Menú desplegable */
 .profile-menu {
