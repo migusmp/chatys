@@ -255,10 +255,22 @@ export const GlobalState = (() => {
         };
     }
 
+    function sendSocketMessage(msgObj) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            console.warn('WebSocket no está conectado');
+            return false;
+        }
+        const msgStr = JSON.stringify(msgObj);
+        console.log("📤 Enviando mensaje al servidor:", msgStr);
+        socket.send(msgStr);
+        return true;
+    }
+
+
     return {
         on, off, set, get,
         fetchProfileInfo, fetchProfileInfoOnce,
         clear, logout,
-        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState, deleteUserAccount, setActiveChatFriendId
+        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState, deleteUserAccount, setActiveChatFriendId, sendSocketMessage
     };
 })();

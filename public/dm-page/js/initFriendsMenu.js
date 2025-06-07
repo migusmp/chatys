@@ -127,7 +127,6 @@ export function initFriendsMenuDm() {
             span.className = "friend-username";
             span.textContent = friend.username;
             
-            console.log("CONTADOOOOOOORRR:", unreadCount)
             // 🔴 Aquí creamos el círculo rojo con contador si hay mensajes no leídos
             if (unreadCount > 0) {
                 const notificationBadge = document.createElement("div");
@@ -147,4 +146,5 @@ export function initFriendsMenuDm() {
 
     GlobalState.on('active_friends', renderFriends);
     GlobalState.on('friends', renderFriends);
+    GlobalState.on('notifications', renderFriends);
 }

@@ -244,6 +244,7 @@ async fn handle_socket_connection(
                 }
                 // Recibimos mensajes del cliente para eliminar notificaciones u otras operaciones
                 if let Message::Text(text) = message {
+                    println!("OBTENIENDO MENSAJE DEL CLIENTE");
                     handle_incoming_message(text.to_string(), app_state.clone(), user_id).await;
                 }
             }
