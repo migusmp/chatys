@@ -75,50 +75,70 @@ export function initFriendsMenuDm() {
 
         for (const friend of sortedFriends) {
             const isActive = activeFriends.includes(friend.id);
-
+        
             if (isActive) {
                 connectToFriend(friend.id, handleIncomingMessageGlobal);
             }
-
+        
+            // 💡 Aquí filtramos las notificaciones no leídas para este amigo
+            const notifications = GlobalState.get('notifications') || [];
+            const unreadCount = notifications.filter(
+                n => n.type_msg === 'chat_message' && n.sender_id === friend.id
+            ).length;
+        
             const li = document.createElement("li");
             li.className = "friend-item";
-
+        
             const friendData = {
                 ...friend,
                 isActive
             };
-
+        
             li.addEventListener("click", () => {
-                console.log("FRIEND: ", friend);
+                // Al hacer clic, podrías limpiar las notificaciones del usuario clicado
+                const updated = (GlobalState.get('notifications') || []).filter(
+                    n => !(n.type_msg === 'chat_message' && n.sender_id === friend.id)
+                );
+                GlobalState.set('notifications', updated);
+        
                 goto(`/dm/${friend.username}`);
                 loadChat(friendData);
                 connectToFriend(friend.id, handleIncomingMessageGlobal);
             });
-
+        
             const imgWrapper = document.createElement("div");
             imgWrapper.className = "friend-avatar-wrapper";
-
+        
             const img = document.createElement("img");
             img.className = "friend-avatar";
             img.src = `/media/user/${friend.image}`;
             img.alt = `${friend.username}`;
             img.width = 32;
             img.height = 32;
-
+        
             const statusDot = document.createElement("div");
             statusDot.className = "friend-status";
             if (isActive) statusDot.classList.add("online");
-
+        
             imgWrapper.appendChild(img);
             imgWrapper.appendChild(statusDot);
-
+        
             const span = document.createElement("span");
             span.className = "friend-username";
             span.textContent = friend.username;
-
+            
+            console.log("CONTADOOOOOOORRR:", unreadCount)
+            // 🔴 Aquí creamos el círculo rojo con contador si hay mensajes no leídos
+            if (unreadCount > 0) {
+                const notificationBadge = document.createElement("div");
+                notificationBadge.className = "notification-badge";
+                notificationBadge.textContent = unreadCount;
+                li.appendChild(notificationBadge);
+            }
+        
             li.appendChild(imgWrapper);
             li.appendChild(span);
-
+        
             friendsList.appendChild(li);
         }
     }

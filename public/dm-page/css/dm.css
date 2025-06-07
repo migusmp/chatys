@@ -486,3 +486,23 @@ body, #app {
 .hidden {
   display: none;
 }
+
+.notification-badge {
+  background-color: #ff4d4dcc;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: bold;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  right: 10px;
+  top: 12px;
+}
+.friend-item {
+  position: relative;
+}
