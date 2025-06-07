@@ -180,6 +180,22 @@ function renderNotifications(notifications) {
       createNotificationItem(notif, notificationList, notificationCount, noNotifications);
     }
   }
+
+  updateDmBadge(notifications);
+}
+
+function updateDmBadge(notifications) {
+  const dmBadge = document.getElementById("dmBadge");
+  if (!dmBadge) return;
+
+  const chatNotifs = notifications.filter(n => n.type_msg === 'chat_message');
+
+  if (chatNotifs.length > 0) {
+    dmBadge.textContent = chatNotifs.length;
+    dmBadge.style.display = "flex";
+  } else {
+    dmBadge.style.display = "none";
+  }
 }
 
 export function initNotifications() {

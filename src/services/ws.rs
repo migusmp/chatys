@@ -130,18 +130,19 @@ async fn handle_socket(
                     }
 
                     // Enviar mensaje si el usuario está conectado
-                    if app_state_clone.is_user_connected(to_user_id) {
-                        println!(
-                            "📡 Usuario {} está conectado. Enviando mensaje...",
-                            to_user_id
-                        );
-                        app_state_clone.send_direct_message(msg.clone()).await;
-                    } else {
-                        println!(
-                            "🚫 Usuario {} NO está conectado. (No se envía mensaje en tiempo real)",
-                            to_user_id
-                        );
-                    }
+                    // if app_state_clone.is_user_connected(to_user_id) {
+                    //     println!(
+                    //         "📡 Usuario {} está conectado. Enviando mensaje...",
+                    //         to_user_id
+                    //     );
+                        
+                    // } else {
+                    //     println!(
+                    //         "🚫 Usuario {} NO está conectado. (No se envía mensaje en tiempo real)",
+                    //         to_user_id
+                    //     );
+                    // }
+                    app_state_clone.send_direct_message(msg.clone()).await;
 
                     // Siempre guardar la notificación de mensaje no leído
                     if let Err(e) =
