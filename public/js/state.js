@@ -1,5 +1,5 @@
 export const GlobalState = (() => {
-    const persistKeys = ['isAuthenticated', 'id', 'username', 'name', 'email', 'image', 'created_at','theme', 'activeChatFriendId'];
+    const persistKeys = ['isAuthenticated', 'id', 'username', 'name', 'email', 'image', 'created_at', 'theme', 'activeChatFriendId'];
 
     const state = {
         isAuthenticated: localStorage.getItem('isAuthenticated') === 'true',
@@ -27,7 +27,7 @@ export const GlobalState = (() => {
     }
     function setActiveChatFriendId(id) {
         GlobalState.set('activeChatFriendId', id);
-      }
+    }
 
     function on(key, callback) {
         if (!listeners[key]) listeners[key] = [];
@@ -93,6 +93,13 @@ export const GlobalState = (() => {
         }
     }
 
+    function addMessageNotification(notification) {
+        state.notifications.push(notification);
+        if (listeners['notifications']) {
+            listeners['notifications'].forEach(cb => cb([...state.notifications]));
+        }
+    }
+
     function addNotification(notification) {
         const exists = state.notifications.some(n => n.id === notification.id);
         if (!exists) {
@@ -102,7 +109,7 @@ export const GlobalState = (() => {
             }
         }
     }
-    
+
 
     function clearNotifications() {
         state.notifications = [];
@@ -151,8 +158,8 @@ export const GlobalState = (() => {
                 method: "DELETE",
                 credentials: "include",
             })
-        } catch(e) {
-            console.error("Error al eliminar la cuenta del usuario:",e);
+        } catch (e) {
+            console.error("Error al eliminar la cuenta del usuario:", e);
         }
 
         GlobalState.clear();
@@ -227,6 +234,11 @@ export const GlobalState = (() => {
                 if (msg.type_msg == 'active_friends') {
                     set('active_friends', msg.friends);
                     console.log("Active friends updated:", msg.friends);
+                }
+
+                if (msg.type_msg == 'chat_message') {
+                    console.log("Te ha llegado un mensaje:", msg);
+                    addMessageNotification(msg);
                 }
             } catch (e) {
                 console.error('⚠️ Error al parsear JSON:', e);

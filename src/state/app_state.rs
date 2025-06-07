@@ -157,6 +157,7 @@ impl AppState {
                 "message_id": msg.message_id,
                 "conversation_id": msg.conversation_id,
                 "sender_id": msg.sender_id,
+                "sender_username": msg.sender_username,
                 "content": msg.content,
                 "created_at": msg.created_at.map(|dt| dt.format(&time::format_description::well_known::Rfc3339).unwrap_or_default()),
             })

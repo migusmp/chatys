@@ -387,8 +387,34 @@ button:hover {
     list-style: none;
     padding: 0;
     margin: 0;
+    padding-right: 10px;
     max-height: 300px;
     overflow-y: auto;
+
+    /* Scrollbar estilos para Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: #4f46e5 transparent;
+}
+
+/* Scrollbar Webkit (Chrome, Edge, Safari) */
+.notification-menu ul::-webkit-scrollbar {
+    width: 8px;
+}
+
+.notification-menu ul::-webkit-scrollbar-track {
+    background: transparent;
+    margin-left: 4px;
+}
+
+.notification-menu ul::-webkit-scrollbar-thumb {
+    background-color: #4f46e5; /* color morado */
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.notification-menu ul::-webkit-scrollbar-thumb:hover {
+    background-color: #7c3aed; /* morado más claro al hover */
 }
 
 .notification-menu ul li {
@@ -451,6 +477,67 @@ button:hover {
     background-color: rgba(255, 77, 77, 0.1);
     transform: scale(1.1);
 }
+
+.notification-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--shadow);
+    font-family: Arial, sans-serif;
+    background: var(--card-bg);
+    color: var(--text-color);
+    transition: background-color 0.2s ease;
+  }
+  
+  .notification-item:hover {
+    background-color: #3a3a56; /* un poco más claro para hover */
+  }
+  
+  .notification-header {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .notification-sender {
+    color: var(--accent);
+  }
+  
+  .notification-timestamp {
+    font-size: 0.8em;
+    color: var(--text-muted);
+  }
+  
+  .notification-content,
+  .notification-message {
+    font-size: 1em;
+    color: var(--text-color);
+    margin: 0;
+  }
+  
+  .notification-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+  }
+  
+  /* Opcional: estilos para botones en acciones */
+  .notification-actions button {
+    background-color: var(--accent);
+    border: none;
+    color: var(--text-color);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+  }
+  
+  .notification-actions button:hover {
+    background-color: #3b8ddb; /* un azul más oscuro para hover */
+  }
+  
 
 /* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
