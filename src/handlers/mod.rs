@@ -47,7 +47,7 @@ pub async fn spa_fallback(jar: CookieJar) -> impl IntoResponse {
 
 pub async fn index_handler(jar: CookieJar) -> impl IntoResponse {
     if jar.get("auth").is_some() {
-        match fs::read_to_string("public/index.html").await {
+        match fs::read_to_string("static/index.html").await {
             Ok(contents) => Html(contents).into_response(),
             Err(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,

@@ -64,7 +64,7 @@ pub async fn get_conversation_messages(
 
 ) -> Result<impl IntoResponse, ErrorRequest> {
 
-    let limit = pagination.limit.unwrap_or(20);
+    let limit = pagination.limit.unwrap_or(50);
     let offset = pagination.offset.unwrap_or(0);
 
     match find_conversation_id(from_user, to_user, &pool).await {

@@ -18,6 +18,7 @@ export const GlobalState = (() => {
     const listeners = {};
     let hasFetched = false;
     let socket = null;
+    const connectedFriendSockets = {};
 
     async function init() {
         loadPersistedState();
@@ -266,11 +267,36 @@ export const GlobalState = (() => {
         return true;
     }
 
+    function connectToFriend(friendId, onMessage) {
+        const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+        const socket = new WebSocket(`${protocol}://${location.host}/ws/${friendId}`);
+    
+        socket.onopen = () => {
+            console.log(`🟢 Conectado con el amigo ${friendId}`);
+        };
+    
+        socket.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            onMessage(msg);
+        };
+    
+        socket.onerror = (err) => {
+            console.error(`❌ Error con el socket de ${friendId}:`, err);
+        };
+    
+        socket.onclose = () => {
+            console.warn(`🔌 Socket cerrado con ${friendId}`);
+        };
+    
+        return socket;
+    }
+
 
     return {
         on, off, set, get,
         fetchProfileInfo, fetchProfileInfoOnce,
         clear, logout,
-        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState, deleteUserAccount, setActiveChatFriendId, sendSocketMessage
+        updateNotifications, addNotification, clearNotifications, removeNotification, fetchFriendsList, init, initSocket, loadPersistedState, deleteUserAccount, setActiveChatFriendId, sendSocketMessage, connectToFriend,
+        addMessageNotification,
     };
 })();

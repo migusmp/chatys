@@ -35,7 +35,7 @@ export async function initChatPage(friend) {
             renderChatHeader(friend, isOnline);
         }
 
-        //updateNotifications(friend.id);
+        
 
         updateHeader();
 
@@ -113,6 +113,7 @@ export async function initChatPage(friend) {
                 }
             }
 
+            updateNotifications(friend.id);
         }
         // === FIN nuevo código mensajes ===
 
