@@ -45,8 +45,7 @@ pub async fn spa_fallback(jar: CookieJar) -> impl IntoResponse {
     }
 }
 
-pub async fn index_handler(jar: CookieJar) -> impl IntoResponse {
-    if jar.get("auth").is_some() {
+pub async fn index_handler(_jar: CookieJar) -> impl IntoResponse {
         match fs::read_to_string("static/index.html").await {
             Ok(contents) => Html(contents).into_response(),
             Err(_) => (
@@ -55,10 +54,6 @@ pub async fn index_handler(jar: CookieJar) -> impl IntoResponse {
             )
                 .into_response(),
         }
-    } else {
-        // Redirige al login si no tiene la cookie
-        Redirect::to("/login").into_response()
-    }
 }
 
 pub async fn chats_handler(jar: CookieJar) -> Response {

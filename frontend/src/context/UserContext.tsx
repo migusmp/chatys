@@ -24,21 +24,27 @@ export function UserProvider({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const { profile } = useUser();
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  const fetchProfile = async () => {
       const userData = await profile();
       if (userData) {
         setUser(userData);
       }
       setLoading(false); // Ya haya o no usuario
     };
+
+  useEffect(() => {
     fetchProfile();
   }, []);
+
+  const refreshUser = async () => {
+    setLoading(true);
+    await fetchProfile();
+  }
 
   if (loading) return <Loader />;
 
   return (
-    <UserContext.Provider value={{ user, setUser }}>
+    <UserContext.Provider value={{ user, setUser, refreshUser }}>
       {children}
     </UserContext.Provider>
   );

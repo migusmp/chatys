@@ -25,7 +25,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_http::services::ServeDir;
 
-use handlers::{login_handler, register_handler, index_handler, spa_fallback};
+use handlers::{index_handler, spa_fallback};
 
 #[shuttle_runtime::main]
 async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::ShuttleAxum {
@@ -71,8 +71,8 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
         .merge(ws_router)
         // .route_service("/", ServeDir::new("public/index.html"))
         .route("/", get(index_handler))
-        .route("/login", get(login_handler))
-        .route("/register", get(register_handler))
+        // .route("/login", get(login_handler))
+        // .route("/register", get(register_handler))
         // .route("/chats", get(chats_handler))
         // .route("/friends", get(friends_handler))
         .nest_service("/static", ServeDir::new("public"))
