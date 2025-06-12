@@ -70,6 +70,78 @@
     overflow-y: auto;
 }
 
+/* Estilos de SelectLanguage */
+.languageSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.languageSelector select {
+  background-color: #111;
+  color: #00ff66;
+  border: 1px solid #272727;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  outline: none;
+  box-shadow: 0 0 0 transparent;
+}
+
+.languageSelector select:hover {
+  border-color: #00ff66;
+  background-color: #1a1a1a;
+  color: #00ff66;
+  transform: translateX(2px);
+}
+
+.languageSelector select:focus {
+  border-color: #00ff66;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+}
+
+/* Estilo para los <option> si usas navegadores modernos */
+.languageSelector option {
+  background-color: #111;
+  color: #00ff66;
+}
+
+.label {
+  color: #ccc;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.select {
+  background-color: #111;
+  color: #00ff66;
+  border: 1px solid #272727;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  outline: none;
+}
+
+.select:hover {
+  border-color: #00ff66;
+  background-color: #1a1a1a;
+  transform: translateX(2px);
+}
+
+.select:focus {
+  border-color: #00ff66;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+}
+
 /* -------- Responsive -------- */
 @media (max-width: 1242px) {
     .menu {

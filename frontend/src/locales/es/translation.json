@@ -12,6 +12,9 @@
     "menu": {
       "language": "Idioma",
       "theme": "Tema"
+    },
+    "language": {
+      "changeLanguage": "Cambiar idioma:"
     }
   }
 }
