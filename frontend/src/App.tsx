@@ -17,6 +17,8 @@ const Notifications = lazy(() => import('./components/pages/notifications/Notifi
 const Profile = lazy(() => import('./components/pages/profile/Profile'))
 const Settings = lazy(() => import('./components/pages/settings/Settings'))
 
+const NotFound = lazy(() => import('./components/NotFound'))
+
 function App() {
 
   return (
@@ -37,6 +39,9 @@ function App() {
           {/* Rutas públicas */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Página 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
