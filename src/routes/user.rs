@@ -66,5 +66,15 @@ pub fn user_router(pool: PgPool) -> Router {
             })
             .route_layer(axum::middleware::from_fn(auth)),
         )
+        .route(
+            "/conversations",
+            get({
+                let pool = pool.clone();
+                move |payload| {
+                    user_conversations(payload, pool)
+                }
+            })
+            .route_layer(axum::middleware::from_fn(auth)),
+        )
         .nest_service("/images", static_images_service)
 }

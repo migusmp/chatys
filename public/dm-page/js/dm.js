@@ -1,7 +1,15 @@
+import { goto } from "../../js/router.js";
+import { GlobalState } from "../../js/state.js";
 import { initChatPage } from "./dm_chat.js";
 import { initFriendsMenuDm } from "./initFriendsMenu.js";
 
-export async function initPage() {
+export async function initPage(params) {
+    console.log("PARAAAMS: ", params);
+    
+    // Aquí asumimos que params es un objeto tipo { username: "firefox" }
+    // o undefined / vacío si no hay parámetro
+    const username = params?.username ?? null;
+
     const sidebar = document.getElementById("sidebar");
     const chatContainer = document.getElementById("chat-container");
 
@@ -13,14 +21,28 @@ export async function initPage() {
     initFriendsMenuDm();
 
     // Mensaje inicial en el chat
-    chatContainer.innerHTML = `<h2>Selecciona un amigo para chatear</h2>`;
+    // chatContainer.innerHTML = `<h2>Selecciona un amigo para chatear</h2>`;
+    const friends = GlobalState.get("friends") || [];
+
+    if (username) {
+        const friend = friends.find(f => f.username === username);
+        if (friend) {
+            chatContainer.innerHTML = `<p>Cargando chat...</p>`;  // O spinner
+            await loadChat(friend);
+        } else {
+            chatContainer.innerHTML = `<p>No se encontró al usuario "${username}".</p>`;
+        }
+    } else {
+        chatContainer.innerHTML = `<h2>Selecciona un amigo para chatear</h2>`;
+    }
 }
 
-// Aquí llamas directamente a initPage de dm_chat.js
 export async function loadChat(friend) {
     try {
         console.log("CARGANDO CHAT DE FRIEND:", friend);
-        await initChatPage(friend); // pasas el username como parámetro
+        // const username = friend.username; // o friend.id
+        // history.pushState({}, '', `/dm/${encodeURIComponent(username)}`);
+        await initChatPage(friend); // pasas el friend al chat
     } catch (err) {
         const chatContainer = document.getElementById("chat-container");
         if (chatContainer) {
@@ -36,35 +58,3 @@ export function destroyPage() {
     if (sidebar) sidebar.innerHTML = "";
     if (chatContainer) chatContainer.innerHTML = "";
 }
-
-// Función para cargar el chat dinámicamente
-// async function loadChat(username) {
-//     const chatContainer = document.getElementById("chat-container");
-//     try {
-//         const res = await fetch('/static/dm-page/html/dm_chat.html');
-//         if (!res.ok) throw new Error("No se pudo cargar el chat");
-
-//         const html = await res.text();
-//         chatContainer.innerHTML = html;
-
-//         // Personaliza el título del chat con el username
-//         const titleElem = chatContainer.querySelector('.chat-title');
-//         if (titleElem) {
-//             titleElem.textContent = `Chat con ${username}`;
-//         }
-
-//         // Aquí puedes inicializar más cosas del chat, listeners, etc.
-
-//     } catch (err) {
-//         chatContainer.innerHTML = `<p>Error cargando el chat: ${err.message}</p>`;
-//     }
-// }
-
-// export function destroyPage() {
-//     // Si quieres limpiar algo cuando sales de esta página
-//     const sidebar = document.getElementById("sidebar");
-//     const chatContainer = document.getElementById("chat-container");
-
-//     if (sidebar) sidebar.innerHTML = "";
-//     if (chatContainer) chatContainer.innerHTML = "";
-// }

@@ -76,6 +76,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
         // .route("/chats", get(chats_handler))
         // .route("/friends", get(friends_handler))
         .nest_service("/static", ServeDir::new("public"))
+        .nest_service("/assets", ServeDir::new("static/assets"))
         .nest_service("/media/user", ServeDir::new("uploads/user"))
         .fallback(spa_fallback)
         .layer(TraceLayer::new_for_http())

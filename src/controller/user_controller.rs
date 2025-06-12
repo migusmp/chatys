@@ -1,3 +1,4 @@
+use crate::db::conversations::get_user_conversations;
 use crate::db::db::{
     delete_user, get_user_friends, get_user_profile_data, update_name_from_user, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName, UpdateUserPassword
 };
@@ -6,7 +7,7 @@ use crate::services::user::{login, register};
 use crate::utils::responses::ApiResponse;
 use axum::extract::Multipart;
 use axum::http::{HeaderMap, HeaderValue};
-use axum::Extension;
+use axum::{Extension, Json};
 use axum::{http::StatusCode, response::IntoResponse, Form};
 use sqlx::PgPool;
 use tokio::fs;
@@ -242,4 +243,15 @@ pub async fn delete_user_route(
         }
         Err(_) => Err(ErrorRequest::InternalError),
     }
+}
+
+pub async fn user_conversations(Extension(payload): Extension<Payload>, pool: PgPool) -> Result<impl IntoResponse, ErrorRequest> {
+    match get_user_conversations(payload.id, &pool).await {
+        Ok(conversations) => Ok(Json(conversations)),
+        Err(e) => {
+            eprintln!("Error al obtener las conversaciones del usuario {}: {}", payload.id, e);
+            Err(ErrorRequest::InternalError)
+        }
+    }
+    // Ok(ApiResponse::success("Routes added successfully"))
 }

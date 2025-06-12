@@ -13,7 +13,15 @@ use sqlx::PgPool;
 use tokio::sync::mpsc;
 
 use crate::{
-    db::db::get_user_chat_data, models::user::Payload, state::{app_state::AppState, chat_message::ChatMessage, types::IncomingMessage}
+    db::{
+        db::get_user_chat_data,
+        messages::{
+            get_or_create_direct_conversation, save_message, update_updated_at_from_conversation,
+        },
+        undelivered_messages::{delete_undelivered_message, set_undelivered_message},
+    },
+    models::user::Payload,
+    state::{app_state::AppState, chat_message::ChatMessage, types::IncomingMessage},
 };
 
 // MÉTODO PARA REGISTRAR CHATS INDIVIDUALES
@@ -82,19 +90,71 @@ async fn handle_socket(
             println!("📥 Mensaje recibido de {}: {}", from_user_id, text);
             match serde_json::from_str::<IncomingMessage>(&text) {
                 Ok(incoming) => {
+                    let conversation_id =
+                        match get_or_create_direct_conversation(from_user_id, to_user_id, &pool)
+                            .await
+                        {
+                            Ok(id) => id,
+                            Err(e) => {
+                                eprintln!("Error obteniendo o creando conversacion: {}", e);
+                                continue;
+                            }
+                        };
+
                     let msg = ChatMessage {
                         from_user: from_user_id,
                         to_user: to_user_id,
-                        content: incoming.content,
+                        content: incoming.content.clone(),
                         from_username: user_from_data.username.to_string(),
-                        from_username_image: user_from_data.image.to_string()
-                        // cualquier otro campo si tienes
+                        from_username_image: user_from_data.image.to_string(), // cualquier otro campo si tienes
                     };
-                    println!(
-                        "🔒 Construido ChatMessage -> from_user: {}, to_user: {}, content: {}",
-                        msg.from_user, msg.to_user, msg.content
-                    );
-                    app_state_clone.send_direct_message(msg).await;
+
+                    let saved_message_id =
+                        match save_message(conversation_id, from_user_id, &incoming.content, &pool)
+                            .await
+                        {
+                            Ok(id) => id, // Asegúrate de que `save_message` devuelva el `id` del mensaje guardado
+                            Err(e) => {
+                                eprintln!("Error guardando el mensaje: {}", e);
+                                continue;
+                            }
+                        };
+
+                    if let Err(e) =
+                        update_updated_at_from_conversation(conversation_id, &pool).await
+                    {
+                        eprintln!(
+                            "Error a actualizar updated_at en la conversacion {}: {}",
+                            conversation_id, e
+                        );
+                    }
+
+                    // Enviar mensaje si el usuario está conectado
+                    // if app_state_clone.is_user_connected(to_user_id) {
+                    //     println!(
+                    //         "📡 Usuario {} está conectado. Enviando mensaje...",
+                    //         to_user_id
+                    //     );
+                        
+                    // } else {
+                    //     println!(
+                    //         "🚫 Usuario {} NO está conectado. (No se envía mensaje en tiempo real)",
+                    //         to_user_id
+                    //     );
+                    // }
+                    app_state_clone.send_direct_message(msg.clone()).await;
+
+                    // Siempre guardar la notificación de mensaje no leído
+                    if let Err(e) =
+                        set_undelivered_message(saved_message_id, to_user_id, &pool).await
+                    {
+                        eprintln!("❌ Error al guardar undelivered message: {}", e);
+                    }
+                    // println!(
+                    //     "🔒 Construido ChatMessage -> from_user: {}, to_user: {}, content: {}",
+                    //     msg.from_user, msg.to_user, msg.content
+                    // );
+                    // app_state_clone.send_direct_message(msg).await;
                 }
                 Err(e) => {
                     println!("❌ Error al deserializar mensaje JSON: {}", e);
@@ -182,6 +242,11 @@ async fn handle_socket_connection(
                     println!("🔌 Usuario {} desconectado", user_id);
                     break;
                 }
+                // Recibimos mensajes del cliente para eliminar notificaciones u otras operaciones
+                if let Message::Text(text) = message {
+                    println!("OBTENIENDO MENSAJE DEL CLIENTE");
+                    handle_incoming_message(text.to_string(), app_state.clone(), user_id).await;
+                }
             }
             Some(notification) = user_connection_rx.recv() => {
                 if let Err(err) = socket.send(Message::Text(notification.into())).await {
@@ -199,6 +264,32 @@ async fn handle_socket_connection(
     app_state.on_user_disconnected(user_id).await;
 
     println!("🗑️ Conexión con usuario {} eliminada", user_id);
+}
+
+async fn handle_incoming_message(msg: String, app_state: Arc<AppState>, _user_id: i32) {
+    let parsed: serde_json::Value = match serde_json::from_str(&msg) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+
+    if let Some(type_msg) = parsed.get("type_msg").and_then(|v| v.as_str()) {
+        match type_msg {
+            "message_seen" => {
+                if let Some(undelivered_id) = parsed.get("undelivered_id").and_then(|v| v.as_i64())
+                {
+                    let _ =
+                        delete_undelivered_message(undelivered_id as i32, &app_state.db_pool).await;
+                    println!(
+                        "Mensaje no entregado {} confirmado y eliminado",
+                        undelivered_id
+                    );
+                }
+            }
+            _ => {
+                // Otros tipos de mensajes
+            }
+        }
+    }
 }
 
 async fn notify_friends_user_connected(app_state: &AppState, user_id: i32) {

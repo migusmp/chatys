@@ -50,6 +50,21 @@ export function toUrlEncoded(data) {
     }
     return params.toString();
   }
+
+export async function obtainMessagesFromConversation(from_user_id, to_user_id) {
+  try {
+    const res = await fetch(`/api/chat/conversations/${from_user_id}/${to_user_id}`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    const json = await res.json();
+    console.log("Messages from conversation:", json);
+    return json;
+  } catch(e) {
+    console.error("Error al obtener los mensajes del chat entre el usuario " + from_user_id + " y " + to_user_id);
+  }
+}
 // // Function to fetch a user friends list}
 // export async function startApp() {
 //     // 🔁 Cargar perfil (si es necesario)

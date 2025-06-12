@@ -53,3 +53,11 @@ CREATE TABLE IF NOT EXISTS conversation_participants (
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS undelivered_messages (
+    id SERIAL PRIMARY KEY,
+    message_id INT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    recipient_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(message_id, recipient_id)
+);

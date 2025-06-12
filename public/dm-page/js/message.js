@@ -52,8 +52,8 @@ export function createDmMessageElement(msg) {
     timeDiv.className = "message-time";
 
     let date;
-    if (msg.timestamp) {
-        date = new Date(msg.timestamp);
+    if (msg.createdAt) {
+        date = new Date(msg.createdAt);
     } else {
         date = new Date();
     }
