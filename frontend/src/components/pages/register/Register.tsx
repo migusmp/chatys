@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import '../styles/Register.css'
+import '../../../styles/Register.css'
 import { useState } from 'react'
-import useUser from '../hooks/useUser'
+import useUser from '../../../hooks/useUser'
 
 export default function Register() {
     const { sendRegisterFormData } = useUser();

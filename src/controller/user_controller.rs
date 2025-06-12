@@ -160,7 +160,10 @@ pub async fn get_profile_data(
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     let user_info = match get_user_profile_data(payload.id, &pool).await {
-        Ok(info) => info,
+        Ok(mut info) => {
+            info.image = format!("/media/user/{}", info.image);
+            info
+        },
         Err(_e) => return Err(ErrorRequest::InternalError),
     };
     Ok(ApiResponse::success_with_data("profile", Some(user_info)))

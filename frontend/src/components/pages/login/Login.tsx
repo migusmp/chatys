@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
-import '../styles/Login.css'
+import '../../../styles/Login.css'
 import { useState } from 'react'
-import useUser from '../hooks/useUser'
+import useUser from '../../../hooks/useUser'
 
 export default function Login() {
     const { sendLoginFormData } = useUser()
