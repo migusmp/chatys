@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import Loader from "./Loader";
 
 
 export default function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -18,7 +19,7 @@ export default function ProtectedRoute({ children }: { children: JSX.Element }) 
     }, [])
 
     // pantalla de carga
-    if (auth === null) return <div>Cargando...</div>
+    if (auth === null) return <Loader />
 
     if (auth && (location.pathname === '/login' || location.pathname === '/register')) {
         return <Navigate to="/" replace />

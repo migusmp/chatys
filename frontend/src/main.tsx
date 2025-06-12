@@ -3,9 +3,12 @@ import { createRoot } from 'react-dom/client'
 
 import './styles/index.css'
 import App from './App.tsx'
+import { UserProvider } from './context/UserContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <UserProvider>
+      <App />
+    </UserProvider>
   </StrictMode>,
 )

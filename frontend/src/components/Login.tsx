@@ -1,23 +1,21 @@
 import { Link, useNavigate } from 'react-router-dom'
 import '../styles/Login.css'
 import { useState } from 'react'
-import type { LoginUserData } from '../types/user'
-import useFetch from '../hooks/useFetch'
+import useUser from '../hooks/useUser'
 
 export default function Login() {
-    const { sendLoginFormData } = useFetch()
+    const { sendLoginFormData } = useUser()
     const navigate = useNavigate()
     
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
 
     async function handleLoginData() {
-        const data: LoginUserData = {
+
+        const success = await sendLoginFormData({
             username,
             password
-        }
-
-        const success = await sendLoginFormData(data);
+        });
         
         if (success) {
             navigate('/')

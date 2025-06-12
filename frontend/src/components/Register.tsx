@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom'
 import '../styles/Register.css'
 import { useState } from 'react'
-import type { RegisterUserData } from '../types/user'
-import useFetch from '../hooks/useFetch'
+import useUser from '../hooks/useUser'
 
 export default function Register() {
-    const { sendRegisterFormData } = useFetch();
+    const { sendRegisterFormData } = useUser();
 
     const [name, setName] = useState("")
     const [username, setUsername] = useState("")
@@ -13,13 +12,12 @@ export default function Register() {
     const [password, setPassword] = useState("")
 
     async function handleRegisterData() {
-        const data: RegisterUserData = {
+        await sendRegisterFormData({
             name,
             username,
             email,
             password
-        }
-        await sendRegisterFormData(data);
+        });
     }
 
 
