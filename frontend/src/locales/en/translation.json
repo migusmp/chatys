@@ -1,0 +1,17 @@
+{
+  "sidebar": {
+    "home": "Home",
+    "friends": "Friends",
+    "chats": "Chats",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "settings": {
+    "menu": {
+      "language": "Language",
+      "theme": "Theme"
+    }
+  }
+}

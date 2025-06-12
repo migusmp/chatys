@@ -1,12 +1,18 @@
 //use std::fs;
 use askama::Template;
-use axum::{response::{Html, IntoResponse, Redirect, Response}, Extension};
+use axum::{
+    response::{Html, IntoResponse, Redirect, Response},
+    Extension,
+};
 use axum_extra::extract::CookieJar;
 use hyper::StatusCode;
 use sqlx::PgPool;
 use tokio::fs;
 
-use crate::{db::db::{get_user_friends, Friend}, utils::user_utils::decode_token};
+use crate::{
+    db::db::{get_user_friends, Friend},
+    utils::user_utils::decode_token,
+};
 
 #[allow(dead_code)]
 #[derive(Template)]
@@ -30,30 +36,26 @@ pub async fn not_found() -> impl axum::response::IntoResponse {
     (axum::http::StatusCode::NOT_FOUND, "Archivo no encontrado")
 }
 
-pub async fn spa_fallback(jar: CookieJar) -> impl IntoResponse {
-    if jar.get("auth").is_some() {
-        match fs::read_to_string("public/index.html").await {
-            Ok(contents) => Html(contents).into_response(),
-            Err(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Error al cargar la SPA".to_string(),
-            )
-                .into_response(),
-        }
-    } else {
-        Redirect::to("/login").into_response()
+pub async fn spa_fallback(_jar: CookieJar) -> impl IntoResponse {
+    match fs::read_to_string("static/index.html").await {
+        Ok(contents) => Html(contents).into_response(),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Error al cargar la página".to_string(),
+        )
+            .into_response(),
     }
 }
 
 pub async fn index_handler(_jar: CookieJar) -> impl IntoResponse {
-        match fs::read_to_string("static/index.html").await {
-            Ok(contents) => Html(contents).into_response(),
-            Err(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Error al cargar la página".to_string(),
-            )
-                .into_response(),
-        }
+    match fs::read_to_string("static/index.html").await {
+        Ok(contents) => Html(contents).into_response(),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Error al cargar la página".to_string(),
+        )
+            .into_response(),
+    }
 }
 
 pub async fn chats_handler(jar: CookieJar) -> Response {
@@ -64,7 +66,10 @@ pub async fn chats_handler(jar: CookieJar) -> Response {
     }
 }
 
-pub async fn friends_handler(jar: CookieJar, Extension(pool): Extension<PgPool>) -> impl IntoResponse {
+pub async fn friends_handler(
+    jar: CookieJar,
+    Extension(pool): Extension<PgPool>,
+) -> impl IntoResponse {
     let auth_cookie = match jar.get("auth") {
         Some(cookie) => cookie.value().to_string(),
         None => return Redirect::to("/login").into_response(),
@@ -93,19 +98,20 @@ pub async fn friends_handler(jar: CookieJar, Extension(pool): Extension<PgPool>)
     }
 }
 
-
-
 pub async fn login_handler(jar: CookieJar) -> Response {
     if jar.get("auth").is_some() {
         Redirect::to("/").into_response()
     } else {
         match tokio::fs::read_to_string("public/login.html").await {
             Ok(contents) => Html(contents).into_response(),
-            Err(_) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Error loading page").into_response(),
+            Err(_) => (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Error loading page",
+            )
+                .into_response(),
         }
     }
 }
-
 
 pub async fn register_handler(jar: CookieJar) -> Response {
     if jar.get("auth").is_some() {
@@ -113,7 +119,11 @@ pub async fn register_handler(jar: CookieJar) -> Response {
     } else {
         match tokio::fs::read_to_string("public/register.html").await {
             Ok(contents) => Html(contents).into_response(),
-            Err(_) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Error loading page").into_response(),
+            Err(_) => (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Error loading page",
+            )
+                .into_response(),
         }
     }
 }

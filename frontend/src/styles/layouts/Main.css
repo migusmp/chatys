@@ -1,0 +1,97 @@
+:root {
+  --header-height: 60px;
+}
+
+.layout-container {
+  display: flex;
+  height: 100vh;
+}
+
+main {
+  width: 100%;
+  margin-left: 250px; /* espacio para sidebar vertical */
+  overflow-y: auto;   /* para scroll interno si hace falta */
+}
+
+body.is-mobile main {
+    padding-top: 65px;
+    margin-left: 0;   /* quitar margen izquierdo */
+    margin-bottom: 60px; /* espacio inferior para sidebar horizontal */
+}
+
+.layout__header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 65px;
+    padding: 0rem 1rem;
+    background-color: rgba(0, 0, 0, 0.7); /* Semitransparente */
+    backdrop-filter: blur(10px); /* Difuminado del fondo */
+    border-bottom: 1px solid #272727;
+    color: white;
+}
+
+.layout__header-left,
+.layout__header-center,
+.layout__header-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.layout__header-left {
+    justify-content: flex-start;
+}
+
+.layout__header-right {
+    justify-content: flex-end;
+}
+
+.layout__logo {
+    width: 80px;
+}
+
+.layout__user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Contenedor principal */
+.layout__body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Contenido principal con padding superior para no quedar tapado */
+.layout__main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4rem 1rem 1rem 1rem; /* 4rem para compensar el header fijo */
+    background-color: #000;
+    color: white;
+}
+
+@media (max-width: 960px) {
+    main {
+        margin-left: 80px;
+    }
+}
+
+
+
+/* Para móviles */
+@media (max-width: 412px) {
+  main {
+    margin-left: 0;   /* quitar margen izquierdo */
+    margin-bottom: 60px; /* dejar espacio abajo para sidebar horizontal */
+  }
+}

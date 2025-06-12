@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './styles/index.css'
 import App from './App.tsx'
 import { UserProvider } from './context/UserContext.tsx'
+import './i18n.ts'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
