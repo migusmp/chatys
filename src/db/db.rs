@@ -278,6 +278,28 @@ pub async fn get_user_friends(
     Ok(friends)
 }
 
+pub async fn get_user_friends_by_username(
+    username: String,
+    pool: &PgPool,
+) -> Result<Vec<Friend>, sqlx::Error> {
+    let query = r#"
+        SELECT u.id, u.username, u.name, u.image 
+        FROM friends f
+        JOIN users u ON f.friend_id = u.id
+        WHERE f.user_id = (
+            SELECT id FROM users WHERE username = $1
+        )
+    "#;
+
+    let friends = sqlx::query_as::<_, Friend>(query)
+        .bind(username)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(friends)
+}
+
+
 pub async fn get_user_profile_data(
     user_id: i32,
     pool: &PgPool,

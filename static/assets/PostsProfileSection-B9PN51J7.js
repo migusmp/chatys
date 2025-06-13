@@ -1,1 +1,0 @@
-import{j as o}from"./index-DifdR37E.js";const s="_body_1u8qn_1",e={body:s};function t(){return o.jsxs("section",{className:e.body,children:[o.jsx("h2",{children:"No hay publicaciones"}),o.jsx("i",{className:"bi bi-camera",style:{fontSize:"3rem",color:"#00ff66",marginTop:"1rem",opacity:.6}})]})}export{t as default};

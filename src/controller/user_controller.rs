@@ -1,8 +1,6 @@
 use crate::db::conversations::get_user_conversations;
 use crate::db::db::{
-    delete_user, get_user_friends, get_user_profile_data, update_name_from_user, update_user_email,
-    update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName,
-    UpdateUserPassword,
+    delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data, update_name_from_user, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName, UpdateUserPassword
 };
 use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, UpdateData};
 use crate::services::user::{login, register};
@@ -157,14 +155,21 @@ pub async fn get_friends(
 
 // TODO
 pub async fn get_friends_from_user(
-    Path(user_id): Path<i32>,
+    Path(username): Path<String>,
     Extension(_payload): Extension<Payload>,
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
-    let friends = match get_user_friends(user_id, &pool).await {
-        Ok(f) => f,
+    let friends = match get_user_friends_by_username(username, &pool).await {
+        Ok(f) => f
+            .into_iter()
+            .map(|mut friend| {
+                friend.image = format!("/media/user/{}", friend.image);
+                friend
+            })
+            .collect::<Vec<_>>(),
         Err(_e) => return Err(ErrorRequest::InternalError),
     };
+
     Ok(ApiResponse::success_with_data("friends:", Some(friends)))
 }
 

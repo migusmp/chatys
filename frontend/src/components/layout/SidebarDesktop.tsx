@@ -10,8 +10,6 @@ export default function SidebarDesktop() {
 
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
-    const userNamePruebaProfile = "test";
-
     return (
         <aside className="sidebar">
             <div className='sidebar-content'>
@@ -41,8 +39,8 @@ export default function SidebarDesktop() {
                             <i className={`bi ${isActive('/notifications') ? 'bi-bell-fill' : 'bi-bell'}`}></i>
                             <span>{t("sidebar.notifications")}</span>
                         </Link>
-                        <Link to={`/profile/${userNamePruebaProfile}`} className={`link ${isActive(`/profile/${userNamePruebaProfile}`) ? 'active' : ''}`}>
-                            <i className={`bi ${isActive(`/profile/${userNamePruebaProfile}`) ? 'bi-person-fill' : 'bi-person'}`}></i>
+                        <Link to={`/profile/${user?.username}`} className={`link ${isActive(`/profile/${user?.username}`) ? 'active' : ''}`}>
+                            <i className={`bi ${isActive(`/profile/${user?.username}`) ? 'bi-person-fill' : 'bi-person'}`}></i>
                             <span>{t("sidebar.profile")}</span>
                         </Link>
                         <Link to="/settings" className={`link ${isActive('/settings') ? 'active' : ''}`}>

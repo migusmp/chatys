@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
+import { useUserContext } from "../../context/UserContext";
 
 export default function SidebarMovile() {
+    const { user } = useUserContext()
     const location = useLocation();
 
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
-
-    const userNamePruebaProfile = "test";
     return (
         <aside className="mobile-sidebar">
             <div className="mobile-sidebar__container">
@@ -23,8 +23,8 @@ export default function SidebarMovile() {
                     <Link to="/notifications" className={`mobile-sidebar__link ${isActive('/notifications') ? 'active' : ''}`}>
                         <i className={`bi ${isActive('/notifications') ? 'bi-bell-fill' : 'bi-bell'}`}></i>
                     </Link>
-                    <Link to={`/profile/${userNamePruebaProfile}`} className={`mobile-sidebar__link ${isActive(`/profile/${userNamePruebaProfile}`) ? 'active' : ''}`}>
-                            <i className={`bi ${isActive(`/profile/${userNamePruebaProfile}`) ? 'bi-person-fill' : 'bi-person'}`}></i>
+                    <Link to={`/profile/${user?.username}`} className={`mobile-sidebar__link ${isActive(`/profile/${user?.username}`) ? 'active' : ''}`}>
+                            <i className={`bi ${isActive(`/profile/${user?.username}`) ? 'bi-person-fill' : 'bi-person'}`}></i>
                         </Link>
                     <Link to="/settings" className={`mobile-sidebar__link ${isActive('/settings') ? 'active' : ''}`}>
                         <i className={`bi ${isActive('/settings') ? 'bi-gear-fill' : 'bi-gear'}`}></i>

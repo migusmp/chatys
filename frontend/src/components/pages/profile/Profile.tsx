@@ -6,6 +6,8 @@ export default function Profile() {
     const { username } = useParams();
     const { t } = useTranslation();
 
+
+
     return (
         <>
             <div className={styles.body}>

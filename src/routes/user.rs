@@ -35,8 +35,8 @@ pub fn user_router(pool: PgPool) -> Router {
                 .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(
-            "/get-friends/{user_id}",
-            get(move |user_id, payload| get_friends_from_user(user_id,payload, pool_get_friends_from_user))
+            "/get-friends/{username}",
+            get(move |username, payload| get_friends_from_user(username,payload, pool_get_friends_from_user))
                 .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(

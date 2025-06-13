@@ -48,3 +48,23 @@
 .username {
     color: #aaa;
 }
+
+/* Estilos para el loader de amigos */
+.loader {
+  width: 48px;
+  height: 48px;
+  border: 5px solid rgba(0, 255, 102, 0.3); /* borde más suave */
+  border-top: 5px solid #00ff66; /* verde brillante arriba */
+  border-radius: 50%;
+  animation: spin 0.8s ease-in-out infinite;
+  margin: 40px auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
