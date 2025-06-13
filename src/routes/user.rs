@@ -9,6 +9,7 @@ pub fn user_router(pool: PgPool) -> Router {
     let static_images_service = ServeDir::new("uploads/user");
     let pool_login = pool.clone();
     let pool_get_friends = pool.clone();
+    let pool_get_friends_from_user = pool.clone();
     let pool_profile = pool.clone();
 
     Router::new()
@@ -31,6 +32,11 @@ pub fn user_router(pool: PgPool) -> Router {
         .route(
             "/get-friends",
             get(move |payload| get_friends(payload, pool_get_friends))
+                .route_layer(axum::middleware::from_fn(auth)),
+        )
+        .route(
+            "/get-friends/{user_id}",
+            get(move |user_id, payload| get_friends_from_user(user_id,payload, pool_get_friends_from_user))
                 .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(

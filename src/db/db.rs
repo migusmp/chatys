@@ -255,6 +255,7 @@ async fn check_updated_email(new_email: &String) -> Result<(), UpdateUserEmail> 
 pub struct Friend {
     pub id: i32,
     pub username: String,
+    pub name: String,
     pub image: String,
 }
 
@@ -263,7 +264,7 @@ pub async fn get_user_friends(
     pool: &PgPool,
 ) -> Result<Vec<Friend>, sqlx::Error> {
     let query = r#"
-        SELECT u.id, u.username, u.image 
+        SELECT u.id, u.username, u.name, u.image 
         FROM friends f
         JOIN users u ON f.friend_id = u.id
         WHERE f.user_id = $1

@@ -1,14 +1,16 @@
 use crate::db::conversations::get_user_conversations;
 use crate::db::db::{
-    delete_user, get_user_friends, get_user_profile_data, update_name_from_user, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName, UpdateUserPassword
+    delete_user, get_user_friends, get_user_profile_data, update_name_from_user, update_user_email,
+    update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName,
+    UpdateUserPassword,
 };
 use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, UpdateData};
 use crate::services::user::{login, register};
 use crate::utils::responses::ApiResponse;
-use axum::extract::Multipart;
+use axum::extract::{Multipart, Path};
 use axum::http::{HeaderMap, HeaderValue};
-use axum::{Extension, Json};
 use axum::{http::StatusCode, response::IntoResponse, Form};
+use axum::{Extension, Json};
 use sqlx::PgPool;
 use tokio::fs;
 use uuid::Uuid;
@@ -77,9 +79,7 @@ pub async fn user_logout() -> impl IntoResponse {
     let mut headers = HeaderMap::new();
     headers.insert(
         "Set-Cookie",
-        HeaderValue::from_static(
-            "auth=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax",
-        ),
+        HeaderValue::from_static("auth=; Max-Age=0; Path=/; Secure; HttpOnly; SameSite=Lax"),
     );
 
     (StatusCode::OK, headers)
@@ -155,6 +155,19 @@ pub async fn get_friends(
     Ok(ApiResponse::success_with_data("friends:", Some(friends)))
 }
 
+// TODO
+pub async fn get_friends_from_user(
+    Path(user_id): Path<i32>,
+    Extension(_payload): Extension<Payload>,
+    pool: PgPool,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    let friends = match get_user_friends(user_id, &pool).await {
+        Ok(f) => f,
+        Err(_e) => return Err(ErrorRequest::InternalError),
+    };
+    Ok(ApiResponse::success_with_data("friends:", Some(friends)))
+}
+
 pub async fn get_profile_data(
     Extension(payload): Extension<Payload>,
     pool: PgPool,
@@ -163,7 +176,7 @@ pub async fn get_profile_data(
         Ok(mut info) => {
             info.image = format!("/media/user/{}", info.image);
             info
-        },
+        }
         Err(_e) => return Err(ErrorRequest::InternalError),
     };
     Ok(ApiResponse::success_with_data("profile", Some(user_info)))
@@ -173,7 +186,7 @@ pub async fn upload_image(
     Extension(payload): Extension<Payload>,
     headers: HeaderMap,
     multipart: Multipart,
-    pool: PgPool
+    pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     if let Some(content_length) = headers.get("content-length") {
         let content_length = content_length
@@ -221,10 +234,12 @@ pub async fn upload_image(
             ErrorRequest::InternalError
         })?;
     }
-    update_user_image(payload.id, file_name, &pool).await.map_err(|e| {
-        eprintln!("Error actualizando la imagen del usuario: {:?}", e);
-        ErrorRequest::InternalError
-    })?;
+    update_user_image(payload.id, file_name, &pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Error actualizando la imagen del usuario: {:?}", e);
+            ErrorRequest::InternalError
+        })?;
     Ok(ApiResponse::success("Image updated"))
 }
 
@@ -242,17 +257,27 @@ pub async fn delete_user_route(
                 ),
             );
 
-            Ok((StatusCode::OK, headers, ApiResponse::success("User deleted successfully")))
+            Ok((
+                StatusCode::OK,
+                headers,
+                ApiResponse::success("User deleted successfully"),
+            ))
         }
         Err(_) => Err(ErrorRequest::InternalError),
     }
 }
 
-pub async fn user_conversations(Extension(payload): Extension<Payload>, pool: PgPool) -> Result<impl IntoResponse, ErrorRequest> {
+pub async fn user_conversations(
+    Extension(payload): Extension<Payload>,
+    pool: PgPool,
+) -> Result<impl IntoResponse, ErrorRequest> {
     match get_user_conversations(payload.id, &pool).await {
         Ok(conversations) => Ok(Json(conversations)),
         Err(e) => {
-            eprintln!("Error al obtener las conversaciones del usuario {}: {}", payload.id, e);
+            eprintln!(
+                "Error al obtener las conversaciones del usuario {}: {}",
+                payload.id, e
+            );
             Err(ErrorRequest::InternalError)
         }
     }

@@ -8,29 +8,31 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 
 // Provider
 interface Props {
-    children: ReactNode
+  children: ReactNode
 }
 
 export function useUserContext() {
-    const context = useContext(UserContext)
-    if (!context) {
-        throw new Error("useUserContext debe usarse dentro de un <UserProvider>")
-    }
-    return context
+  const context = useContext(UserContext)
+  if (!context) {
+    throw new Error("useUserContext debe usarse dentro de un <UserProvider>")
+  }
+  return context
 }
 
 export function UserProvider({ children }: Props) {
   const [user, setUser] = useState<UserProfile | null>(null);
+
   const [loading, setLoading] = useState(true);
   const { profile } = useUser();
 
   const fetchProfile = async () => {
-      const userData = await profile();
-      if (userData) {
-        setUser(userData);
-      }
-      setLoading(false); // Ya haya o no usuario
-    };
+    const userData = await profile();
+    if (userData) {
+      setUser(userData);
+    }
+
+    setLoading(false); // Ya haya o no usuario
+  };
 
   useEffect(() => {
     fetchProfile();

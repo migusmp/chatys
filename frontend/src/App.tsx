@@ -18,6 +18,7 @@ const Profile = lazy(() => import('./components/pages/profile/Profile'))
 const Settings = lazy(() => import('./components/pages/settings/Settings'))
 
 const FriendsProfile = lazy(() => import('./components/pages/profile/components/Friends'))
+const PostsProfile = lazy(() => import('./components/pages/profile/components/PostsProfileSection'))
 
 const NotFound = lazy(() => import('./components/NotFound'))
 
@@ -36,7 +37,7 @@ function App() {
             <Route path="/notifications" element={<Notifications />} />
 
             <Route path="/profile/:username" element={<Profile />}>
-              <Route index element={<div style={{ color: '#fff' }}>Posts del usuario</div>} />
+              <Route index element={<PostsProfile />} />
               <Route path="friends" element={<FriendsProfile />} />
             </Route>
 

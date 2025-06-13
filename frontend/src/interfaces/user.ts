@@ -4,7 +4,7 @@ import type { UserProfile } from "../types/user";
 export interface UserContextType {
     user: UserProfile | null,
     setUser: (user: UserProfile | null) => void,
-    refreshUser: () => Promise<void>
+    refreshUser: () => Promise<void>,
 }
 
 export interface RegisterUserData {
