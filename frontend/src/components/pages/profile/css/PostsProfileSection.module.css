@@ -1,0 +1,20 @@
+.body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.body h2 {
+    font-size: 2rem;
+    color: #999;
+}
+
+@media (max-width: 500px) {
+    .body h2 {
+        font-size: 1.5rem;
+    }
+}

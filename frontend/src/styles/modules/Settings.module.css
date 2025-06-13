@@ -1,0 +1,233 @@
+.body {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+    /* ejemplo para que contraste */
+    padding: 1rem;
+    box-sizing: border-box;
+    flex-direction: row;
+}
+
+/* Menu lateral en desktop */
+.menu {
+    width: 15%;
+    height: 90vh;
+    padding: 1rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+    border-right: 1px solid #272727;
+}
+
+/* Lista sin estilos por defecto */
+.menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.menu li {
+    cursor: pointer;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    color: white;
+    user-select: none;
+    font-weight: 600;
+    background-color: transparent;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.menu li:hover {
+    background-color: rgba(0, 255, 102, 0.15);
+    color: #00ff66;
+    transform: translateX(5px);
+}
+
+.menu li>* {
+    position: relative;
+    z-index: 1;
+}
+
+.menu li.active {
+    background-color: rgba(0, 255, 102, 0.15);
+    color: #00ff66;
+    font-weight: 700;
+    transform: translateX(5px);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.content {
+    width: 60%;
+    height: 90vh;
+    padding: 2rem;
+    box-sizing: border-box;
+    color: white;
+    overflow-y: auto;
+}
+
+/* Estilos de SelectLanguage */
+.languageSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.languageSelector select {
+  background-color: #111;
+  color: #00ff66;
+  border: 1px solid #272727;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  outline: none;
+  box-shadow: 0 0 0 transparent;
+}
+
+.languageSelector select:hover {
+  border-color: #00ff66;
+  background-color: #1a1a1a;
+  color: #00ff66;
+  transform: translateX(2px);
+}
+
+.languageSelector select:focus {
+  border-color: #00ff66;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+}
+
+/* Estilo para los <option> si usas navegadores modernos */
+.languageSelector option {
+  background-color: #111;
+  color: #00ff66;
+}
+
+.label {
+  color: #ccc;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.select {
+  background-color: #111;
+  color: #00ff66;
+  border: 1px solid #272727;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  outline: none;
+}
+
+.select:hover {
+  border-color: #00ff66;
+  background-color: #1a1a1a;
+  transform: translateX(2px);
+}
+
+.select:focus {
+  border-color: #00ff66;
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+}
+
+/* -------- Responsive -------- */
+@media (max-width: 1242px) {
+    .menu {
+        width: 25%;
+        height: 90vh;
+        padding: 1rem;
+        box-sizing: border-box;
+        overflow-y: auto;
+        border-right: 1px solid #272727;
+    }
+    .content {
+        width: 75%;
+    }
+}
+
+@media (max-width: 960px) {
+    .menu {
+        width: 30%;
+        height: 90vh;
+    }
+
+    .content {
+        width: 70%;
+        height: 90vh;
+    }
+}
+
+@media (max-width: 600px) {
+    .menu {
+        width: 40%;
+        height: 90vh;
+    }
+
+    .content {
+        width: 70%;
+        height: 90vh;
+        padding: 2rem;
+        box-sizing: border-box;
+        color: white;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 500px) {
+  .body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .menu {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #272727;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5rem 1rem;
+  }
+
+  .menu ul {
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .menu li {
+    margin-bottom: 0;
+    white-space: nowrap; /* evitar que se rompa el texto */
+  }
+
+  .content {
+    width: 100%;
+    height: auto;
+    flex: 1;
+    padding: 1rem;
+  }
+}
+
+
+@media (max-width: 480px) {
+    .menu li {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    .content {
+        padding: 0.5rem;
+    }
+}

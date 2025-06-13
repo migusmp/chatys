@@ -1,0 +1,33 @@
+{
+  "sidebar": {
+    "home": "Home",
+    "friends": "Friends",
+    "chats": "Chats",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "settings": {
+    "menu": {
+      "language": "Language",
+      "theme": "Theme"
+    },
+    "language": {
+      "changeLanguage": "Change language:"
+    }
+  },
+  "profile": {
+    "editProfile": "Edit Profile",
+    "joinedIn": "Joined",
+    "countFriends": "Friends",
+    "posts": "Posts",
+    "friends": "Friends"
+  },
+  "notFound": {
+    "errorCode": "404",
+    "title": "Page Not Found",
+    "description": "Sorry, the page you are looking for does not exist or has been moved.",
+    "buttonText": "Back to Home"
+  }
+}

@@ -14,12 +14,22 @@ pub struct RegisterUser {
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
 pub struct UserData {
-    id: i32,
-    username: String,
-    name: String,
-    email: String,
-    image: String,
-    created_at: NaiveDateTime,
+    pub id: i32,
+    pub username: String,
+    pub name: String,
+    pub email: String,
+    pub image: String,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
+pub struct ProfileData {
+    pub id: i32,
+    pub username: String,
+    pub name: String,
+    pub image: String,
+    pub created_at: NaiveDateTime,
+    pub friends_count: i64,
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]

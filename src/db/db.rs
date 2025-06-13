@@ -5,6 +5,7 @@ use sqlx::Error;
 use sqlx::PgPool;
 use std::env;
 
+use crate::models::user::ProfileData;
 use crate::models::user::UserChatData;
 use crate::models::user::UserData;
 
@@ -255,6 +256,7 @@ async fn check_updated_email(new_email: &String) -> Result<(), UpdateUserEmail> 
 pub struct Friend {
     pub id: i32,
     pub username: String,
+    pub name: String,
     pub image: String,
 }
 
@@ -263,7 +265,7 @@ pub async fn get_user_friends(
     pool: &PgPool,
 ) -> Result<Vec<Friend>, sqlx::Error> {
     let query = r#"
-        SELECT u.id, u.username, u.image 
+        SELECT u.id, u.username, u.name, u.image 
         FROM friends f
         JOIN users u ON f.friend_id = u.id
         WHERE f.user_id = $1
@@ -276,6 +278,28 @@ pub async fn get_user_friends(
 
     Ok(friends)
 }
+
+pub async fn get_user_friends_by_username(
+    username: String,
+    pool: &PgPool,
+) -> Result<Vec<Friend>, sqlx::Error> {
+    let query = r#"
+        SELECT u.id, u.username, u.name, u.image 
+        FROM friends f
+        JOIN users u ON f.friend_id = u.id
+        WHERE f.user_id = (
+            SELECT id FROM users WHERE username = $1
+        )
+    "#;
+
+    let friends = sqlx::query_as::<_, Friend>(query)
+        .bind(username)
+        .fetch_all(pool)
+        .await?;
+
+    Ok(friends)
+}
+
 
 pub async fn get_user_profile_data(
     user_id: i32,
@@ -291,6 +315,40 @@ pub async fn get_user_profile_data(
         .bind(user_id)
         .fetch_one(pool)
         .await?;
+    Ok(user_data)
+}
+
+pub async fn get_user_profile_data_by_username(
+    username: String,
+    pool: &PgPool,
+) -> Result<ProfileData, sqlx::Error> {
+    let query = r#"
+        SELECT 
+            u.id, 
+            u.username, 
+            u.name, 
+            u.created_at, 
+            u.image,
+            (
+                SELECT COUNT(*) 
+                FROM friends f1
+                WHERE f1.user_id = u.id
+                AND EXISTS (
+                    SELECT 1 
+                    FROM friends f2
+                    WHERE f2.user_id = f1.friend_id 
+                    AND f2.friend_id = f1.user_id
+                )
+            ) AS friends_count
+        FROM users u
+        WHERE u.username = $1
+    "#;
+
+    let user_data = sqlx::query_as::<_, ProfileData>(&query)
+        .bind(username)
+        .fetch_one(pool)
+        .await?;
+
     Ok(user_data)
 }
 

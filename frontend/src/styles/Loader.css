@@ -3,7 +3,7 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #111111;
+  background-color: #000000;
 }
 
 .loader {
@@ -14,7 +14,7 @@
 .loader div {
   width: 12px;
   height: 12px;
-  background-color: #3b82f6; /* azul moderno */
+  background-color: #00ff66;
   border-radius: 50%;
   animation: bounce 0.6s infinite ease-in-out;
 }

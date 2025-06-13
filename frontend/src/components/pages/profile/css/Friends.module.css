@@ -1,0 +1,70 @@
+.sectionFriends {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.friendCard {
+    width: 90%;
+    display: flex;
+    align-items: center;
+    background-color: #1e1e1e;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    transition: all 0.3s ease;
+    transform: scale(1);
+    cursor: pointer;
+}
+
+.friendCard:hover {
+    background-color: rgba(0, 255, 102, 0.15);
+    /* verde fosforescente con opacidad */
+    color: #00ff66;
+    transform: scale(1.03);
+}
+
+.friendCard img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 1rem;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.friendCard:hover img {
+    transform: scale(1.1);
+}
+
+.name {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.username {
+    color: #aaa;
+}
+
+/* Estilos para el loader de amigos */
+.loader {
+  width: 48px;
+  height: 48px;
+  border: 5px solid rgba(0, 255, 102, 0.3); /* borde más suave */
+  border-top: 5px solid #00ff66; /* verde brillante arriba */
+  border-radius: 50%;
+  animation: spin 0.8s ease-in-out infinite;
+  margin: 40px auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

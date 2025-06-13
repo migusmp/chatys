@@ -1,0 +1,33 @@
+{
+  "sidebar": {
+    "home": "Inicio",
+    "friends": "Amigos",
+    "chats": "Chats",
+    "messages": "Mensajes",
+    "notifications": "Notificaciones",
+    "profile": "Perfil",
+    "settings": "Ajustes"
+  },
+  "settings": {
+    "menu": {
+      "language": "Idioma",
+      "theme": "Tema"
+    },
+    "language": {
+      "changeLanguage": "Cambiar idioma:"
+    }
+  },
+  "profile": {
+    "editProfile": "Editar Perfil",
+    "joinedIn": "Se unió en ",
+    "countFriends": "Amigos",
+    "posts": "Posts",
+    "friends": "Amigos"
+  },
+  "notFound": {
+    "errorCode": "404",
+    "title": "Página no encontrada",
+    "description": "Lo sentimos, la página que estás buscando no existe o ha sido movida.",
+    "buttonText": "Volver al inicio"
+  }
+}
