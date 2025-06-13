@@ -5,6 +5,7 @@ use sqlx::Error;
 use sqlx::PgPool;
 use std::env;
 
+use crate::models::user::ProfileData;
 use crate::models::user::UserChatData;
 use crate::models::user::UserData;
 
@@ -314,6 +315,40 @@ pub async fn get_user_profile_data(
         .bind(user_id)
         .fetch_one(pool)
         .await?;
+    Ok(user_data)
+}
+
+pub async fn get_user_profile_data_by_username(
+    username: String,
+    pool: &PgPool,
+) -> Result<ProfileData, sqlx::Error> {
+    let query = r#"
+        SELECT 
+            u.id, 
+            u.username, 
+            u.name, 
+            u.created_at, 
+            u.image,
+            (
+                SELECT COUNT(*) 
+                FROM friends f1
+                WHERE f1.user_id = u.id
+                AND EXISTS (
+                    SELECT 1 
+                    FROM friends f2
+                    WHERE f2.user_id = f1.friend_id 
+                    AND f2.friend_id = f1.user_id
+                )
+            ) AS friends_count
+        FROM users u
+        WHERE u.username = $1
+    "#;
+
+    let user_data = sqlx::query_as::<_, ProfileData>(&query)
+        .bind(username)
+        .fetch_one(pool)
+        .await?;
+
     Ok(user_data)
 }
 

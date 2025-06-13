@@ -1,6 +1,6 @@
 use crate::db::conversations::get_user_conversations;
 use crate::db::db::{
-    delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data, update_name_from_user, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName, UpdateUserPassword
+    delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data, get_user_profile_data_by_username, update_name_from_user, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName, UpdateUserPassword
 };
 use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, UpdateData};
 use crate::services::user::{login, register};
@@ -178,6 +178,20 @@ pub async fn get_profile_data(
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     let user_info = match get_user_profile_data(payload.id, &pool).await {
+        Ok(mut info) => {
+            info.image = format!("/media/user/{}", info.image);
+            info
+        }
+        Err(_e) => return Err(ErrorRequest::InternalError),
+    };
+    Ok(ApiResponse::success_with_data("profile", Some(user_info)))
+}
+
+pub async fn get_profile_data_from_user(
+    Path(username): Path<String>,
+    pool: PgPool,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    let user_info = match get_user_profile_data_by_username(username, &pool).await {
         Ok(mut info) => {
             info.image = format!("/media/user/{}", info.image);
             info

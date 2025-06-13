@@ -23,6 +23,16 @@ pub struct UserData {
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
+pub struct ProfileData {
+    pub id: i32,
+    pub username: String,
+    pub name: String,
+    pub image: String,
+    pub created_at: NaiveDateTime,
+    pub friends_count: i64,
+}
+
+#[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
 pub struct UserChatData {
     pub username: String,
     pub image: String,

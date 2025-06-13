@@ -11,6 +11,7 @@ pub fn user_router(pool: PgPool) -> Router {
     let pool_get_friends = pool.clone();
     let pool_get_friends_from_user = pool.clone();
     let pool_profile = pool.clone();
+    let pool_profile_from_user = pool.clone();
 
     Router::new()
         .route(
@@ -36,12 +37,17 @@ pub fn user_router(pool: PgPool) -> Router {
         )
         .route(
             "/get-friends/{username}",
-            get(move |username, payload| get_friends_from_user(username,payload, pool_get_friends_from_user))
+            get(move |username, payload| get_friends_from_user(username ,payload, pool_get_friends_from_user))
                 .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(
             "/profile",
             get(move |payload| get_profile_data(payload, pool_profile))
+                .route_layer(axum::middleware::from_fn(auth)),
+        )
+        .route(
+            "/profile/{username}",
+            get(move |username| get_profile_data_from_user(username, pool_profile_from_user))
                 .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(
