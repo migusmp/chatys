@@ -19,3 +19,12 @@ export type LoginUserData = {
     username: string,
     password: string,
 }
+
+export type ProfileData = {
+    id: number,
+    name: string,
+    username: string,
+    image: string,
+    created_at: string,
+    friends_count: number,
+}

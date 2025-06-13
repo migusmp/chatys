@@ -20,7 +20,7 @@
 .header {
     width: 100%;
     height: 180px;
-    background-color: rgb(62, 65, 68);
+    background-color: #00ff66;
 }
 
 /* <---------------------- STYLES TO USER INFORMATION SECTION -----------------------> */
@@ -45,7 +45,15 @@
     height: 150px;
     border-radius: 50%;
     border: 4px solid #000;
-    background-color: #00ff66;
+    background-color: #000;
+    overflow: hidden;
+}
+
+.profileImgDiv img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;    /* adapta la imagen manteniendo proporciones */
+    object-position: center; /* centra la imagen */
 }
 
 .buttonEditProfile {

@@ -1,4 +1,5 @@
 import type { Friend } from "../types/friend";
+import type { ProfileData } from "../types/user";
 
 export default function useFetch() {
     // async function fetchFriendsList(): Promise<[] | void> {
@@ -37,5 +38,25 @@ export default function useFetch() {
         }
     }
 
-    return { fetchFriendsList }
+    async function fetchProfileUserData(username: string): Promise<ProfileData | void> {
+        try {
+            const res = await fetch(`/api/user/profile/${username}`, {
+                method: "GET",
+                credentials: "include"
+            });
+
+            if (!res.ok) {
+                throw new Error(`Error HTTP: ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            console.log("Friends: ", data);
+            return data.data as ProfileData;
+        } catch (e) {
+            console.error("Error al cargar la lista de amigos:", e);
+        }
+    }
+
+    return { fetchFriendsList, fetchProfileUserData }
 }
