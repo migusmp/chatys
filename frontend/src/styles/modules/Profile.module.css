@@ -1,0 +1,195 @@
+.body {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    /* Añade esto para columnas en móviles */
+}
+
+.userInfoSection {
+    width: 45%;
+    min-height: 100vh;
+    /* background-color: green; */
+    border-left: 1px solid #272727;
+    border-right: 1px solid #272727;
+}
+
+/* <--------------------- STYLES TO BANNER SECTION ------------------------> */
+.header {
+    width: 100%;
+    height: 180px;
+    background-color: rgb(62, 65, 68);
+}
+
+/* <---------------------- STYLES TO USER INFORMATION SECTION -----------------------> */
+.userInfo {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #272727;
+}
+
+.div {
+    width: 100%;
+}
+
+.profileImgDiv {
+    position: absolute;
+    top: -4.5rem;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 4px solid #000;
+    background-color: #00ff66;
+}
+
+.buttonEditProfile {
+    position: absolute;
+    right: 30px;
+    top: 20px;
+    width: 120px;
+    height: 30px;
+    background-color: transparent;
+    border: 2px solid #00ff66;
+    outline: none;
+    border-radius: 24px;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    font-size: 0.9rem;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.buttonEditProfile:hover {
+    color: #00ff66;
+    background-color: rgba(0, 255, 102, 0.15);
+}
+
+/* ESTILOS DE LA SECCION DE LA INFORMACION DEL PERFIL DEL USUARIO */
+.userDetails {
+    margin-top: 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.userDetails span {
+    display: flex;
+    gap: 5px;
+}
+
+.spanName {
+    font-size: 23px;
+    font-weight: bold;
+}
+
+.spanUserName {
+    color: #535353;
+}
+
+.spanJoined {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    color: #535353;
+}
+
+.spanFriends {
+    color: #535353;
+}
+
+.spanFriends strong {
+    color: #fff;
+    font-weight: bold;
+}
+
+/* ESTILOS DE LA LISTA DE NAVEGACION EN EL PERFIL DE UN USUARIO */
+.navList {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    list-style: none;
+    display: flex;
+    justify-content: space-around;
+    gap: 3rem;
+}
+
+.navList li {
+    padding: 0.5rem 1rem;
+    position: relative;
+}
+
+.navList a {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: color 0.3s ease;
+    cursor: pointer;
+}
+
+.navList a:hover {
+    color: #00ff66;
+}
+
+.activeLink {
+    color: #00ff66;
+    font-weight: 600;
+}
+
+/* El div verde pequeño debajo, inicialmente oculto */
+.underline {
+    width: 50px;
+    height: 3px;
+    background-color: #00ff66;
+    margin-top: 4px;
+    border-radius: 2px;
+    opacity: 0;
+    transform: scaleX(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Cuando está activo, mostramos el div verde */
+.activeLink .underline {
+    opacity: 1;
+    transform: scaleX(1);
+}
+
+
+
+/* RESPONSIVE DESINGS */
+@media (max-width: 1456px) {
+    .userInfoSection {
+        width: 60%;
+    }
+}
+
+@media (max-width: 1142px) {
+    .userInfoSection {
+        width: 70%;
+    }
+}
+
+@media (max-width: 755px) {
+    .userInfoSection {
+        width: 85%;
+    }
+}
+
+
+
+@media (max-width: 500px) {
+    .userInfoSection {
+        width: 100%;
+    }
+}

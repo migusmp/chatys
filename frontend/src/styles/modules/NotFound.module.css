@@ -1,10 +1,19 @@
-:root {
+/* :root {
   --neon-green: #f311ff;
   --phosphor-green: #fbfbfb;
   --dark-green: #2f0a2a;
   --cyan: #00ffff;
   --magenta: #ff00ff;
+} */
+
+:root {
+  --neon-green: #f311ff;
+  --phosphor-green: #fbfbfb;
+  --dark-green: #2f0a2a;
+  --cyan: #00ff66;
+  --magenta: #ff00ff;
 }
+
 
 .container {
   display: flex;
@@ -25,7 +34,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(255, 20, 251, 0.2), rgba(0, 0, 0, 0.9) 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(0, 255, 38, 0.2), rgba(0, 0, 0, 0.9) 70%);
   z-index: 1;
 }
 

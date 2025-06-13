@@ -1,4 +1,4 @@
-import chatysLogo from '../../assets/chatys-logo.png';
+import chatysLogo from '../../assets/logo_individual_claro.png';
 import { useUserContext } from '../../context/UserContext';
 
 export default function HeaderMobile() {

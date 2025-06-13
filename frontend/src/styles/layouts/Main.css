@@ -82,11 +82,9 @@ body.is-mobile main {
 
 @media (max-width: 960px) {
     main {
-        margin-left: 80px;
+        margin-left: 75px;
     }
 }
-
-
 
 /* Para móviles */
 @media (max-width: 412px) {

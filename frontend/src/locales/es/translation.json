@@ -15,12 +15,19 @@
     },
     "language": {
       "changeLanguage": "Cambiar idioma:"
-    },
-    "notFound": {
+    }
+  },
+  "profile": {
+    "editProfile": "Editar Perfil",
+    "joinedIn": "Se unió el ",
+    "countFriends": "Amigos",
+    "posts": "Posts",
+    "friends": "Amigos"
+  },
+  "notFound": {
     "errorCode": "404",
     "title": "Página no encontrada",
     "description": "Lo sentimos, la página que estás buscando no existe o ha sido movida.",
     "buttonText": "Volver al inicio"
-  }
   }
 }

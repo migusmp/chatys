@@ -17,6 +17,8 @@ const Notifications = lazy(() => import('./components/pages/notifications/Notifi
 const Profile = lazy(() => import('./components/pages/profile/Profile'))
 const Settings = lazy(() => import('./components/pages/settings/Settings'))
 
+const FriendsProfile = lazy(() => import('./components/pages/profile/components/Friends'))
+
 const NotFound = lazy(() => import('./components/NotFound'))
 
 function App() {
@@ -32,7 +34,12 @@ function App() {
             <Route path="/chats" element={<Chats />} />
             <Route path="/dm" element={<DirectMessages />} />
             <Route path="/notifications" element={<Notifications />} />
-            <Route path="/profile" element={<Profile />} />
+
+            <Route path="/profile/:username" element={<Profile />}>
+              <Route index element={<div style={{ color: '#fff' }}>Posts del usuario</div>} />
+              <Route path="friends" element={<FriendsProfile />} />
+            </Route>
+
             <Route path="/settings" element={<Settings />} />
           </Route>
 
