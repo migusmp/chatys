@@ -7,15 +7,20 @@
     "notifications": "Notifications",
     "profile": "Profile",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Log out"
   },
   "settings": {
     "menu": {
       "language": "Language",
-      "theme": "Theme"
+      "theme": "Theme",
+      "sesion": "Account"
     },
     "language": {
       "changeLanguage": "Change language:"
+    },
+    "sesion": {
+      "logoutBtn": "Log out",
+      "descriptionLogoutBtn": "End your session and return to login."
     }
   },
   "profile": {

@@ -12,10 +12,15 @@
   "settings": {
     "menu": {
       "language": "Idioma",
-      "theme": "Tema"
+      "theme": "Tema",
+      "sesion": "Cuenta"
     },
     "language": {
       "changeLanguage": "Cambiar idioma:"
+    },
+    "sesion": {
+      "logoutBtn": "Cerrar Sesión",
+      "descriptionLogoutBtn": "Finaliza tu sesión actual y vuelve a la pantalla de inicio de sesión."
     }
   },
   "profile": {
