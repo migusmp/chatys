@@ -6,7 +6,8 @@
     "messages": "Messages",
     "notifications": "Notifications",
     "profile": "Profile",
-    "settings": "Settings"
+    "settings": "Settings",
+    "logout": "Logout"
   },
   "settings": {
     "menu": {

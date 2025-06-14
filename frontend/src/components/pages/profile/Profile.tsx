@@ -61,6 +61,7 @@ export default function Profile() {
                         <div className={styles.userDetails}>
                             <span className={styles.spanName}>{profile?.name}</span>
                             <span className={styles.spanUserName}>@{profile?.username}</span>
+                            {profile?.description ? <span className={styles.spanDescription}>{profile?.description}</span> : ''}
                             <span className={styles.spanJoined}><i className="bi bi-calendar3"></i>{t("profile.joinedIn")} {joinedIn}</span>
                             <span className={styles.spanFriends}>
                                 <strong>{profile?.friends_count}</strong>

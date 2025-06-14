@@ -45,8 +45,23 @@ function App() {
           </Route>
 
           {/* Rutas públicas */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route
+            path="/login"
+            element={
+              <ProtectedRoute>
+                <Login />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/register"
+            element={
+              <ProtectedRoute>
+                <Register />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Página 404 */}
           <Route path="*" element={<NotFound />} />

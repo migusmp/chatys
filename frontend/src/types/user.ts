@@ -27,4 +27,5 @@ export type ProfileData = {
     image: string,
     created_at: string,
     friends_count: number,
+    description: string
 }

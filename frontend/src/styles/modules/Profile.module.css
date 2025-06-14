@@ -102,6 +102,12 @@
     color: #535353;
 }
 
+.spanDescription {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    color: #fff;
+}
+
 .spanJoined {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
