@@ -20,6 +20,7 @@ pub struct UserData {
     pub email: String,
     pub image: String,
     pub created_at: NaiveDateTime,
+    pub description: String,
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
@@ -30,6 +31,7 @@ pub struct ProfileData {
     pub image: String,
     pub created_at: NaiveDateTime,
     pub friends_count: i64,
+    pub description: String,
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]

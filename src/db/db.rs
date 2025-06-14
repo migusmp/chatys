@@ -306,7 +306,7 @@ pub async fn get_user_profile_data(
     pool: &PgPool,
 ) -> Result<UserData, sqlx::Error> {
     let query = r#"
-        SELECT id, username, email, name, created_at, image
+        SELECT id, username, email, name, created_at, image, description
         FROM users
         WHERE id= $1
     "#;
@@ -329,6 +329,7 @@ pub async fn get_user_profile_data_by_username(
             u.name, 
             u.created_at, 
             u.image,
+            u.description,
             (
                 SELECT COUNT(*) 
                 FROM friends f1

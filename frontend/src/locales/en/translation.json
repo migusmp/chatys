@@ -22,7 +22,10 @@
     "joinedIn": "Joined",
     "countFriends": "Friends",
     "posts": "Posts",
-    "friends": "Friends"
+    "friends": "Friends",
+    "postsSection": {
+      "noPublications": "No posts found"
+    }
   },
   "notFound": {
     "errorCode": "404",

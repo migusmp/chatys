@@ -188,13 +188,17 @@
     }
 }
 
-@media (max-width: 755px) {
+@media (max-width: 860px) {
     .userInfoSection {
         width: 85%;
     }
 }
 
-
+@media (max-width: 730px) {
+    .userInfoSection {
+        width: 100%;
+    }
+}
 
 @media (max-width: 500px) {
     .userInfoSection {

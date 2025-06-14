@@ -22,7 +22,10 @@
     "joinedIn": "Se unió en ",
     "countFriends": "Amigos",
     "posts": "Posts",
-    "friends": "Amigos"
+    "friends": "Amigos",
+    "postsSection": {
+      "noPublications": "No hay publicaciones"
+    }
   },
   "notFound": {
     "errorCode": "404",
