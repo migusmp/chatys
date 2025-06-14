@@ -20,7 +20,12 @@
     },
     "sesion": {
       "logoutBtn": "Log out",
-      "descriptionLogoutBtn": "End your session and return to login."
+      "descriptionLogoutBtn": "End your session and return to login.",
+      "logoutModal": {
+        "message": "Are you sure you want to log out?",
+        "confirm": "Yes",
+        "cancel": "No"
+      }
     }
   },
   "profile": {

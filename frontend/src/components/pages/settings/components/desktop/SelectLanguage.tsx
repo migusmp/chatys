@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import styles from '../../../../styles/modules/Settings.module.css'
+import styles from '../../../../../styles/modules/Settings.module.css'
 import { useState } from "react";
 
 export default function SelectLanguage() {

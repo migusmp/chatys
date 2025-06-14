@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import styles from '../../../../styles/modules/Settings.module.css'
 import { useTranslation } from 'react-i18next';
-import SelectLanguage from './SelectLanguage';
-import SelectTheme from './SelectTheme';
-import AccountSettings from './AccountSettings';
+import SelectLanguage from './desktop/SelectLanguage';
+import SelectTheme from './desktop/SelectTheme';
+import AccountSettings from './desktop/AccountSettings';
 
 
 export default function SettingsDesktop() {

@@ -20,7 +20,12 @@
     },
     "sesion": {
       "logoutBtn": "Cerrar Sesión",
-      "descriptionLogoutBtn": "Finaliza tu sesión actual y vuelve a la pantalla de inicio de sesión."
+      "descriptionLogoutBtn": "Finaliza tu sesión actual y vuelve a la pantalla de inicio de sesión.",
+      "logoutModal": {
+        "message": "¿Estás seguro de que quieres cerrar sesión?",
+        "confirm": "Sí",
+        "cancel": "No"
+      }
     }
   },
   "profile": {
