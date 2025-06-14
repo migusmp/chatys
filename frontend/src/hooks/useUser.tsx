@@ -91,24 +91,6 @@ export default function useUser() {
         }
     }
 
-    async function logout(): Promise<boolean> {
-        try {
-            const res = await fetch("/api/user/logout", {
-                method: "POST",
-                credentials: "include"
-            })
-            
-            if (!res.ok) {
-                return false;
-            }
-
-            return true;
-        } catch(e) {
-            console.error("Error al cerrar sesión");
-            return false;
-        }
-    }
-
-    return { sendRegisterFormData, sendLoginFormData, profile, logout };
+    return { sendRegisterFormData, sendLoginFormData, profile };
 
 }
