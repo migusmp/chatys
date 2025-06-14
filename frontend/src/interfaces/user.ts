@@ -5,6 +5,8 @@ export interface UserContextType {
     user: UserProfile | null,
     setUser: (user: UserProfile | null) => void,
     refreshUser: () => Promise<void>,
+    loading: boolean;
+    logout: () => Promise<boolean>;
 }
 
 export interface RegisterUserData {

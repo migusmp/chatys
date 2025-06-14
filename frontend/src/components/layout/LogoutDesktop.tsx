@@ -7,12 +7,13 @@ import { useUserContext } from '../../context/UserContext';
 export default function LogoutDesktop() {
     const { t } = useTranslation();
     const { logout } = useUser();
-    const { user } = useUserContext();
+    const { user, setUser } = useUserContext();
     const navigate = useNavigate(); // Hook de navegación
 
     async function handleLogoutClick () {
         const log_out = await logout();
         if (log_out) {
+            setUser(null)
             navigate('/login'); // Redirige al login
         }
     }
