@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import styles from '../../css/AccountSettings.module.css';
 import ModalLogout from "./ModalLogout";
 import { useUserContext } from "../../../../../context/UserContext";
+import SettingsPageLayout from "../../SettingsPageLayout";
 
 export default function AccountSettings() {
   const { t } = useTranslation();
@@ -34,21 +35,24 @@ export default function AccountSettings() {
   };
 
   return (
-    <div className={styles.sectionLogout}>
-      <button className={styles.logoutBtn} onClick={handleLogoutClick}>
-        {t("settings.sesion.logoutBtn")}
-      </button>
-      <small>{t("settings.sesion.descriptionLogoutBtn")}</small>
+    <SettingsPageLayout>
+      <div className={styles.sectionLogout}>
+        <button className={styles.logoutBtn} onClick={handleLogoutClick}>
+          {t("settings.sesion.logoutBtn")}
+        </button>
+        <small>{t("settings.sesion.descriptionLogoutBtn")}</small>
 
-      {showModal && (
-        <ModalLogout
-          message={t("settings.sesion.logoutModal.message") || "Are you sure you want to logout?"}
-          onConfirm={handleConfirm}
-          onCancel={handleCancel}
-          confirmText={t("settings.sesion.logoutModal.confirm") || "Yes"}
-          cancelText={t("settings.sesion.logoutModal.cancel") || "No"}
-        />
-      )}
-    </div>
+        {showModal && (
+          <ModalLogout
+            message={t("settings.sesion.logoutModal.message") || "Are you sure you want to logout?"}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+            confirmText={t("settings.sesion.logoutModal.confirm") || "Yes"}
+            cancelText={t("settings.sesion.logoutModal.cancel") || "No"}
+          />
+        )}
+      </div>
+    </SettingsPageLayout>
+
   );
 }

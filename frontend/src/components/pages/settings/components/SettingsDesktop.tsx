@@ -1,14 +1,20 @@
-import { useState } from 'react';
 import styles from '../../../../styles/modules/Settings.module.css'
 import { useTranslation } from 'react-i18next';
-import SelectLanguage from './desktop/SelectLanguage';
-import SelectTheme from './desktop/SelectTheme';
-import AccountSettings from './desktop/AccountSettings';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 
 export default function SettingsDesktop() {
-    const [activeSection, setActiveSection] = useState<"language" | "theme" | "account">("account");
     const { t } = useTranslation();
+
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const getSectionFromPath = () => {
+        const path = location.pathname.split("/").pop(); // account | language | theme
+        if (path === "language" || path === "theme" || path === "account") return path;
+        return "account";
+    };
+    const activeSection = getSectionFromPath();
 
     return (
         <div className={styles.body}>
@@ -17,19 +23,19 @@ export default function SettingsDesktop() {
                     <ul>
                         <li
                             className={activeSection === "account" ? styles.active : ""}
-                            onClick={() => setActiveSection("account")}
+                            onClick={() => navigate("account")}
                         >
                             {t("settings.menu.sesion")}
                         </li>
                         <li
                             className={activeSection === "language" ? styles.active : ""}
-                            onClick={() => setActiveSection("language")}
+                            onClick={() => navigate("language")}
                         >
                             {t("settings.menu.language")}
                         </li>
                         <li
                             className={activeSection === "theme" ? styles.active : ""}
-                            onClick={() => setActiveSection("theme")}
+                            onClick={() => navigate("theme")}
                         >
                             {t("settings.menu.theme")}
                         </li>
@@ -38,9 +44,7 @@ export default function SettingsDesktop() {
             </section>
 
             <section className={styles.content}>
-                {activeSection === "language" && <SelectLanguage />}
-                {activeSection === "theme" && <SelectTheme />}
-                {activeSection === "account" && <AccountSettings />}
+                <Outlet />
             </section>
         </div>
     )

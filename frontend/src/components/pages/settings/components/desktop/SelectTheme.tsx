@@ -1,4 +1,10 @@
+import SettingsPageLayout from "../../SettingsPageLayout";
+
 export default function SelectTheme() {
 
-    return <h1>Theme</h1>
+    return (
+        <SettingsPageLayout>
+            <h1>Theme</h1>
+        </SettingsPageLayout>
+    )
 }
