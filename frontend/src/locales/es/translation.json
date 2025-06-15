@@ -28,6 +28,11 @@
       }
     }
   },
+  "settingsMobile": {
+    "menu": {
+      "backBtn": "Volver"
+    }
+  },
   "profile": {
     "editProfile": "Editar Perfil",
     "joinedIn": "Se unió en ",
@@ -35,7 +40,7 @@
     "posts": "Posts",
     "friends": "Amigos",
     "postsSection": {
-      "noPublications": "No hay publicaciones"
+      "noPublications": "No hay ningún post"
     }
   },
   "notFound": {

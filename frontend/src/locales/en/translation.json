@@ -28,6 +28,11 @@
       }
     }
   },
+  "settingsMobile": {
+    "menu": {
+      "backBtn": "Back"
+    }
+  },
   "profile": {
     "editProfile": "Edit Profile",
     "joinedIn": "Joined",
