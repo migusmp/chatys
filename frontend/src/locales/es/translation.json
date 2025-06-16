@@ -41,6 +41,9 @@
     "friends": "Amigos",
     "postsSection": {
       "noPublications": "No hay ningún post"
+    },
+    "friendsSection": {
+      "noFriendsMessage": "No tienes amigos aún"
     }
   },
   "notFound": {

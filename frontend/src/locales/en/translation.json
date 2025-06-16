@@ -41,6 +41,9 @@
     "friends": "Friends",
     "postsSection": {
       "noPublications": "No posts found"
+    },
+    "friendsSection": {
+      "noFriendsMessage": "You're alone... for now"
     }
   },
   "notFound": {
