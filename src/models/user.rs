@@ -84,7 +84,7 @@ pub enum ErrorRequest {
     NameEmpty,
     UsernameEmpty,
     InvalidEmail,
-    PasswordInvalid,
+    ShortPassword,
     UserAlreadyExists,
     InternalError,
     InvalidFriendRequest,
@@ -101,49 +101,100 @@ pub enum ErrorRequest {
 
 impl IntoResponse for ErrorRequest {
     fn into_response(self) -> axum::response::Response {
-        let (status, err_msg) = match self {
-            ErrorRequest::UsernameInvalid => (StatusCode::BAD_REQUEST, "Invalid username"),
-            ErrorRequest::UsernameEmpty => (StatusCode::BAD_REQUEST, "You must enter a username"),
-            ErrorRequest::NameEmpty => (StatusCode::BAD_REQUEST, "You must enter a name"),
-            ErrorRequest::InvalidEmail => (StatusCode::BAD_REQUEST, "Invalid email"),
-            ErrorRequest::PasswordInvalid => (StatusCode::BAD_REQUEST, "invalid password"),
-            ErrorRequest::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
-            ErrorRequest::InternalError => (StatusCode::INTERNAL_SERVER_ERROR, "Internal error"),
+        let (status, err_type, err_msg) = match self {
+            ErrorRequest::UsernameInvalid => (
+                StatusCode::BAD_REQUEST,
+                "USERNAME_INVALID",
+                "Invalid username",
+            ),
+            ErrorRequest::UsernameEmpty => (
+                StatusCode::BAD_REQUEST,
+                "USERNAME_EMPTY",
+                "You must enter a username",
+            ),
+            ErrorRequest::NameEmpty => (
+                StatusCode::BAD_REQUEST,
+                "NAME_EMPTY",
+                "You must enter a name",
+            ),
+            ErrorRequest::InvalidEmail => (
+                StatusCode::BAD_REQUEST,
+                "EMAIL_INVALID",
+                "Invalid email",
+            ),
+            ErrorRequest::ShortPassword => (
+                StatusCode::BAD_REQUEST,
+                "SHORT_PASSWORD",
+                "Password is too short",
+            ),
+            ErrorRequest::UserAlreadyExists => (
+                StatusCode::CONFLICT,
+                "USER_ALREADY_EXISTS",
+                "User already exists",
+            ),
+            ErrorRequest::InternalError => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "INTERNAL_ERROR",
+                "Internal error",
+            ),
             ErrorRequest::InvalidImageSize => (
                 StatusCode::PAYLOAD_TOO_LARGE,
+                "IMAGE_TOO_LARGE",
                 "Image exceeds the maximum allowed size of 5MB.",
             ),
             ErrorRequest::InvalidFriendRequest => (
                 StatusCode::BAD_REQUEST,
+                "INVALID_FRIEND_REQUEST",
                 "You can't add yourself as a friend",
             ),
-            ErrorRequest::DuplicateFriendRequest => {
-                (StatusCode::OK, "You requested frienship before")
-            }
-
-            ErrorRequest::NoFriendRequestFound => {
-                (StatusCode::BAD_REQUEST, "No friend request found")
-            }
-
-            ErrorRequest::InvalidImageFormat => (StatusCode::BAD_REQUEST, "Invalid Image format"),
+            ErrorRequest::DuplicateFriendRequest => (
+                StatusCode::OK,
+                "DUPLICATE_FRIEND_REQUEST",
+                "You requested friendship before",
+            ),
+            ErrorRequest::NoFriendRequestFound => (
+                StatusCode::BAD_REQUEST,
+                "NO_FRIEND_REQUEST_FOUND",
+                "No friend request found",
+            ),
+            ErrorRequest::InvalidImageFormat => (
+                StatusCode::BAD_REQUEST,
+                "INVALID_IMAGE_FORMAT",
+                "Invalid image format",
+            ),
             ErrorRequest::ErrorPasswordUpdate => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Error to update password",
+                "ERROR_PASSWORD_UPDATE",
+                "Error updating password",
             ),
             ErrorRequest::ErrorEmailUpdate => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Error al actualizar el email",
+                "ERROR_EMAIL_UPDATE",
+                "Error updating email",
             ),
-            ErrorRequest::EmailExists => (StatusCode::BAD_REQUEST, "Email does exists"),
-            ErrorRequest::AlreadyFriends => {
-                (StatusCode::OK, "You are already friends with this user")
-            }
-            ErrorRequest::BadParameter => (StatusCode::BAD_REQUEST, "Bad parameter provided in request"),
+            ErrorRequest::EmailExists => (
+                StatusCode::BAD_REQUEST,
+                "EMAIL_EXISTS",
+                "Email already exists",
+            ),
+            ErrorRequest::AlreadyFriends => (
+                StatusCode::OK,
+                "ALREADY_FRIENDS",
+                "You are already friends with this user",
+            ),
+            ErrorRequest::BadParameter => (
+                StatusCode::BAD_REQUEST,
+                "BAD_PARAMETER",
+                "Bad parameter provided in request",
+            ),
         };
+
         let body = Json(ErrorResponse {
             status: "error".to_string(),
+            r#type: err_type.to_string(),
             message: err_msg.to_string(),
         });
+
         (status, body).into_response()
     }
 }

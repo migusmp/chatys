@@ -35,6 +35,22 @@ pub async fn verify_user_exists(
     Ok(result.0 > 0) // Si COUNT(*) > 0, el usuario existe
 }
 
+pub async fn username_exists(username: &str, pool: &PgPool) -> Result<bool, sqlx::Error> {
+    let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users WHERE username = $1")
+        .bind(username)
+        .fetch_one(pool)
+        .await?;
+    Ok(result.0 > 0)
+}
+
+pub async fn email_exists(email: &str, pool: &PgPool) -> Result<bool, sqlx::Error> {
+    let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users WHERE email = $1")
+        .bind(email)
+        .fetch_one(pool)
+        .await?;
+    Ok(result.0 > 0)
+}
+
 // Función para verificar que el usuario y la contraseña son correctos
 pub async fn verify_user_login(
     user_login: &LoginUser,

@@ -3,7 +3,7 @@ use crate::models::user::RegisterUser;
 use crate::models::user::{ErrorRequest, LoginUser};
 use crate::utils::responses::ApiResponse;
 use crate::utils::user_utils::{
-    create_payload, create_token_cookie, verify_user_exists, verify_user_login,
+    create_payload, create_token_cookie, email_exists, username_exists, verify_user_login
 };
 use axum::Json;
 use axum::{http::StatusCode, response::IntoResponse};
@@ -16,21 +16,31 @@ pub async fn register(
     pool: &PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     // Realizamos las dos operaciones en paralelo: verificar si el usuario existe y hacer el hash de la contraseña
-    let verify_future = verify_user_exists(&user, &pool);
+    let check_username = username_exists(&user.username, pool);
+    let check_email = email_exists(&user.email, pool);
 
+    // future para hashear contraseña
     let hash_pwd = tokio::task::spawn_blocking({
-        let password = user.password.clone(); // Clonamos la contraseña
+        let password = user.password.clone();
         move || bcrypt::hash(&password, 4)
-    }); // Esperamos los resultados de ambas operaciones de forma concurrente
-    let (verify_result, hashed_pwd_result) =
-        try_join!(verify_future, hash_pwd).map_err(|_| ErrorRequest::InternalError)?;
+    });
 
-    // Si el usuario ya existe, devolvemos un error
-    if verify_result {
+    // ejecutar verificación en paralelo
+    let (username_exists, email_exists) = try_join!(check_username, check_email)
+        .map_err(|_| ErrorRequest::InternalError)?;
+
+    if username_exists {
         return Err(ErrorRequest::UserAlreadyExists);
     }
+    if email_exists {
+        return Err(ErrorRequest::EmailExists);
+    }
 
-    let hashed_pwd = hashed_pwd_result.map_err(|_| ErrorRequest::InternalError)?;
+    let hashed_pwd = hash_pwd
+        .await
+        .map_err(|_| ErrorRequest::InternalError)? // si paniquea la task
+        .map_err(|_| ErrorRequest::InternalError)?; // si bcrypt falla
+
 
     // insertamos el usuario
     insert_user(&user.username, &user.name, &user.email, &pool, &hashed_pwd)

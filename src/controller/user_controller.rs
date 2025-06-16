@@ -43,7 +43,7 @@ pub async fn user_register(
     }
 
     if password.len() < 4 {
-        return Err(ErrorRequest::PasswordInvalid);
+        return Err(ErrorRequest::ShortPassword);
     }
 
     // Llamamos al servicio de registro
