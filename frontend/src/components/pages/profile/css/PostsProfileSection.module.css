@@ -13,7 +13,79 @@
     color: #999;
 }
 
+/* styles for back button on Profile */
+.backButtonContainer {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.75); /* fondo negro con opacidad */
+    display: flex;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    pointer-events: none; /* para que el contenedor no capture eventos */
+}
+
+.backButtonInner {
+    width: 100%;
+    max-width: 45%; /* igual al límite de .userInfoSection */
+    pointer-events: auto; /* para que el botón sí capture eventos */
+}
+
+.backButton {
+    width: 100%;
+    color: white;
+    padding: 1rem;
+    font-size: 1rem;
+    border: none;
+    background: transparent; /* quitar fondo del botón */
+    text-align: left;
+    cursor: pointer;
+    border-radius: 0 0 8px 8px;
+}
+
+
+.visible {
+    transform: translateY(0);
+}
+
+.hidden {
+    transform: translateY(-100%);
+}
+
+@media (max-width: 1456px) {
+    .backButtonInner {
+        max-width: 60%;
+    }
+}
+
+@media (max-width: 1142px) {
+    .backButtonInner {
+        max-width: 70%;
+    }
+}
+
+@media (max-width: 860px) {
+    .backButtonInner {
+        max-width: 85%;
+    }
+}
+
+@media (max-width: 730px) {
+    backButtonInner {
+        max-width: 85%;
+    }
+}
+
+
 @media (max-width: 500px) {
+    .backButtonInner {
+        max-width: 100%;
+    }
+    .backButton {
+        max-width: 300px;
+        margin: 0 auto;
+        border-radius: 0 0 8px 8px;
+    }
     .body h2 {
         font-size: 1.5rem;
     }

@@ -1,1 +1,0 @@
-import{j as e}from"./index-80rH-SoV.js";import{S as t}from"./SettingsPageLayout-Bqr_Cf44.js";import"./SettingsMobile.module-EhjZUOUX.js";function m(){return e.jsx(t,{children:e.jsx("h1",{children:"Theme"})})}export{m as default};

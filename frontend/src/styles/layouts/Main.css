@@ -13,10 +13,10 @@ main {
   overflow-y: auto;   /* para scroll interno si hace falta */
 }
 
-body.is-mobile main {
-    padding-top: 65px;
-    margin-left: 0;   /* quitar margen izquierdo */
-    margin-bottom: 60px; /* espacio inferior para sidebar horizontal */
+body.mobile-with-header main {
+    padding-top: 65px; /* solo si hay header */
+    margin-left: 0;
+    margin-bottom: 60px;
 }
 
 .layout__header {

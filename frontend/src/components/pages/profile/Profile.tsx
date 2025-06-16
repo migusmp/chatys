@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import type { ProfileData } from '../../../types/user';
 import { useUserContext } from '../../../context/UserContext';
 import i18n from '../../../i18n';
+import BackButton from './components/BackButton';
 
 export default function Profile() {
     const { username } = useParams();
@@ -45,6 +46,8 @@ export default function Profile() {
         <>
             <div className={styles.body}>
                 <section className={styles.userInfoSection}>
+                    {/* SECTION TO BACK BUTTON */}
+                    <BackButton name={profile?.name}/>
                     {/* SECTION TO BANNER IMAGE */}
                     <section className={styles.header}></section>
 
