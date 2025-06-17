@@ -47,7 +47,7 @@ pub fn user_router(pool: PgPool) -> Router {
         )
         .route(
             "/profile/{username}",
-            get(move |username| get_profile_data_from_user(username, pool_profile_from_user))
+            get(move |username, payload| get_profile_data_from_user(username, payload, pool_profile_from_user))
                 .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(

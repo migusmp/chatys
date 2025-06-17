@@ -189,6 +189,7 @@ pub async fn get_profile_data(
 
 pub async fn get_profile_data_from_user(
     Path(username): Path<String>,
+    Extension(_payload): Extension<Payload>,
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     let user_info = match get_user_profile_data_by_username(username, &pool).await {
