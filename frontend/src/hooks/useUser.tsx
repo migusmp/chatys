@@ -1,5 +1,5 @@
 import type { LoginUserData, RegisterUserData } from "../interfaces/user";
-import type { RegisterResponseFromBackend } from "../types/api_responses";
+import type { LoginResponseFromBackend, RegisterResponseFromBackend } from "../types/api_responses";
 import type { UserProfile } from "../types/user";
 
 export default function useUser() {
@@ -42,7 +42,7 @@ export default function useUser() {
     }
 
     // Function to send login user data to backend
-    async function sendLoginFormData(data: LoginUserData): Promise<boolean> {
+    async function sendLoginFormData(data: LoginUserData): Promise<LoginResponseFromBackend> {
         try {
             const formData = new URLSearchParams({
                 username: data.username,
@@ -59,18 +59,20 @@ export default function useUser() {
             });
 
             if (!res.ok) {
-                console.error("Error response from backend:", res);
-                return false;
+                return await res.json();
             }
 
             const result = await res.json();
             console.log("Data received from server:", result);
 
-            return true;
+            return result;
 
         } catch (e) {
             console.error("Error sending login user data:", e);
-            return false;
+            return {
+                status: "error",
+                message: "Error from server"
+            };
         }
     }
 
