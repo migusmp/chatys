@@ -1,0 +1,1 @@
+const e="_body_10iox_1",o="_menu_10iox_15",t="_active_10iox_56",_="_content_10iox_64",c="_languageSelector_10iox_74",n="_label_10iox_116",l="_select_10iox_122",s={body:e,menu:o,active:t,content:_,languageSelector:c,label:n,select:l};export{s};

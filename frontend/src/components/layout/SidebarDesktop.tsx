@@ -2,13 +2,40 @@ import { Link, useLocation } from "react-router-dom";
 import { useUserContext } from "../../context/UserContext";
 import { useTranslation } from "react-i18next";
 import chatysLogo from '../../assets/chatys-logo-official.png';
+import { useEffect, useRef, useState } from "react";
+import LogoutDesktop from "./LogoutDesktop";
 
 export default function SidebarDesktop() {
     const { user } = useUserContext();
     const location = useLocation();
     const { t } = useTranslation();
 
+    const [logout, setLogout] = useState(false);
+    const logoutRef = useRef<HTMLDivElement>(null); // Ref para el menú de logout
+
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+
+    function handleUserProfileClick() {
+        setLogout((prev) => !prev);
+    }
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (logoutRef.current && !logoutRef.current.contains(event.target as Node)) {
+                setLogout(false);
+            }
+        }
+
+        if (logout) {
+            document.addEventListener("mousedown", handleClickOutside);
+        } else {
+            document.removeEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [logout]);
 
     return (
         <aside className="sidebar">
@@ -50,15 +77,20 @@ export default function SidebarDesktop() {
                     </nav>
                 </div>
             </div>
-            <div className="profile">
+
+            {logout && (
+                <div ref={logoutRef}>
+                    <LogoutDesktop />
+                </div>
+            )}
+
+            <div className="profile" onClick={handleUserProfileClick}>
+
                 <img src={user?.image || `"default.png"`} alt={user?.username || "Usuario"} />
                 <div className="info">
                     <strong className="name">{user?.name || "Nombre"}</strong>
                     <span className="username">@{user?.username || "usuario"}</span>
                 </div>
-                <button className="more">
-                    <i className="bi bi-three-dots"></i>
-                </button>
             </div>
         </aside>
     )

@@ -20,6 +20,11 @@ const Settings = lazy(() => import('./components/pages/settings/Settings'))
 const FriendsProfile = lazy(() => import('./components/pages/profile/components/Friends'))
 const PostsProfile = lazy(() => import('./components/pages/profile/components/PostsProfileSection'))
 
+const AccountSettings = lazy(() => import('./components/pages/settings/components/desktop/AccountSettings'))
+const SelectLanguage = lazy(() => import('./components/pages/settings/components/desktop/SelectLanguage'))
+const SelectTheme = lazy(() => import('./components/pages/settings/components/desktop/SelectTheme'))
+
+
 const NotFound = lazy(() => import('./components/NotFound'))
 
 function App() {
@@ -41,12 +46,32 @@ function App() {
               <Route path="friends" element={<FriendsProfile />} />
             </Route>
 
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings" element={<Settings />}>
+              <Route index element={<AccountSettings />} />
+              <Route path="account" element={<AccountSettings />} />
+              <Route path="language" element={<SelectLanguage />} />
+              <Route path="theme" element={<SelectTheme />} />
+            </Route>
           </Route>
 
           {/* Rutas públicas */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route
+            path="/login"
+            element={
+              <ProtectedRoute>
+                <Login />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/register"
+            element={
+              <ProtectedRoute>
+                <Register />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Página 404 */}
           <Route path="*" element={<NotFound />} />

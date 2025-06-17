@@ -1,9 +1,10 @@
 import type { LoginUserData, RegisterUserData } from "../interfaces/user";
+import type { LoginResponseFromBackend, RegisterResponseFromBackend } from "../types/api_responses";
 import type { UserProfile } from "../types/user";
 
 export default function useUser() {
     // Function to send register user data to backend
-    async function sendRegisterFormData(data: RegisterUserData) {
+    async function sendRegisterFormData(data: RegisterUserData): Promise<RegisterResponseFromBackend> {
         try {
             const formData = new URLSearchParams({
                 name: data.name,
@@ -21,22 +22,27 @@ export default function useUser() {
             });
 
             if (!res.ok) {
-                console.error("Error response from server: ", res);
-                return false;
+                const errorResponse = await res.json();
+                console.error("Error response from server:", errorResponse);
+                return errorResponse; // <- ya es un objeto con `error` y `message`
             }
 
-            const result = await res.json();
-            console.log("Data received from server: ", result);
-            return true;
+            return await res.json();
 
         } catch (e) {
             console.error("Error sending register data to Backend:", e);
-            return false;
+
+            // Asegúrate de devolver algo que cumple con RegisterResponseFromBackend
+            return {
+                status: "error",
+                type: "INTERNAL_ERROR",
+                message: "Error registering user",
+            };
         }
     }
 
     // Function to send login user data to backend
-    async function sendLoginFormData(data: LoginUserData): Promise<boolean> {
+    async function sendLoginFormData(data: LoginUserData): Promise<LoginResponseFromBackend> {
         try {
             const formData = new URLSearchParams({
                 username: data.username,
@@ -53,18 +59,20 @@ export default function useUser() {
             });
 
             if (!res.ok) {
-                console.error("Error response from backend:", res);
-                return false;
+                return await res.json();
             }
 
             const result = await res.json();
             console.log("Data received from server:", result);
 
-            return true;
+            return result;
 
         } catch (e) {
             console.error("Error sending login user data:", e);
-            return false;
+            return {
+                status: "error",
+                message: "Error from server"
+            };
         }
     }
 

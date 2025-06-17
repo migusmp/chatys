@@ -1,0 +1,136 @@
+.sectionLogout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sectionLogout small {
+    color: #d1d5db;
+}
+
+.logoutBtn {
+    width: 20%;
+    min-width: 200px;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #ef4444;
+    background-color: transparent;
+    /* Tailwind's red-500 */
+    color: #ef4444;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    outline: none;
+}
+
+.logoutBtn:hover {
+    background-color: #4f1717;
+    color: #fff;
+    /* Tailwind's red-600 */
+}
+
+.logoutBtn:active {
+    transform: scale(0.98);
+    background-color: #b91c1c;
+    /* Tailwind's red-700 */
+}
+
+.logoutBtn:focus {
+    outline: 2px solid #fca5a5;
+    /* red-300 */
+    outline-offset: 2px;
+}
+
+/* STYLES FOR LOGOUT MODAL */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8); /* Más oscuro */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.modal {
+  background: #000; /* negro de fondo */
+  padding: 1.5rem 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 20px #00ff66; /* sombra verde */
+  max-width: 400px;
+  width: 100%;
+  color: #00ff66; /* texto verde */
+  text-align: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  user-select: none;
+}
+
+.modal p {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.modalButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.confirmBtn, .cancelBtn {
+  padding: 0.6rem 1.4rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 2px solid #00ff66;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease, border 0.3s ease;
+  min-width: 100px;
+  user-select: none;
+}
+
+.confirmBtn {
+  background-color: #00ff66;
+  color: #000;
+}
+
+.confirmBtn:hover {
+  background-color: #ff4444;
+  border-color: #ff4444;
+  color: #fff;
+}
+
+.cancelBtn {
+  background-color: transparent;
+  color: #00ff66;
+}
+
+.cancelBtn:hover {
+  background-color: #004d26;
+  border-color: #004d26;
+  color: #00ff66;
+}
+
+/* Responsive: para pantallas muy pequeñas */
+@media (max-width: 360px) {
+  .modal {
+    padding: 1rem 1.2rem;
+    font-size: 0.9rem;
+  }
+  
+  .modalButtons {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  
+  .confirmBtn, .cancelBtn {
+    width: 100%;
+    min-width: unset;
+  }
+}

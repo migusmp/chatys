@@ -1,26 +1,40 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import '../../styles/layouts/Main.css';
 import HeaderMobile from "./HeaderMobile";
 import useIsMobile from "../../hooks/useIsMobile";
 import { useEffect } from "react";
+import LastLocationTracker from "../LastLocationTracker";
 
 export default function Layout() {
     const isMobile = useIsMobile();
-    
+    const location = useLocation();
+
+    const isHeaderMobileRoute = () => {
+        const excludedPaths = ["/profile", "/settings"];
+        return !excludedPaths.some(path => location.pathname.startsWith(path));
+    };
+
+    const shouldShowHeaderMobile = isMobile && isHeaderMobileRoute();
+
     useEffect(() => {
+        document.body.classList.remove("is-mobile", "mobile-with-header");
+
         if (isMobile) {
             document.body.classList.add("is-mobile");
-        } else {
-            document.body.classList.remove("is-mobile");
+            if (isHeaderMobileRoute()) {
+                document.body.classList.add("mobile-with-header");
+            }
         }
-    }, [isMobile]);
+    }, [isMobile, location.pathname]);
+
     return (
         <>
-            {isMobile && <HeaderMobile />}
+            {shouldShowHeaderMobile && <HeaderMobile />}
             <div style={{ display: 'flex', height: '100vh' }}>
                 <Sidebar />
                 <main>
+                    <LastLocationTracker />
                     <Outlet />
                 </main>
             </div>

@@ -24,7 +24,9 @@ export type ProfileData = {
     id: number,
     name: string,
     username: string,
+    email: string,
     image: string,
     created_at: string,
     friends_count: number,
+    description: string
 }

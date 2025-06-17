@@ -1,32 +1,32 @@
 /* Register.module.css */
 .body {
-  margin: 0;
-  padding: 0;
-  height: 100vh;
-  background-color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  color: #f1f5f9;
-  position: relative;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: #f1f5f9;
+    position: relative;
 }
 
 .body::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1200px;
-  height: 1200px;
-  background-image: url('../../assets/chatys-logo.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  transform: translate(-50%, -50%);
-  opacity: 0.05;
-  z-index: 0;
-  pointer-events: none;
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1200px;
+    height: 1200px;
+    background-image: url('../../assets/chatys-logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transform: translate(-50%, -50%);
+    opacity: 0.05;
+    z-index: 0;
+    pointer-events: none;
 }
 
 .container {
@@ -111,11 +111,23 @@
     text-decoration: underline;
 }
 
+/* STYLES TO SHOW ERRORS UNDER THE INPUTS */
+.error {
+    color: red;
+    font-size: 0.875rem;
+    margin-top: -1rem; /* subir un poco el error si el input tiene margen inferior */
+    margin-bottom: 1rem;
+    min-height: 1.2rem; /* espacio reservado para evitar movimientos */
+    line-height: 1.2;
+}
+
+
 @keyframes fadeIn {
     from {
         opacity: 0;
         transform: translateY(25px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);

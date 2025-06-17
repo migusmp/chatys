@@ -6,15 +6,31 @@
     "messages": "Mensajes",
     "notifications": "Notificaciones",
     "profile": "Perfil",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "logout": "Cerrar sesión"
   },
   "settings": {
     "menu": {
       "language": "Idioma",
-      "theme": "Tema"
+      "theme": "Tema",
+      "sesion": "Cuenta"
     },
     "language": {
       "changeLanguage": "Cambiar idioma:"
+    },
+    "sesion": {
+      "logoutBtn": "Cerrar Sesión",
+      "descriptionLogoutBtn": "Finaliza tu sesión actual y vuelve a la pantalla de inicio de sesión.",
+      "logoutModal": {
+        "message": "¿Estás seguro de que quieres cerrar sesión?",
+        "confirm": "Sí",
+        "cancel": "No"
+      }
+    }
+  },
+  "settingsMobile": {
+    "menu": {
+      "backBtn": "Volver"
     }
   },
   "profile": {
@@ -22,7 +38,13 @@
     "joinedIn": "Se unió en ",
     "countFriends": "Amigos",
     "posts": "Posts",
-    "friends": "Amigos"
+    "friends": "Amigos",
+    "postsSection": {
+      "noPublications": "No hay ningún post"
+    },
+    "friendsSection": {
+      "noFriendsMessage": "No tienes amigos aún"
+    }
   },
   "notFound": {
     "errorCode": "404",

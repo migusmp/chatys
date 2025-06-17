@@ -1,33 +1,24 @@
-import { useEffect, useState, type JSX } from "react";
+import { type JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import Loader from "./Loader";
+import { useUserContext } from "../context/UserContext";
 
 
 export default function ProtectedRoute({ children }: { children: JSX.Element }) {
-    const [ auth, setAuth ] = useState<boolean | null>(null);
-    
-    const location = useLocation()
+  const { user, loading } = useUserContext();
+  const location = useLocation();
 
-    // Verificar que el usuario esta autenticado
-    useEffect(() => {
-        fetch('/api/user/info', { method: "GET", credentials: "include" })
-            .then(res => {
-                if (res.status === 200) setAuth(true)
-                else setAuth(false)
-            })
-            .catch(() => setAuth(false))
-    }, [])
+  if (loading) return <Loader />;
 
-    // pantalla de carga
-    if (auth === null) return <Loader />
+  // Si usuario está logueado y está en login o register, redirigir a home
+  if (user && (location.pathname === "/login" || location.pathname === "/register")) {
+    return <Navigate to="/" replace />;
+  }
 
-    if (auth && (location.pathname === '/login' || location.pathname === '/register')) {
-        return <Navigate to="/" replace />
-    }
+  // Si no hay usuario y no está en login o register, redirigir a login
+  if (!user && location.pathname !== "/login" && location.pathname !== "/register") {
+    return <Navigate to="/login" replace />;
+  }
 
-    if (!auth && location.pathname !== '/login' && location.pathname !== '/register') {
-        return <Navigate to="/login" replace />
-    }
-
-    return children
+  return children;
 }

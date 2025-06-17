@@ -6,15 +6,31 @@
     "messages": "Messages",
     "notifications": "Notifications",
     "profile": "Profile",
-    "settings": "Settings"
+    "settings": "Settings",
+    "logout": "Log out"
   },
   "settings": {
     "menu": {
       "language": "Language",
-      "theme": "Theme"
+      "theme": "Theme",
+      "sesion": "Account"
     },
     "language": {
       "changeLanguage": "Change language:"
+    },
+    "sesion": {
+      "logoutBtn": "Log out",
+      "descriptionLogoutBtn": "End your session and return to login.",
+      "logoutModal": {
+        "message": "Are you sure you want to log out?",
+        "confirm": "Yes",
+        "cancel": "No"
+      }
+    }
+  },
+  "settingsMobile": {
+    "menu": {
+      "backBtn": "Back"
     }
   },
   "profile": {
@@ -22,7 +38,13 @@
     "joinedIn": "Joined",
     "countFriends": "Friends",
     "posts": "Posts",
-    "friends": "Friends"
+    "friends": "Friends",
+    "postsSection": {
+      "noPublications": "No posts found"
+    },
+    "friendsSection": {
+      "noFriendsMessage": "You're alone... for now"
+    }
   },
   "notFound": {
     "errorCode": "404",

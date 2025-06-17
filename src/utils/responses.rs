@@ -8,6 +8,7 @@ use super::user_utils::append_cookie_to_response;
 #[derive(Serialize)]
 pub struct ErrorResponse {
     pub status: String,
+    pub r#type: String,
     pub message: String,
 }
 

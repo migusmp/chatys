@@ -12,15 +12,18 @@ export default function Login() {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
 
+    const [ loginError, setLoginError ] = useState("");
+
     async function handleLoginData(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        const success = await sendLoginFormData({ username, password });
+        setLoginError("")
+        const data = await sendLoginFormData({ username, password });
 
-        if (success) {
+        if (data.status == "success") {
             await refreshUser();
             navigate('/')
         } else {
-            console.log("Login fallido")
+            setLoginError(data.message);
         }
     }
 
@@ -28,6 +31,10 @@ export default function Login() {
         <div className={styles.body}>
             <form className={styles.loginForm} onSubmit={handleLoginData}>
                 <h2 className={styles.title}>Login</h2>
+                
+                {loginError && (
+                    <span className={styles.errorMessage}>{loginError}</span>
+                )}
 
                 <div className={styles.inputGroup}>
                     <label htmlFor="username">Username</label>

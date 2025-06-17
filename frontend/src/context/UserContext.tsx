@@ -25,6 +25,24 @@ export function UserProvider({ children }: Props) {
   const [loading, setLoading] = useState(true);
   const { profile } = useUser();
 
+  async function logout(): Promise<boolean> {
+    try {
+      const res = await fetch("/api/user/logout", {
+        method: "POST",
+        credentials: "include"
+      })
+
+      if (!res.ok) {
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      console.error("Error al cerrar sesión");
+      return false;
+    }
+  }
+
   const fetchProfile = async () => {
     const userData = await profile();
     if (userData) {
@@ -46,7 +64,7 @@ export function UserProvider({ children }: Props) {
   if (loading) return <Loader />;
 
   return (
-    <UserContext.Provider value={{ user, setUser, refreshUser }}>
+    <UserContext.Provider value={{ user, setUser, refreshUser, logout, loading }}>
       {children}
     </UserContext.Provider>
   );
