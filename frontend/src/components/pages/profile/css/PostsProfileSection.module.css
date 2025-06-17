@@ -17,7 +17,7 @@
 .backButtonContainer {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1;
     background: rgba(0, 0, 0, 0.75); /* fondo negro con opacidad */
     display: flex;
     backdrop-filter: blur(5px);

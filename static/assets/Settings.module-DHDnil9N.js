@@ -1,1 +1,0 @@
-const e="_body_15wfn_1",n="_menu_15wfn_15",t="_active_15wfn_56",_="_content_15wfn_64",c="_languageSelector_15wfn_74",o="_label_15wfn_116",l="_select_15wfn_122",s={body:e,menu:n,active:t,content:_,languageSelector:c,label:o,select:l};export{s};

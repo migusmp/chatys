@@ -9,12 +9,14 @@ import type { ProfileData } from '../../../types/user';
 import { useUserContext } from '../../../context/UserContext';
 import i18n from '../../../i18n';
 import BackButton from './components/BackButton';
+import EditProfileModal from './components/EditProfileModal';
 
 export default function Profile() {
     const { username } = useParams();
     const { user } = useUserContext();
 
     const [profile, setProfile] = useState<ProfileData>();
+    const [modal, setModal] = useState<boolean>(false);
 
     const joinedDate = new Date(profile?.created_at ?? '');
     const joinedIn = joinedDate.toLocaleDateString(i18n.language, {
@@ -24,6 +26,14 @@ export default function Profile() {
 
     const { t } = useTranslation();
     const { fetchProfileUserData } = useFetch();
+
+    function handleModalChange() {
+        if (modal) {
+            setModal(false)
+        } else {
+            setModal(true)
+        }
+    }
 
     const fetchProfile = async () => {
         if (!username) return;
@@ -44,10 +54,17 @@ export default function Profile() {
 
     return (
         <>
+            {modal && (
+                <EditProfileModal
+                    setModal={setModal}
+                    profile={profile}
+                    setProfile={setProfile} 
+                />
+            )}
             <div className={styles.body}>
                 <section className={styles.userInfoSection}>
                     {/* SECTION TO BACK BUTTON */}
-                    <BackButton name={profile?.name}/>
+                    <BackButton name={profile?.name} />
                     {/* SECTION TO BANNER IMAGE */}
                     <section className={styles.header}></section>
 
@@ -57,7 +74,7 @@ export default function Profile() {
                             <div className={styles.profileImgDiv}>
                                 <img src={profile?.image} alt={`${profile?.username}-profile-image`} />
                             </div>
-                            {username != user?.username ? '' : <button className={styles.buttonEditProfile}>{t("profile.editProfile")}</button>}
+                            {username != user?.username ? '' : <button onClick={handleModalChange} className={styles.buttonEditProfile}>{t("profile.editProfile")}</button>}
 
                         </div>
 
