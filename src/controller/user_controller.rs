@@ -1,6 +1,6 @@
 use crate::db::conversations::get_user_conversations;
 use crate::db::db::{
-    delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data, get_user_profile_data_by_username, update_name_from_user, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserEmail, UpdateUserName, UpdateUserPassword
+    delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data, get_user_profile_data_by_username, update_name_from_user, update_user_description, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserDescription, UpdateUserEmail, UpdateUserName, UpdateUserPassword
 };
 use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, UpdateData};
 use crate::services::user::{login, register};
@@ -135,6 +135,15 @@ pub async fn user_update(
             UpdateUserName::ConsultError => {
                 println!("Error en la consulta");
                 return Err(ErrorRequest::InternalError);
+            }
+        }
+    }
+
+    if let Some(description) = update_info.description {
+        match update_user_description(description, payload.id, &pool).await {
+            UpdateUserDescription::DescriptionUpdated => {}
+            UpdateUserDescription::ErrorDescriptionUpdate => {
+                return Err(ErrorRequest::InternalError)
             }
         }
     }

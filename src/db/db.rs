@@ -109,6 +109,11 @@ pub enum UpdateUserPassword {
     ErrorPasswordUpdate,
 }
 
+pub enum UpdateUserDescription {
+    DescriptionUpdated,
+    ErrorDescriptionUpdate,
+}
+
 pub enum UpdateUserEmail {
     EmailUpdated,
     ErrorEmailUpdate,
@@ -162,6 +167,27 @@ async fn update_name(new_name: String, id: i32, pool: &PgPool) -> Result<(), Err
         .execute(&*pool)
         .await?;
     Ok(())
+}
+
+async fn update_description(new_description: String, id: i32, pool: &PgPool) -> Result<(), Error> {
+    let query = r#"
+        UPDATE users
+        SET description = $1
+        WHERE id = $2
+    "#;
+    sqlx::query(query)
+        .bind(new_description)
+        .bind(id)
+        .execute(&*pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn update_user_description(new_description: String, id: i32, pool: &PgPool) -> UpdateUserDescription {
+    match update_description(new_description, id, pool).await {
+        Ok(_) => UpdateUserDescription::DescriptionUpdated,
+        Err(_) => UpdateUserDescription::ErrorDescriptionUpdate
+    }
 }
 
 // TODO

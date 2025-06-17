@@ -77,6 +77,7 @@ pub struct UpdateData {
     pub name: Option<String>,
     pub email: Option<String>,
     pub password: Option<String>,
+    pub description: Option<String>,
 }
 
 pub enum ErrorRequest {
