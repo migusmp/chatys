@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import styles from '../css/Modal.module.css';
 import type { ProfileData } from '../../../../types/user';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     setModal: Dispatch<SetStateAction<boolean>>;
@@ -9,10 +10,14 @@ interface Props {
     setProfile: Dispatch<SetStateAction<ProfileData | undefined>>;
 }
 
+type EditableProfileFields = Pick<ProfileData, "name" | "username" | "email" | "image" | "description">;
+
 export default function EditProfileModal({ setModal, profile, setProfile }: Props) {
+    const { t } = useTranslation();
+
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<EditableProfileFields>({
         name: profile?.name || '',
         username: profile?.username || '',
         email: profile?.email || '',
@@ -24,8 +29,9 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('/api/upload-avatar', {
+        const response = await fetch('/api/user/upload', {
             method: 'POST',
+            credentials: "include",
             body: formData,
         });
 
@@ -62,20 +68,56 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
         }
     }
 
-    function handleSubmit(e: React.FormEvent) {
+    function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
-        setProfile(prev => ({
-            ...prev!,
-            name: formData.name,
-            username: formData.username,
-            email: formData.email,
-            image: formData.image,
-            description: formData.description,
-        }));
+        if (!profile) return;
 
-        setModal(false);
+        const updatedFields: Partial<EditableProfileFields> = {};
+
+        (Object.keys(formData) as Array<keyof EditableProfileFields>).forEach((key) => {
+            if (formData[key] !== profile?.[key]) {
+                updatedFields[key] = formData[key];
+            }
+        });
+
+        if (Object.keys(updatedFields).length === 0) {
+            setModal(false);
+            return;
+        }
+
+        const body = new URLSearchParams();
+        Object.entries(updatedFields).forEach(([key, value]) => {
+            if (value !== undefined) {
+                body.append(key, value);
+            }
+        });
+
+        fetch("/api/user/update", {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            credentials: "include",
+            body: body.toString(),
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("Error al actualizar el perfil");
+                return res.json();
+            })
+            .then(() => {
+                setProfile(prev => ({
+                    ...prev!,
+                    ...updatedFields,
+                }));
+                setModal(false);
+            })
+            .catch(err => {
+                console.error(err);
+                alert("No se pudo actualizar el perfil");
+            });
     }
+
 
     return (
         <div className={styles.modalOverlay}>
@@ -95,11 +137,11 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
                             onChange={handleImageChange}
                             className={styles.hiddenInput}
                         />
-                        <span className={styles.imageHint}>Haz clic en la imagen para cambiarla</span>
+                        <span className={styles.imageHint}>{t("profile.editProfileModal.changeImgMessage")}</span>
                     </div>
 
                     <label>
-                        Nombre:
+                        {t("profile.editProfileModal.nameLabel")}
                         <input
                             type="text"
                             name="name"
@@ -109,7 +151,7 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
                     </label>
 
                     <label>
-                        Usuario:
+                        {t("profile.editProfileModal.usernameLabel")}
                         <input
                             type="text"
                             name="username"
@@ -117,9 +159,9 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
                             onChange={handleChange}
                         />
                     </label>
-                    
+
                     <label>
-                        Descripción:
+                        {t("profile.editProfileModal.descriptionLabel")}
                         <textarea
                             name="description"
                             value={formData.description}
@@ -130,7 +172,7 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
                     </label>
 
                     <label>
-                        Email:
+                        {t("profile.editProfileModal.emailLabel")}
                         <input
                             type="email"
                             name="email"
@@ -140,8 +182,8 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
                     </label>
 
                     <div className={styles.modalButtons}>
-                        <button type="submit">Guardar</button>
-                        <button type="button" onClick={() => setModal(false)}>Cancelar</button>
+                        <button type="submit">{t("profile.editProfileModal.saveBtn")}</button>
+                        <button type="button" onClick={() => setModal(false)}>{t("profile.editProfileModal.dontSaveBtn")}</button>
                     </div>
                 </form>
             </div>

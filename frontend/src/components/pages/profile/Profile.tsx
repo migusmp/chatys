@@ -15,6 +15,8 @@ export default function Profile() {
     const { username } = useParams();
     const { user } = useUserContext();
 
+    let data;
+
     const [profile, setProfile] = useState<ProfileData>();
     const [modal, setModal] = useState<boolean>(false);
 
@@ -25,7 +27,9 @@ export default function Profile() {
     });
 
     const { t } = useTranslation();
-    const { fetchProfileUserData } = useFetch();
+    const { fetchProfileUserData, fetchProfileUserLogued } = useFetch();
+
+    const isUserLogued = user?.username == username ? true : false;
 
     function handleModalChange() {
         if (modal) {
@@ -38,7 +42,11 @@ export default function Profile() {
     const fetchProfile = async () => {
         if (!username) return;
         try {
-            const data = await fetchProfileUserData(username);
+            if (isUserLogued) {
+                data = await fetchProfileUserLogued();
+            } else {
+                data = await fetchProfileUserData(username);
+            }
             if (data) {
                 setProfile(data);
             }
@@ -54,14 +62,15 @@ export default function Profile() {
 
     return (
         <>
-            {modal && (
-                <EditProfileModal
-                    setModal={setModal}
-                    profile={profile}
-                    setProfile={setProfile} 
-                />
-            )}
+
             <div className={styles.body}>
+                {modal && (
+                    <EditProfileModal
+                        setModal={setModal}
+                        profile={profile}
+                        setProfile={setProfile}
+                    />
+                )}
                 <section className={styles.userInfoSection}>
                     {/* SECTION TO BACK BUTTON */}
                     <BackButton name={profile?.name} />

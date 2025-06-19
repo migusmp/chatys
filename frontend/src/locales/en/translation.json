@@ -44,6 +44,15 @@
     },
     "friendsSection": {
       "noFriendsMessage": "You're alone... for now"
+    },
+    "editProfileModal": {
+      "changeImgMessage": "Click on the image to change it",
+      "nameLabel": "Name:",
+      "usernameLabel": "Username:",
+      "descriptionLabel": "Description:",
+      "emailLabel": "Email:",
+      "saveBtn": "Save",
+      "dontSaveBtn": "Cancel"
     }
   },
   "notFound": {

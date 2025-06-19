@@ -109,6 +109,11 @@ pub enum UpdateUserPassword {
     ErrorPasswordUpdate,
 }
 
+pub enum UpdateUserDescription {
+    DescriptionUpdated,
+    ErrorDescriptionUpdate,
+}
+
 pub enum UpdateUserEmail {
     EmailUpdated,
     ErrorEmailUpdate,
@@ -162,6 +167,27 @@ async fn update_name(new_name: String, id: i32, pool: &PgPool) -> Result<(), Err
         .execute(&*pool)
         .await?;
     Ok(())
+}
+
+async fn update_description(new_description: String, id: i32, pool: &PgPool) -> Result<(), Error> {
+    let query = r#"
+        UPDATE users
+        SET description = $1
+        WHERE id = $2
+    "#;
+    sqlx::query(query)
+        .bind(new_description)
+        .bind(id)
+        .execute(&*pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn update_user_description(new_description: String, id: i32, pool: &PgPool) -> UpdateUserDescription {
+    match update_description(new_description, id, pool).await {
+        Ok(_) => UpdateUserDescription::DescriptionUpdated,
+        Err(_) => UpdateUserDescription::ErrorDescriptionUpdate
+    }
 }
 
 // TODO
@@ -306,15 +332,34 @@ pub async fn get_user_profile_data(
     pool: &PgPool,
 ) -> Result<UserData, sqlx::Error> {
     let query = r#"
-        SELECT id, username, email, name, created_at, image, description
-        FROM users
-        WHERE id= $1
+        SELECT 
+            u.id,
+            u.username,
+            u.email,
+            u.name,
+            u.created_at,
+            u.image,
+            u.description,
+            (
+                SELECT COUNT(*) 
+                FROM friends f1
+                WHERE f1.user_id = u.id
+                AND EXISTS (
+                    SELECT 1 
+                    FROM friends f2
+                    WHERE f2.user_id = f1.friend_id 
+                    AND f2.friend_id = f1.user_id
+                )
+            ) AS friends_count
+        FROM users u
+        WHERE u.id = $1
     "#;
 
     let user_data = sqlx::query_as::<_, UserData>(&query)
         .bind(user_id)
         .fetch_one(pool)
         .await?;
+
     Ok(user_data)
 }
 

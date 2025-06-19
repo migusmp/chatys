@@ -21,6 +21,7 @@ pub struct UserData {
     pub image: String,
     pub created_at: NaiveDateTime,
     pub description: String,
+    pub friends_count: i64,
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
@@ -77,6 +78,7 @@ pub struct UpdateData {
     pub name: Option<String>,
     pub email: Option<String>,
     pub password: Option<String>,
+    pub description: Option<String>,
 }
 
 pub enum ErrorRequest {

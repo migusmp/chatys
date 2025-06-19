@@ -1,6 +1,6 @@
 use crate::controller::user_controller::{*};
 use crate::middlewares::auth::auth;
-use axum::routing::{delete, get, post, put};
+use axum::routing::{delete, get, patch, post};
 use axum::{Router};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
@@ -47,12 +47,12 @@ pub fn user_router(pool: PgPool) -> Router {
         )
         .route(
             "/profile/{username}",
-            get(move |username| get_profile_data_from_user(username, pool_profile_from_user))
+            get(move |username, payload| get_profile_data_from_user(username, payload, pool_profile_from_user))
                 .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(
             "/update",
-            put({
+            patch({
                 let pool = pool.clone();
                 move |payload, path| user_update(payload, path, pool)
             })

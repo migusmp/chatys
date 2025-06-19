@@ -51,12 +51,32 @@ export default function useFetch() {
 
             const data = await res.json();
 
-            console.log("Friends: ", data);
             return data.data as ProfileData;
         } catch (e) {
             console.error("Error al cargar la lista de amigos:", e);
         }
     }
 
-    return { fetchFriendsList, fetchProfileUserData }
+    async function fetchProfileUserLogued(): Promise<ProfileData | void> {
+        try {
+            const res = await fetch(`/api/user/profile`, {
+                method: "GET",
+                credentials: "include"
+            });
+
+            if (!res.ok) {
+                throw new Error(`Error HTTP: ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            return data.data as ProfileData;
+        } catch (e) {
+            console.error("Error al cargar la lista de amigos:", e);
+        }
+    }
+
+
+
+    return { fetchFriendsList, fetchProfileUserData, fetchProfileUserLogued }
 }

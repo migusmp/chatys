@@ -1,34 +1,24 @@
-.modalOverlay {
+/* .modalOverlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
     background-color: rgba(0, 0, 0, 0.5);
-    /* Fondo semitransparente */
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 2;
-    /* Z-index alto */
-}
-
-.modalContent {
-    background-color: white;
-    padding: 2rem;
-    border-radius: 8px;
-    max-width: 600px;
-    width: 90%;
-}
+} */
 
 .modalOverlay {
-    background-color: rgba(0, 0, 0, 0.8);
     position: fixed;
     inset: 0;
+    background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 10;
+    z-index: 2;
 }
 
 .modalContent {
@@ -38,7 +28,9 @@
     width: 90%;
     max-width: 500px;
     color: #fff;
+    box-sizing: border-box;
 }
+
 
 .modalForm {
     display: flex;
@@ -132,17 +124,19 @@
 }
 
 .textarea {
-  padding: 0.5rem;
-  background-color: #111;
-  border: 1px solid #00ff66;
-  outline: none;
-  color: white;
-  border-radius: 8px;
-  resize: vertical;
-  transition: border 0.2s ease, box-shadow 0.2s ease;
+    padding: 0.5rem;
+    background-color: #111;
+    border: 1px solid #00ff66;
+    outline: none;
+    color: white;
+    border-radius: 8px;
+    resize: vertical;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
 }
 
 .textarea:hover {
-  border-color: #00cc55;
-  box-shadow: 0 0 5px #00ff66;
+    border-color: #00cc55;
+    box-shadow: 0 0 5px #00ff66;
 }
+
+
