@@ -51,7 +51,6 @@ export default function useFetch() {
 
             const data = await res.json();
 
-            console.log("Friends: ", data);
             return data.data as ProfileData;
         } catch (e) {
             console.error("Error al cargar la lista de amigos:", e);
@@ -71,7 +70,6 @@ export default function useFetch() {
 
             const data = await res.json();
 
-            console.log("Friends: ", data);
             return data.data as ProfileData;
         } catch (e) {
             console.error("Error al cargar la lista de amigos:", e);

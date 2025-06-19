@@ -21,6 +21,7 @@ pub struct UserData {
     pub image: String,
     pub created_at: NaiveDateTime,
     pub description: String,
+    pub friends_count: i64,
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]

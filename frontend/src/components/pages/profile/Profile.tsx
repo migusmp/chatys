@@ -62,14 +62,15 @@ export default function Profile() {
 
     return (
         <>
-            {modal && (
-                <EditProfileModal
-                    setModal={setModal}
-                    profile={profile}
-                    setProfile={setProfile} 
-                />
-            )}
+
             <div className={styles.body}>
+                {modal && (
+                    <EditProfileModal
+                        setModal={setModal}
+                        profile={profile}
+                        setProfile={setProfile}
+                    />
+                )}
                 <section className={styles.userInfoSection}>
                     {/* SECTION TO BACK BUTTON */}
                     <BackButton name={profile?.name} />

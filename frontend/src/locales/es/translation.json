@@ -44,6 +44,15 @@
     },
     "friendsSection": {
       "noFriendsMessage": "No tienes amigos aún"
+    },
+    "editProfileModal": {
+      "changeImgMessage": "Haz clic en la imagen para cambiarla",
+      "nameLabel": "Nombre:",
+      "usernameLabel": "Nombre de usuario:",
+      "descriptionLabel": "Descripción:",
+      "emailLabel": "Correo:",
+      "saveBtn": "Guardar",
+      "dontSaveBtn": "Cancelar"
     }
   },
   "notFound": {
