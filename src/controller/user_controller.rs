@@ -11,6 +11,7 @@ use axum::{http::StatusCode, response::IntoResponse, Form};
 use axum::{Extension, Json};
 use sqlx::PgPool;
 use tokio::fs;
+use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 const MAX_CONTENT_LENGTH: u64 = 10 * 1024 * 1024; // 10 MB
@@ -214,9 +215,10 @@ pub async fn get_profile_data_from_user(
 pub async fn upload_image(
     Extension(payload): Extension<Payload>,
     headers: HeaderMap,
-    multipart: Multipart,
+    mut multipart: Multipart,
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
+    // Validar tamaño máximo permitido
     if let Some(content_length) = headers.get("content-length") {
         let content_length = content_length
             .to_str()
@@ -230,16 +232,13 @@ pub async fn upload_image(
 
     let mut file_name = String::new();
 
-    let mut fields = multipart; // Procesamos el contenido del multipart.
-
-    while let Some(field) = fields.next_field().await.map_err(|e| {
-        eprintln!("Error: {:?}", e);
+    while let Some(mut field) = multipart.next_field().await.map_err(|e| {
+        eprintln!("Error leyendo multipart: {:?}", e);
         ErrorRequest::InternalError
     })? {
         let _name = field.name().unwrap_or("file");
         let content_type = field.content_type().unwrap_or("application/octet-stream");
 
-        // Check this file is an image.
         if !content_type.starts_with("image/") {
             return Err(ErrorRequest::InvalidImageFormat);
         }
@@ -250,26 +249,45 @@ pub async fn upload_image(
         };
 
         file_name = format!("{}.{}", Uuid::new_v4(), file_extension);
-
-        // Guardar el archivo.
-        let data = field.bytes().await.map_err(|e| {
-            eprintln!("Error to save uploaded file: {:?}", e);
-            ErrorRequest::InternalError
-        })?;
-
         let path = format!("./uploads/user/{}", file_name);
-        fs::write(&path, &data).await.map_err(|e| {
-            eprintln!("Error al guardar el archivo: {:?}", e);
+
+        let mut file = fs::File::create(&path).await.map_err(|e| {
+            eprintln!("Error creando archivo: {:?}", e);
             ErrorRequest::InternalError
         })?;
+
+        let mut total_size: u64 = 0;
+
+        // Leer y escribir en chunks
+        while let Some(chunk) = field.chunk().await.map_err(|e| {
+            eprintln!("Error leyendo chunk: {:?}", e);
+            ErrorRequest::InternalError
+        })? {
+            total_size += chunk.len() as u64;
+
+            if total_size > MAX_CONTENT_LENGTH {
+                return Err(ErrorRequest::UsernameEmpty); // Puedes usar otro error más específico
+            }
+
+            file.write_all(&chunk).await.map_err(|e| {
+                eprintln!("Error escribiendo archivo: {:?}", e);
+                ErrorRequest::InternalError
+            })?;
+        }
     }
-    update_user_image(payload.id, file_name, &pool)
+
+    // Actualizar en la base de datos
+    update_user_image(payload.id, file_name.clone(), &pool)
         .await
         .map_err(|e| {
-            eprintln!("Error actualizando la imagen del usuario: {:?}", e);
+            eprintln!("Error actualizando imagen en DB: {:?}", e);
             ErrorRequest::InternalError
         })?;
-    Ok(ApiResponse::success("Image updated"))
+
+    Ok(ApiResponse::success_with_data(
+        "Image updated",
+        Some(format!("/media/user/{}", file_name)),
+    ))
 }
 
 pub async fn delete_user_route(
