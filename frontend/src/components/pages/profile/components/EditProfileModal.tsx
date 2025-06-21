@@ -40,7 +40,7 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
         }
 
         const data = await response.json();
-        return data.url; // Supongamos que el servidor devuelve { url: "https://..." }
+        return data.data; // Supongamos que el servidor devuelve { url: "https://..." }
     }
 
 
@@ -62,6 +62,13 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
                 ...prev,
                 image: uploadedUrl,
             }));
+            if (profile?.image) {
+                setProfile(prev => ({
+                    ...prev!,
+                    image: uploadedUrl,
+                }))
+            }
+
         } catch (err) {
             console.error('Error al subir la imagen', err);
             alert('No se pudo subir la imagen');
