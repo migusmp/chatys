@@ -13,8 +13,9 @@ use sqlx::PgPool;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
+use infer;
 
-const MAX_CONTENT_LENGTH: u64 = 10 * 1024 * 1024; // 10 MB
+const MAX_CONTENT_LENGTH: u64 = 5 * 1024 * 1024; // 10 MB
 
 // Ruta de registro de usuarios.
 pub async fn user_register(
@@ -218,27 +219,36 @@ pub async fn upload_image(
     mut multipart: Multipart,
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
-    // Validar tamaño máximo permitido
+    // Validar tamaño máximo permitido (basado en header)
     if let Some(content_length) = headers.get("content-length") {
         let content_length = content_length
             .to_str()
             .unwrap_or("0")
             .parse::<u64>()
             .unwrap_or(0);
+
         if content_length > MAX_CONTENT_LENGTH {
-            return Err(ErrorRequest::UsernameEmpty);
+            return Err(ErrorRequest::FileTooLarge);
         }
     }
 
     let mut file_name = String::new();
+    let mut path = String::new();
+    let mut count = 0;
 
     while let Some(mut field) = multipart.next_field().await.map_err(|e| {
         eprintln!("Error leyendo multipart: {:?}", e);
         ErrorRequest::InternalError
     })? {
-        let _name = field.name().unwrap_or("file");
-        let content_type = field.content_type().unwrap_or("application/octet-stream");
+        count += 1;
+        if count > 1 {
+            return Err(ErrorRequest::OnlyOneFileAllowed);
+        }
 
+        let _name = field.name().unwrap_or("file");
+
+        // Validación del tipo MIME declarado por el cliente
+        let content_type = field.content_type().unwrap_or("application/octet-stream");
         if !content_type.starts_with("image/") {
             return Err(ErrorRequest::InvalidImageFormat);
         }
@@ -249,16 +259,41 @@ pub async fn upload_image(
         };
 
         file_name = format!("{}.{}", Uuid::new_v4(), file_extension);
-        let path = format!("./uploads/user/{}", file_name);
+        path = format!("./uploads/user/{}", file_name);
 
+        // Leer primer chunk para validar tipo real
+        let first_chunk = field.chunk().await.map_err(|e| {
+            eprintln!("Error leyendo primer chunk: {:?}", e);
+            ErrorRequest::InternalError
+        })?;
+
+        let Some(first_chunk) = first_chunk else {
+            return Err(ErrorRequest::InvalidImageFormat);
+        };
+
+        // Validar tipo real del archivo con infer
+        if let Some(kind) = infer::get(&first_chunk) {
+            if !kind.mime_type().starts_with("image/") {
+                return Err(ErrorRequest::InvalidImageFormat);
+            }
+        } else {
+            return Err(ErrorRequest::InvalidImageFormat);
+        }
+
+        // Crear archivo y escribir primer chunk
         let mut file = fs::File::create(&path).await.map_err(|e| {
             eprintln!("Error creando archivo: {:?}", e);
             ErrorRequest::InternalError
         })?;
 
-        let mut total_size: u64 = 0;
+        let mut total_size: u64 = first_chunk.len() as u64;
 
-        // Leer y escribir en chunks
+        file.write_all(&first_chunk).await.map_err(|e| {
+            eprintln!("Error escribiendo primer chunk: {:?}", e);
+            ErrorRequest::InternalError
+        })?;
+
+        // Escribir el resto del archivo
         while let Some(chunk) = field.chunk().await.map_err(|e| {
             eprintln!("Error leyendo chunk: {:?}", e);
             ErrorRequest::InternalError
@@ -266,7 +301,8 @@ pub async fn upload_image(
             total_size += chunk.len() as u64;
 
             if total_size > MAX_CONTENT_LENGTH {
-                return Err(ErrorRequest::UsernameEmpty); // Puedes usar otro error más específico
+                let _ = fs::remove_file(&path).await;
+                return Err(ErrorRequest::FileTooLarge);
             }
 
             file.write_all(&chunk).await.map_err(|e| {
@@ -276,19 +312,19 @@ pub async fn upload_image(
         }
     }
 
-    // Actualizar en la base de datos
-    update_user_image(payload.id, file_name.clone(), &pool)
-        .await
-        .map_err(|e| {
-            eprintln!("Error actualizando imagen en DB: {:?}", e);
-            ErrorRequest::InternalError
-        })?;
+    // Actualizar la imagen en la base de datos
+    if let Err(e) = update_user_image(payload.id, file_name.clone(), &pool).await {
+        let _ = fs::remove_file(&path).await;
+        eprintln!("Error actualizando imagen en DB: {:?}", e);
+        return Err(ErrorRequest::InternalError);
+    }
 
     Ok(ApiResponse::success_with_data(
         "Image updated",
         Some(format!("/media/user/{}", file_name)),
     ))
 }
+
 
 pub async fn delete_user_route(
     Extension(payload): Extension<Payload>,

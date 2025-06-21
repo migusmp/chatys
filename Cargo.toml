@@ -33,6 +33,7 @@ askama = "0.14.0"
 dashmap = "6.1.0"
 time = { version = "0.3", features = ["serde"] }
 serde_with = "*"
+infer = "0.19"
 
 
 [lib]

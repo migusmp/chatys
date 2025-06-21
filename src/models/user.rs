@@ -99,6 +99,8 @@ pub enum ErrorRequest {
     AlreadyFriends,
     EmailExists,
     BadParameter,
+    OnlyOneFileAllowed,
+    FileTooLarge,
 }
 
 impl IntoResponse for ErrorRequest {
@@ -189,6 +191,8 @@ impl IntoResponse for ErrorRequest {
                 "BAD_PARAMETER",
                 "Bad parameter provided in request",
             ),
+            ErrorRequest::OnlyOneFileAllowed => (StatusCode::BAD_REQUEST, "ONLY_ONE_FILE_ALLOWED", "You can upload one file at the same time!"),
+            ErrorRequest::FileTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, "FILE_TO_LARGE", "The uploaded file is too large. Maximum allowed size is 5 MB")
         };
 
         let body = Json(ErrorResponse {
