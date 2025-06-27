@@ -8,6 +8,7 @@ use std::env;
 use crate::models::user::ProfileData;
 use crate::models::user::UserChatData;
 use crate::models::user::UserData;
+use crate::models::user::UserFriendRequest;
 
 // Función para obtener el pool de conexiones a la base de datos
 // pub async fn get_db_pool() -> Result<PgPool, sqlx::Error> {
@@ -326,6 +327,23 @@ pub async fn get_user_friends_by_username(
     Ok(friends)
 }
 
+// TODO
+pub async fn get_user_data_to_friend_request(id: i32, pool: &PgPool) -> Result<(), sqlx::Error> {
+    let _user = sqlx::query_as!(
+        UserFriendRequest,
+        r#"
+        SELECT id, username, image
+        FROM users
+        WHERE id = $1
+        "#,
+        id
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(|e| format!("Failed to fetch user: {}", e));
+
+    Ok(())
+}
 
 pub async fn get_user_profile_data(
     user_id: i32,

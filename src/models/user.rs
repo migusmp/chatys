@@ -81,6 +81,12 @@ pub struct UpdateData {
     pub description: Option<String>,
 }
 
+pub struct UserFriendRequest {
+    pub id: i32,
+    pub username: String,
+    pub image: Option<String>
+}
+
 pub enum ErrorRequest {
     UsernameInvalid,
     NameEmpty,

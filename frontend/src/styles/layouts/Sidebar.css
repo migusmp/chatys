@@ -129,6 +129,26 @@
     opacity: 1;
 }
 
+/* Estilos para la cantidad de notificaciones que hay */
+.icon-with-badge {
+  position: relative;
+  display: inline-block;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -7px;
+  background-color: #ff563c;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 50%;
+  min-width: 20px;
+  text-align: center;
+}
+
 
 .profile {
     width: 85%;

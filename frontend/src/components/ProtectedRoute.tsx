@@ -2,6 +2,7 @@ import { type JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import Loader from "./Loader";
 import { useUserContext } from "../context/UserContext";
+import { WebSocketProvider } from "../context/WebSocketContext";
 
 
 export default function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -20,5 +21,6 @@ export default function ProtectedRoute({ children }: { children: JSX.Element }) 
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  // 👇 Aquí envolvemos la app protegida con el WebSocketProvider si hay usuario
+  return user ? <WebSocketProvider>{children}</WebSocketProvider> : children;
 }

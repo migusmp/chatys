@@ -2,16 +2,20 @@ use dashmap::DashMap;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::Arc;
+use time::PrimitiveDateTime;
 use tokio::sync::{broadcast, mpsc, Mutex};
 
 use crate::{
-    db::undelivered_messages::get_undelivered_messages, services::ws::notify_user_with_active_friends, state::{
+    db::undelivered_messages::get_undelivered_messages,
+    models::user::UserFriendRequest,
+    services::ws::notify_user_with_active_friends,
+    state::{
         chat_message::ChatMessage,
         types::{
             AppConfig, DirectMessageChannels, FriendNotification, FriendNotificationRow,
             UndeliveredMessages,
         },
-    }
+    },
 };
 
 pub struct AppState {
@@ -58,12 +62,20 @@ impl AppState {
         // Enviar al receptor (to_user)
         if let Some(sender) = self.direct_message_channels.get(&message.to_user) {
             if sender.send(message.clone()).await.is_err() {
-                println!("❌ Error enviando mensaje a {} (canal roto)", message.to_user);
-                self.store_undelivered_message(message.to_user, message.content.clone()).await;
+                println!(
+                    "❌ Error enviando mensaje a {} (canal roto)",
+                    message.to_user
+                );
+                self.store_undelivered_message(message.to_user, message.content.clone())
+                    .await;
             }
         } else {
-            println!("📭 Usuario {} no está conectado. Mensaje no entregado", message.to_user);
-            self.store_undelivered_message(message.to_user, message.content.clone()).await;
+            println!(
+                "📭 Usuario {} no está conectado. Mensaje no entregado",
+                message.to_user
+            );
+            self.store_undelivered_message(message.to_user, message.content.clone())
+                .await;
         }
 
         // Enviar al emisor (from_user)
@@ -109,17 +121,18 @@ impl AppState {
         // 1. Entregar notificaciones de amistad (igual que antes)
         let notifications = sqlx::query_as::<_, FriendNotificationRow>(
             r#"
-            SELECT id, type_msg, status, user_id, sender_id, sender_name, message
-            FROM friend_requests
-            WHERE user_id = $1 AND seen = false AND status = 'pending'
-            ORDER BY created_at ASC
+            SELECT fr.id, fr.type_msg, fr.status, fr.user_id, fr.sender_id, fr.sender_name, fr.message, u.image, fr.created_at
+            FROM friend_requests fr
+            JOIN users u ON u.id = fr.sender_id
+            WHERE fr.user_id = $1 AND fr.seen = false AND fr.status = 'pending'
+            ORDER BY fr.created_at ASC
             "#,
         )
         .bind(user_id)
         .fetch_all(&self.db_pool)
         .await
         .unwrap_or_default();
-    
+
         let notifications_map = self.friend_notifications.lock().await;
         if let Some(sender) = notifications_map.get(&user_id) {
             for notif in notifications {
@@ -129,16 +142,19 @@ impl AppState {
             }
         }
         drop(notifications_map);
-    
+
         // 2. Entregar mensajes pendientes usando get_undelivered_messages
         let undelivered_messages = match get_undelivered_messages(user_id, &self.db_pool).await {
             Ok(msgs) => msgs,
             Err(e) => {
-                eprintln!("Error al obtener mensajes no entregados para {}: {}", user_id, e);
+                eprintln!(
+                    "Error al obtener mensajes no entregados para {}: {}",
+                    user_id, e
+                );
                 return;
             }
         };
-    
+
         // Obtener canal para enviar mensajes de chat
         let connected = self.connected_users.lock().await;
         let tx = match connected.get(&user_id) {
@@ -149,7 +165,7 @@ impl AppState {
             }
         };
         drop(connected);
-    
+
         for msg in undelivered_messages {
             let json_msg = serde_json::json!({
                 "type_msg": "chat_message",
@@ -160,20 +176,19 @@ impl AppState {
                 "sender_username": msg.sender_username,
                 "content": msg.content,
                 "created_at": msg.created_at.map(|dt| dt.format(&time::format_description::well_known::Rfc3339).unwrap_or_default()),
+                "image": msg.image,
             })
             .to_string();
-    
+
             if let Err(e) = tx.send(json_msg).await {
-                eprintln!("Error enviando mensaje no entregado a usuario {}: {}", user_id, e);
+                eprintln!(
+                    "Error enviando mensaje no entregado a usuario {}: {}",
+                    user_id, e
+                );
             }
-            // } else {
-            //     // Borra mensaje no entregado solo si fue enviado con éxito
-            //     if let Err(e) = delete_undelivered_message(msg.undelivered_id, &self.db_pool).await {
-            //         eprintln!("Error eliminando mensaje no entregado id {}: {}", msg.undelivered_id, e);
-            //     }
-            // }
         }
     }
+
     pub async fn mark_notification_seen(
         &self,
         request_id: i32,
@@ -190,59 +205,72 @@ impl AppState {
     pub async fn send_friend_notification(
         &self,
         friend_id: i32,
-        user_username: String,
         user_id: i32,
     ) -> Result<(), String> {
-        let message_text = format!("{} send to you a friend request!", user_username);
+        // Obtener el usuario actualizado desde la BD
+        let user = sqlx::query_as!(
+            UserFriendRequest,
+            r#"
+        SELECT id, username, image
+        FROM users
+        WHERE id = $1
+        "#,
+            user_id
+        )
+        .fetch_one(&self.db_pool)
+        .await
+        .map_err(|e| format!("Failed to fetch user: {}", e))?;
+
+        let message_text = format!("{} sent you a friend request!", user.username);
+
         let mut notification = FriendNotification {
             id: None,
             type_msg: "FR".to_string(),
-            user_id,
-            user_username: user_username.clone(),
-            sender_id: user_id,
+            user_id: friend_id,
+            sender_name: user.username.clone(),
+            sender_id: user.id,
             status: "pending".to_string(),
             message: message_text,
+            image: user.image.unwrap_or_default(),
+            created_at: None,
         };
 
         println!(
             "Usuario que ha enviado la solicitud: id: {}, nombre: {}",
-            user_id, user_username
+            user_id, user.username
         );
 
-        let inserted_id = match self
+        let (inserted_id, created_at) = match self
             .insert_friend_notification_to_db(
                 friend_id,
                 user_id,
-                user_username.as_str(),
+                &user.username,
                 &notification.type_msg,
                 &notification.status,
                 &notification.message,
             )
             .await
         {
-            Ok(id) => id, // id insertado
+            Ok(id) => id,
             Err(e) => return Err(format!("Failed to insert notification to DB: {}", e)),
         };
 
         notification.id = Some(inserted_id);
+        notification.created_at = Some(created_at.assume_utc());
 
         let json_message = serde_json::to_string(&notification)
             .map_err(|_| "Failed to serialize the notification".to_string())?;
-
-        // Guardar en la base de datos
-        // TODO
 
         let mut notifications = self.friend_notifications.lock().await;
         if let Some(sender) = notifications.get(&friend_id) {
             match sender.try_send(json_message.clone()) {
                 Ok(_) => Ok(()),
-                Err(_e) => {
-                    // Canal cerrado, remover sender para no intentar enviar más
+                Err(_) => {
                     notifications.remove(&friend_id);
-                    drop(notifications); // liberar lock antes de await
+                    drop(notifications);
                     self.store_undelivered_message(friend_id, json_message)
                         .await;
-                    return Err(format!("Unable to send notification to {}", friend_id));
+                    Err(format!("Unable to send notification to {}", friend_id))
                 }
             }
         } else {
@@ -256,9 +284,10 @@ impl AppState {
     // Similar para aceptar la notificación de amistad
     pub async fn accept_friend_notification(
         &self,
-        friend_id: i32,    // ID del que envió la solicitud
-        user_name: String, // nombre del que acepta
-        user_id: i32,      // ID del que acepta
+        friend_id: i32,     // ID del que envió la solicitud
+        user_name: String,  // nombre del que acepta
+        user_id: i32,       // ID del que acepta
+        user_image: String, // Image del que acepta la solicitud
     ) -> Result<(), String> {
         // 1. Marcar la solicitud como aceptada
         if let Err(e) = self
@@ -274,10 +303,12 @@ impl AppState {
             id: None,
             type_msg: "AFR".to_string(),
             user_id,
-            user_username: user_name,
+            sender_name: user_name,
             sender_id: user_id,
             status: "success".to_string(),
             message: message_text,
+            image: user_image,
+            created_at: None,
         };
 
         let json_message = serde_json::to_string(&notification)
@@ -377,13 +408,13 @@ impl AppState {
         type_msg: &str,
         status: &str,
         message: &str,
-    ) -> Result<i32, sqlx::Error> {
+    ) -> Result<(i32, PrimitiveDateTime), sqlx::Error> {
         let record = sqlx::query!(
             r#"
-            INSERT INTO friend_requests (user_id, sender_id, sender_name, type_msg, status, message)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id
-            "#,
+        INSERT INTO friend_requests (user_id, sender_id, sender_name, type_msg, status, message)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, created_at
+        "#,
             user_id,
             sender_id,
             sender_name,
@@ -393,6 +424,11 @@ impl AppState {
         )
         .fetch_one(&self.db_pool)
         .await?;
-        Ok(record.id)
+
+        let created_at = record
+            .created_at
+            .ok_or_else(|| sqlx::Error::ColumnNotFound("created_at".into()))?;
+
+        Ok((record.id, created_at))
     }
 }
