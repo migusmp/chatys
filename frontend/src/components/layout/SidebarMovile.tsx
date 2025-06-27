@@ -4,6 +4,7 @@ import { useUserContext } from "../../context/UserContext";
 export default function SidebarMovile() {
     const { user } = useUserContext()
     const location = useLocation();
+    const { notifications } = useUserContext();
 
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
@@ -21,11 +22,16 @@ export default function SidebarMovile() {
                         <i className={`bi ${isActive('/dm') ? 'bi-send-fill' : 'bi-send'}`}></i>
                     </Link>
                     <Link to="/notifications" className={`mobile-sidebar__link ${isActive('/notifications') ? 'active' : ''}`}>
-                        <i className={`bi ${isActive('/notifications') ? 'bi-bell-fill' : 'bi-bell'}`}></i>
+                        <div className="icon-with-badge">
+                            <i className={`bi ${isActive('/notifications') ? 'bi-bell-fill' : 'bi-bell'}`}></i>
+                            {notifications.length > 0 && (
+                                <span className="badge">{notifications.length}</span>
+                            )}
+                        </div>
                     </Link>
                     <Link to={`/profile/${user?.username}`} className={`mobile-sidebar__link ${isActive(`/profile/${user?.username}`) ? 'active' : ''}`}>
-                            <i className={`bi ${isActive(`/profile/${user?.username}`) ? 'bi-person-fill' : 'bi-person'}`}></i>
-                        </Link>
+                        <i className={`bi ${isActive(`/profile/${user?.username}`) ? 'bi-person-fill' : 'bi-person'}`}></i>
+                    </Link>
                     <Link to="/settings" className={`mobile-sidebar__link ${isActive('/settings') ? 'active' : ''}`}>
                         <i className={`bi ${isActive('/settings') ? 'bi-gear-fill' : 'bi-gear'}`}></i>
                     </Link>

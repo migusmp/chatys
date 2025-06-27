@@ -99,6 +99,42 @@ export default function useUser() {
         }
     }
 
-    return { sendRegisterFormData, sendLoginFormData, profile };
+    async function rejectFriendRequest(requestId: number) {
+        try {
+            const res = await fetch(`/api/friend/reject/${requestId}`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+
+            if (!res.ok) {
+                console.error("Error rejecting friend request with id: ", requestId);
+            }
+
+            console.log(await res.json());
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function acceptFriendRequest(userId: number) {
+        try {
+            const res = await fetch(`/api/friend/accept/${userId}`, {
+                method: "POST",
+                credentials: "include",
+            });
+
+            if (!res.ok) {
+                console.error("Error rejecting friend request with id: ", userId);
+            }
+
+            console.log(await res.json());
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    return { sendRegisterFormData, sendLoginFormData, profile, rejectFriendRequest, acceptFriendRequest };
 
 }

@@ -11,6 +11,7 @@ pub struct UndeliveredMessage {
     pub sender_username: String,
     pub content: String,
     pub created_at: Option<OffsetDateTime>,
+    pub image: Option<String>,
 }
 
 pub async fn get_undelivered_messages(
@@ -20,20 +21,21 @@ pub async fn get_undelivered_messages(
     let records = sqlx::query_as!(
         UndeliveredMessage,
         r#"
-        SELECT 
-            undelivered_messages.id AS undelivered_id,
-            messages.id AS message_id,
-            messages.conversation_id,
-            messages.sender_id,
-            users.username AS sender_username,
-            messages.content,
-            messages.created_at
-        FROM undelivered_messages
-        JOIN messages ON messages.id = undelivered_messages.message_id
-        JOIN users ON users.id = messages.sender_id
-        WHERE undelivered_messages.recipient_id = $1
-        ORDER BY messages.created_at ASC
-        "#,
+    SELECT 
+        undelivered_messages.id AS undelivered_id,
+        messages.id AS message_id,
+        messages.conversation_id,
+        messages.sender_id,
+        users.username AS sender_username,
+        messages.content,
+        messages.created_at,
+        users.image
+    FROM undelivered_messages
+    JOIN messages ON messages.id = undelivered_messages.message_id
+    JOIN users ON users.id = messages.sender_id
+    WHERE undelivered_messages.recipient_id = $1
+    ORDER BY messages.created_at ASC
+    "#,
         recipient_id
     )
     .fetch_all(pool)
@@ -42,26 +44,37 @@ pub async fn get_undelivered_messages(
     Ok(records)
 }
 
-pub async fn set_undelivered_message(message_id: i32, user_id_to_send_notification: i32, pool: &PgPool) -> Result<(), sqlx::Error> {
+pub async fn set_undelivered_message(
+    message_id: i32,
+    user_id_to_send_notification: i32,
+    pool: &PgPool,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
             INSERT INTO undelivered_messages (message_id, recipient_id) VALUES ($1, $2)
         "#,
         message_id,
         user_id_to_send_notification
-    ).execute(pool).await?;
+    )
+    .execute(pool)
+    .await?;
 
     Ok(())
 }
 
-pub async fn delete_undelivered_message(undelivered_message_id: i32, pool: &PgPool) -> Result<(), sqlx::Error> {
+pub async fn delete_undelivered_message(
+    undelivered_message_id: i32,
+    pool: &PgPool,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
             DELETE FROM undelivered_messages 
             WHERE id = $1
         "#,
         undelivered_message_id
-    ).execute(pool).await?;
+    )
+    .execute(pool)
+    .await?;
 
     Ok(())
 }

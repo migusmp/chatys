@@ -129,19 +129,6 @@ async fn handle_socket(
                         );
                     }
 
-                    // Enviar mensaje si el usuario está conectado
-                    // if app_state_clone.is_user_connected(to_user_id) {
-                    //     println!(
-                    //         "📡 Usuario {} está conectado. Enviando mensaje...",
-                    //         to_user_id
-                    //     );
-                        
-                    // } else {
-                    //     println!(
-                    //         "🚫 Usuario {} NO está conectado. (No se envía mensaje en tiempo real)",
-                    //         to_user_id
-                    //     );
-                    // }
                     app_state_clone.send_direct_message(msg.clone()).await;
 
                     // Siempre guardar la notificación de mensaje no leído
@@ -150,11 +137,6 @@ async fn handle_socket(
                     {
                         eprintln!("❌ Error al guardar undelivered message: {}", e);
                     }
-                    // println!(
-                    //     "🔒 Construido ChatMessage -> from_user: {}, to_user: {}, content: {}",
-                    //     msg.from_user, msg.to_user, msg.content
-                    // );
-                    // app_state_clone.send_direct_message(msg).await;
                 }
                 Err(e) => {
                     println!("❌ Error al deserializar mensaje JSON: {}", e);

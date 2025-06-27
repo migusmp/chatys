@@ -12,11 +12,13 @@ pub mod utils;
 use axum::extract::{Path, WebSocketUpgrade};
 use axum::Extension;
 use axum::{routing::get, Router};
+use tokio::time::sleep;
 use tower_http::trace::TraceLayer;
 use crate::middlewares::auth::auth;
 use crate::models::user::Payload;
 use crate::services::ws::{handle_ws_connection, handle_socket_connection_for_direct_chat};
 use crate::state::app_state::AppState;
+use crate::utils::cleanup_unused_images;
 use crate::{
     models::chat::ChatState, routes::main_router::main_router,
 };
@@ -30,18 +32,23 @@ use handlers::{index_handler, spa_fallback};
 #[shuttle_runtime::main]
 async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::ShuttleAxum {
     dotenv::dotenv().ok();
-    //let pool = init_db_pool().await;
-    // tracing_subscriber::fmt()
-    //     .with_max_level(tracing::Level::INFO) // o DEBUG, TRACE
-    //     .with_target(false)
-    //     .without_time()
-    //     .init();
-
-    // tracing::info!("Inicializando la aplicación...");
 
     pool.execute(include_str!("../migrations/init.sql"))
          .await
         .expect("Failed to execute init.sql");
+
+    let pool_cleanup = pool.clone();
+
+    // HILO ENCARGADO DE BORRAR LAS IMÁGENES QUE NO PERTENEZCAN A NINGÚN USUARIO
+    tokio::spawn(async move {
+        let interval = tokio::time::Duration::from_secs(300);
+        loop {
+            if let Err(e) = cleanup_unused_images(pool_cleanup.clone()).await {
+                eprintln!("Error en cleanup de imágenes: {:?}", e);
+            }
+            sleep(interval).await;
+        }
+    });
 
     let mut chat_state_init = ChatState::default();
     chat_state_init.create_room(String::from("Global"));

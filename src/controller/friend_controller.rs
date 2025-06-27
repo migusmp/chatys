@@ -58,7 +58,7 @@ pub async fn send_friend_request(
 
     // Enviar notificación de solicitud de amistad
     let _ = app_state
-        .send_friend_notification(friend_id, payload.username, payload.id)
+        .send_friend_notification(friend_id, payload.id)
         .await;
 
     Ok(ApiResponse::success("User friend requested successfully"))
@@ -110,7 +110,7 @@ pub async fn accept_friend_request(
 
     // Enviar notificación de aceptación de solicitud de amistad
     if let Err(e) = app_state
-        .accept_friend_notification(friend_requested_id, payload.name.clone(), payload.id)
+        .accept_friend_notification(friend_requested_id, payload.name.clone(), payload.id, payload.image)
         .await
     {
         eprintln!(

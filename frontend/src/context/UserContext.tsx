@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { UserContextType } from "../interfaces/user";
+import type { Notification } from "../interfaces/notifications";
 import type { UserProfile } from "../types/user";
 import useUser from "../hooks/useUser";
 import Loader from "../components/Loader";
@@ -21,6 +22,7 @@ export function useUserContext() {
 
 export function UserProvider({ children }: Props) {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const [loading, setLoading] = useState(true);
   const { profile } = useUser();
@@ -64,7 +66,7 @@ export function UserProvider({ children }: Props) {
   if (loading) return <Loader />;
 
   return (
-    <UserContext.Provider value={{ user, setUser, refreshUser, logout, loading }}>
+    <UserContext.Provider value={{ user, setUser, refreshUser, logout, loading, notifications, setNotifications }}>
       {children}
     </UserContext.Provider>
   );

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import LogoutDesktop from "./LogoutDesktop";
 
 export default function SidebarDesktop() {
+    const { notifications } = useUserContext();
     const { user } = useUserContext();
     const location = useLocation();
     const { t } = useTranslation();
@@ -63,7 +64,12 @@ export default function SidebarDesktop() {
                             <span>{t("sidebar.messages")}</span>
                         </Link>
                         <Link to="/notifications" className={`link ${isActive('/notifications') ? 'active' : ''}`}>
-                            <i className={`bi ${isActive('/notifications') ? 'bi-bell-fill' : 'bi-bell'}`}></i>
+                            <div className="icon-with-badge">
+                                <i className={`bi ${isActive('/notifications') ? 'bi-bell-fill' : 'bi-bell'}`}></i>
+                                {notifications.length > 0 && (
+                                    <span className="badge">{notifications.length}</span>
+                                )}
+                            </div>
                             <span>{t("sidebar.notifications")}</span>
                         </Link>
                         <Link to={`/profile/${user?.username}`} className={`link ${isActive(`/profile/${user?.username}`) ? 'active' : ''}`}>

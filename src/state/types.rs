@@ -4,9 +4,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 use dashmap::DashMap;
+use time::{OffsetDateTime};
 use tokio::sync::Mutex;
 
 use crate::state::chat_message::ChatMessage;
+
+use crate::db::offset_date_time_serde;
 
 // TYPES FOR APPSTATE
 pub type DirectMessageChannels = DashMap<i32, tokio::sync::mpsc::Sender<ChatMessage>>;
@@ -24,8 +27,12 @@ pub struct FriendNotification {
     pub status: String,
     pub user_id: i32,
     pub sender_id: i32,
-    pub user_username: String,
+    pub sender_name: String,
     pub message: String,
+    pub image: String,
+
+    #[serde(with = "offset_date_time_serde")]
+    pub created_at: Option<OffsetDateTime>,
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
@@ -37,6 +44,8 @@ pub struct FriendNotificationRow {
     pub sender_id: i32,
     pub sender_name: Option<String>,
     pub message: String,
+    pub image: String,
+    pub created_at: chrono::NaiveDateTime
 }
 
 pub struct AppConfig {

@@ -1,4 +1,5 @@
 import type { UserProfile } from "../types/user";
+import type { Notification } from "./notifications";
 
 // Interface to UserContext
 export interface UserContextType {
@@ -7,6 +8,8 @@ export interface UserContextType {
     refreshUser: () => Promise<void>,
     loading: boolean;
     logout: () => Promise<boolean>;
+    notifications: Notification[];
+    setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
 }
 
 export interface RegisterUserData {

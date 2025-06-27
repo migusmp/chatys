@@ -1,4 +1,42 @@
-export default function Notifications() {
+import { useUserContext } from "../../../context/UserContext";
+import type { Notification } from "../../../interfaces/notifications";
+import FriendRequestNotification from "./components/FriendRequestNotification";
+import ChatMessageNotification from "./components/ChatMessageNotification";
+import styles from './css/Notifications.module.css';
 
-    return <h1 style={{ color: '#fff' }}>Notifications</h1>
+export default function Notifications() {
+  const { notifications } = useUserContext();
+
+  const renderNotification = (n: Notification) => {
+    switch (n.type_msg) {
+      case 'FR':
+      case 'friend_request':
+        return <FriendRequestNotification n={n} />;
+
+      case 'chat_message':
+        return <ChatMessageNotification n={n} />;
+
+      default:
+        return <p>🔔 Unknown notification type</p>;
+    }
+  };
+
+  return (
+    <div className={styles.container}>
+      {notifications.length === 0 ? (
+        <p className={styles.empty}>No notifications yet.</p>
+      ) : (
+        <ul className={styles.list}>
+          {notifications.map((n, idx) => (
+            <li
+              key={"id" in n ? n.id : "message_id" in n ? n.message_id : idx}
+              className={styles.notificationItem}
+            >
+              {renderNotification(n)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }

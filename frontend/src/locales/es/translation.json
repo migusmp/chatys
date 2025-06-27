@@ -55,6 +55,9 @@
       "dontSaveBtn": "Cancelar"
     }
   },
+  "notifications": {
+    "message": "quiere ser tu amigo"
+  },
   "notFound": {
     "errorCode": "404",
     "title": "Página no encontrada",
