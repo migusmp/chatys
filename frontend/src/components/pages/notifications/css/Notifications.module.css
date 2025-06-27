@@ -51,6 +51,7 @@
 .friendRequestContent {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
   gap: 12px;
   flex-wrap: wrap; /* permite que los hijos bajen si no caben */
 }

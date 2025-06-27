@@ -55,6 +55,9 @@
       "dontSaveBtn": "Cancel"
     }
   },
+  "notifications": {
+    "message": "sent you a friend request"
+  },
   "notFound": {
     "errorCode": "404",
     "title": "Page Not Found",

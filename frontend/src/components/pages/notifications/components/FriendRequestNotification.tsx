@@ -3,15 +3,30 @@ import { type FriendRequestNotification, type Notification } from "../../../../i
 import styles from '../css/Notifications.module.css';
 import useUser from "../../../../hooks/useUser";
 import { useUserContext } from "../../../../context/UserContext";
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, type Locale } from 'date-fns';
+import { es, enUS, fr } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useMemo, useState } from "react";
 
 interface Props {
     n: FriendRequestNotification;
 }
 
+const localeMap: Record<string, Locale> = {
+    en: enUS,
+    es: es,
+    fr: fr,
+};
+
+
+
 export default function FriendRequestNotification({ n }: Props) {
-    const { rejectFriendRequest } = useUser();
+    const { i18n } = useTranslation();
+    const currentLocale = localeMap[i18n.language] || enUS;
+
+    const { t } = useTranslation();
+
+    const { rejectFriendRequest, acceptFriendRequest } = useUser();
     const { setNotifications } = useUserContext();
 
     const [relativeTime, setRelativeTime] = useState("");
@@ -23,7 +38,7 @@ export default function FriendRequestNotification({ n }: Props) {
         if (isNaN(createdDate.getTime())) return;
 
         function update() {
-            setRelativeTime(formatDistanceToNow(createdDate, { addSuffix: true }));
+            setRelativeTime(formatDistanceToNow(createdDate, { addSuffix: true, locale: currentLocale }));
         }
 
         update(); // primer render inmediato
@@ -51,6 +66,15 @@ export default function FriendRequestNotification({ n }: Props) {
         );
     }
 
+    async function handleAcceptButtonClick() {
+        await acceptFriendRequest(n.sender_id);
+        setNotifications((prev: Notification[]) =>
+            prev.filter(notification =>
+                (notification.type_msg !== 'FR' && notification.type_msg !== 'friend_request') || notification.id !== n.id
+            )
+        );
+    }
+
     if (!n.created_at || isNaN(createdDate.getTime())) return null;
 
     return (
@@ -67,12 +91,12 @@ export default function FriendRequestNotification({ n }: Props) {
                         <Link className={styles.linkProfile} to={`/profile/${n.sender_name}`}>
                             {n.sender_name}
                         </Link>{' '}
-                        sent you a friend request.
+                        {t("notifications.message")}
                     </p>
                     <span className={styles.timestamp}>{relativeTime}</span>
                 </div>
                 <div className={styles.buttonGroup}>
-                    <button className={styles.acceptButton}>
+                    <button className={styles.acceptButton} onClick={handleAcceptButtonClick}>
                         <i className="bi bi-check2"></i>
                     </button>
                     <button className={styles.rejectButton} onClick={handleRejectButtonClick}>
