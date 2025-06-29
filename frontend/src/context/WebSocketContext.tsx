@@ -26,7 +26,10 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
                 if (data?.type_msg === 'FR' || data?.type_msg === 'chat_message') {
                     setNotifications(prev => [data, ...prev]);
                     console.log('🔔 Nueva notificación:', data);
+                    return;
                 }
+                console.log(data);
+
             } catch (e) {
                 console.warn('⚠️ Mensaje no JSON:', event.data);
             }
