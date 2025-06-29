@@ -1,0 +1,46 @@
+.notificationContainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.profileImage {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.messageContent {
+  flex: 1;
+}
+
+.sender {
+  margin: 0;
+  font-weight: bold;
+}
+
+.messageBubble {
+  background-color: #1f1f1f;
+  color: #f1f1f1;
+  padding: 0.75rem;
+  border-radius: 10px;
+  margin-top: 0.25rem;
+  
+  /* Adaptable a contenido */
+  display: inline-block;
+  max-width: 300px; /* puedes ajustarlo si quieres más ancho */
+  word-wrap: break-word;
+}
+
+.messageText {
+  margin: 0;
+  font-style: italic;
+}
+
+.timestamp {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-top: 0.25rem;
+  text-align: right;
+}
