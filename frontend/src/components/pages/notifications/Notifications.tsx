@@ -27,14 +27,16 @@ export default function Notifications() {
         <p className={styles.empty}>No notifications yet.</p>
       ) : (
         <ul className={styles.list}>
-          {notifications.map((n, idx) => (
-            <li
-              key={"id" in n ? n.id : "message_id" in n ? n.message_id : idx}
-              className={styles.notificationItem}
-            >
-              {renderNotification(n)}
-            </li>
-          ))}
+          {[...notifications]
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .map((n, idx) => (
+              <li
+                key={"id" in n ? n.id : "message_id" in n ? n.message_id : idx}
+                className={styles.notificationItem}
+              >
+                {renderNotification(n)}
+              </li>
+            ))}
         </ul>
       )}
     </div>
