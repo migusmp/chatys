@@ -1,1 +1,0 @@
-import{r as t,j as r}from"./index-DZLtTY8N.js";import{u as a}from"./useFetch-FSZNCs0U.js";function m(){const[e,o]=t.useState([]),{fetchUserDms:c}=a();return t.useEffect(()=>{(async()=>{const s=await c();console.log("Datos recibidos:",s),s&&o(s)})(),console.log(e)},[]),r.jsx("h1",{style:{color:"#fff"},children:"Direct Messages"})}export{m as default};
