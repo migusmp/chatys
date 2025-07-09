@@ -23,6 +23,7 @@ export function useUserContext() {
 export function UserProvider({ children }: Props) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activeFriends, setActiveFriends] = useState<number[]>([]); // Lista de amigos activos
 
   const [loading, setLoading] = useState(true);
   const { profile } = useUser();
@@ -45,6 +46,10 @@ export function UserProvider({ children }: Props) {
     }
   }
 
+  const checkUserIsOnline = (userId: number): boolean => {
+    return activeFriends.includes(userId);
+  };
+
   const fetchProfile = async () => {
     const userData = await profile();
     if (userData) {
@@ -66,7 +71,7 @@ export function UserProvider({ children }: Props) {
   if (loading) return <Loader />;
 
   return (
-    <UserContext.Provider value={{ user, setUser, refreshUser, logout, loading, notifications, setNotifications }}>
+    <UserContext.Provider value={{ user, setUser, refreshUser, logout, loading, notifications, setNotifications, activeFriends, setActiveFriends, checkUserIsOnline }}>
       {children}
     </UserContext.Provider>
   );

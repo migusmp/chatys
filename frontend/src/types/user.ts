@@ -31,6 +31,12 @@ export type ProfileData = {
     description: string
 }
 
+export type Participants = {
+    id: number,
+    username: string,
+    image: string,
+}
+
 export type Conversations = {
     conversation_id: number,
     is_group: boolean,
@@ -38,4 +44,5 @@ export type Conversations = {
     last_message_content: string,
     last_message_sender_id: string,
     last_message_created_at: string,
+    participants: Participants[],
 }

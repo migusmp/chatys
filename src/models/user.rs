@@ -1,8 +1,15 @@
 use crate::utils::jwt::generate_token;
 use crate::utils::responses::ErrorResponse;
 use axum::{http::StatusCode, response::IntoResponse, Json};
-use chrono::NaiveDateTime;
+use chrono::{ NaiveDateTime};
 use serde::{Deserialize, Serialize};
+
+use sqlx::{prelude::FromRow, types::Json as JsonSqlx};
+use time::OffsetDateTime;
+
+use crate::db::offset_date_time_serde;
+
+
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct RegisterUser {
@@ -87,6 +94,30 @@ pub struct UserFriendRequest {
     pub image: Option<String>
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, FromRow)]
+pub struct UserSummary {
+    pub id: i32,
+    pub username: String,
+    pub image: Option<String>,
+}
+
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+pub struct RawConversationSummary {
+    pub conversation_id: i32,
+    pub is_group: Option<bool>,
+
+    #[serde(with = "offset_date_time_serde")]
+    pub updated_at: Option<OffsetDateTime>,
+
+    pub last_message_content: Option<String>,
+    pub last_message_sender_id: Option<i32>,
+
+    #[serde(with = "offset_date_time_serde")]
+    pub last_message_created_at: Option<OffsetDateTime>,
+
+    pub participants: JsonSqlx<Vec<UserSummary>>,
+}
 pub enum ErrorRequest {
     UsernameInvalid,
     NameEmpty,

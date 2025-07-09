@@ -1,0 +1,1 @@
+import{r as s,c as i,j as t,g as m}from"./index-DHDAPE8h.js";import{u as f}from"./useFetch-G2OZMqZd.js";import{S as n}from"./SidebarDmsMobile-CPP9zFHb.js";function l(){const[e,a]=s.useState([]),{fetchUserDms:o}=f(),r=i();return s.useEffect(()=>{(async()=>{const c=await o();a(c??[])})()},[]),r?t.jsx(n,{dms:e}):t.jsx(m,{to:"/dm",replace:!0})}export{l as default};

@@ -5,6 +5,7 @@ use tokio::sync::broadcast;
 
 const BROADCAST_CAPACITY: usize = 100;
 
+
 #[derive(Default)]
 pub struct ChatState {
     pub rooms: HashMap<String, Room>, // Mapa de salas donde la clave es el room_id y el valor es un canal broadcast

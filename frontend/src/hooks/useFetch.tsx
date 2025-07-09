@@ -73,6 +73,7 @@ export default function useFetch() {
             }
 
             const data = await res.json();
+            console.log("DATAA:", data);
             return data as Conversations[];
         } catch (e) {
             console.error("Error en fetchUserDms:", e);
