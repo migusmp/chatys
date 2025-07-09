@@ -46,3 +46,21 @@ export type Conversations = {
     last_message_created_at: string,
     participants: Participants[],
 }
+
+export type FullConversation = {
+    conversation: {
+        id: number,
+        created_at: string,
+        is_group: boolean,
+        updated_at: string,
+        participants: Participants[],
+    }
+    messages: {
+        id: number,
+        conversation_id: number,
+        content: string,
+        sender_id: number,
+        created_at: string,
+        read_by: number[],
+    }[],
+}

@@ -23,7 +23,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                     return (
                         <li
                             key={dm.conversation_id}
-                            onClick={() => navigate(`/dm/${dm.conversation_id}`)}
+                            onClick={() => navigate(`/dm/${dm.participants[0].username}`)}
                             style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -45,7 +45,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                         objectFit: "cover",
                                     }}
                                 />
-                                <OnlineIndicator userId={user.id} />
+                                <OnlineIndicator userId={user.id} isHeader={false} />
                             </div>
                             <div style={{ flex: 1, overflow: "hidden" }}>
                                 <div style={{ fontWeight: "bold", color: "#fff" }}>{user.username}</div>
