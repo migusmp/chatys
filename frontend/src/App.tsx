@@ -24,6 +24,9 @@ const AccountSettings = lazy(() => import('./components/pages/settings/component
 const SelectLanguage = lazy(() => import('./components/pages/settings/components/desktop/SelectLanguage'))
 const SelectTheme = lazy(() => import('./components/pages/settings/components/desktop/SelectTheme'))
 
+const DmRoom = lazy(() => import('./components/pages/dm/components/DmRoom/DmRoom'));
+const DmList = lazy(() => import('./components/pages/dm/components/DmList'));
+
 
 const NotFound = lazy(() => import('./components/NotFound'))
 
@@ -38,7 +41,13 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/friends" element={<Friends />} />
             <Route path="/chats" element={<Chats />} />
-            <Route path="/dm" element={<DirectMessages />} />
+
+            <Route path="/dm" element={<DirectMessages />}>
+              <Route index element={<DmList />} />
+              {/* Ruta para el chat individual */}
+              <Route path=":username" element={<DmRoom />} />
+            </Route>
+
             <Route path="/notifications" element={<Notifications />} />
 
             <Route path="/profile/:username" element={<Profile />}>

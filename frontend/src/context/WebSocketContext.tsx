@@ -8,7 +8,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
     const socketRef = useRef<WebSocket | null>(null);
     const [ws, setWs] = useState<WebSocket | null>(null);
-    const { setNotifications } = useUserContext();
+    const { setNotifications, setActiveFriends } = useUserContext();
 
     useEffect(() => {
         const socket = new WebSocket(`${protocol}://${location.host}/ws`);
@@ -28,7 +28,12 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
                     console.log('🔔 Nueva notificación:', data);
                     return;
                 }
-                console.log(data);
+                if (data?.type_msg === 'active_friends') {
+                    setActiveFriends(data.friends);
+                    console.log('👥 Amigos activos actualizados:', data.friends);
+                    return;
+                }
+                console.log("OTRO MENSAJE:",data);
 
             } catch (e) {
                 console.warn('⚠️ Mensaje no JSON:', event.data);

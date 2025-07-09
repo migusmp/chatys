@@ -10,6 +10,9 @@ export interface UserContextType {
     logout: () => Promise<boolean>;
     notifications: Notification[];
     setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
+    activeFriends: number[]; // Lista de amigos activos
+    setActiveFriends: React.Dispatch<React.SetStateAction<number[]>>;
+    checkUserIsOnline: (userId: number) => boolean;
 }
 
 export interface RegisterUserData {

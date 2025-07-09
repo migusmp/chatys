@@ -1,0 +1,1 @@
+import{j as e}from"./index-DHDAPE8h.js";import{S as t}from"./SettingsPageLayout-C-deNg0D.js";import"./SettingsMobile.module-DOSbGsi0.js";function m(){return e.jsx(t,{children:e.jsx("h1",{children:"Theme"})})}export{m as default};
