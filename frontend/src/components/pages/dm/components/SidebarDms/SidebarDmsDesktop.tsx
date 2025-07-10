@@ -12,7 +12,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
             style={{
                 width: "300px",
                 backgroundColor: "#000",
-                height: "90vh",
+                height: "100vh",
                 overflowY: "auto",
                 borderRight: "1px solid #272727",
             }}
