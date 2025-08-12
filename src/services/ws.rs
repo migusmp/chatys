@@ -58,14 +58,15 @@ async fn handle_socket(
         }
     };
 
+    // Ponemos user_from_data en un Arc para compartirlo eficientemente
+    let user_from_data = Arc::new(user_from_data);
+
     let mut rx = app_state.register_user_channel(conversation_id, from_user_id);
     println!(
         "✅ Usuario {} registrado en canal de conversación {}",
         from_user_id, conversation_id
     );
 
-    // TODO | MARCAR MENSAJES NO VISTOS COMO LEÍDOS
-    // Aquí eliminamos las notificaciones pendientes porque el usuario ya está conectado
     if let Err(e) = clear_undelivered_messages(from_user_id, conversation_id, &pool).await {
         eprintln!(
             "❌ Error al eliminar mensajes no entregados para usuario {} en conversación {}: {}",
@@ -75,25 +76,29 @@ async fn handle_socket(
 
     let (mut sender, mut receiver) = socket.split();
 
-    let write_task = tokio::spawn(async move {
-        while let Some(message) = rx.recv().await {
-            let json = serde_json::to_string(&message).unwrap();
-            println!("➡️ Enviando mensaje a usuario {}: {}", from_user_id, json);
-            if let Err(e) = sender.send(Message::Text(json.into())).await {
-                println!(
-                    "⚠️ Error enviando mensaje a usuario {}: {}",
-                    from_user_id, e
-                );
-                break;
+    let write_task = {
+        let from_user_id = from_user_id; // copia del id simple
+        tokio::spawn(async move {
+            while let Some(message) = rx.recv().await {
+                let json = serde_json::to_string(&message).unwrap();
+                println!("➡️ Enviando mensaje a usuario {}: {}", from_user_id, json);
+                if let Err(e) = sender.send(Message::Text(json.into())).await {
+                    println!(
+                        "⚠️ Error enviando mensaje a usuario {}: {}",
+                        from_user_id, e
+                    );
+                    break;
+                }
             }
-        }
-        println!(
-            "🛑 Tarea de escritura finalizada para usuario {}",
-            from_user_id
-        );
-    });
+            println!(
+                "🛑 Tarea de escritura finalizada para usuario {}",
+                from_user_id
+            );
+        })
+    };
 
-    let app_state_clone = app_state.clone();
+    let app_state_clone = Arc::clone(&app_state);
+    let user_from_data_clone = Arc::clone(&user_from_data);
 
     let read_task = tokio::spawn(async move {
         while let Some(msg_result) = receiver.next().await {
@@ -135,8 +140,8 @@ async fn handle_socket(
                                 from_user: from_user_id,
                                 to_user: to_user_id,
                                 content: incoming.content.clone(),
-                                from_username: user_from_data.username.to_string(),
-                                from_username_image: user_from_data.image.to_string(),
+                                from_username: user_from_data_clone.username.to_string(),
+                                from_username_image: user_from_data_clone.image.to_string(),
                             };
 
                             let saved_message_id =
@@ -160,6 +165,17 @@ async fn handle_socket(
                             }
 
                             app_state_clone.send_direct_message(msg.clone()).await;
+
+                            app_state_clone
+                                .notify_user_new_message(
+                                    to_user_id,
+                                    conv_id,
+                                    from_user_id,
+                                    incoming.content,
+                                    &user_from_data_clone.username,
+                                    &user_from_data_clone.image,
+                                )
+                                .await;
 
                             if let Err(e) = set_undelivered_message(
                                 conversation_id,
@@ -197,7 +213,6 @@ async fn handle_socket(
         );
     });
 
-    // Esperar a que termine cualquiera de las dos tareas
     select! {
         _ = write_task => (),
         _ = read_task => (),

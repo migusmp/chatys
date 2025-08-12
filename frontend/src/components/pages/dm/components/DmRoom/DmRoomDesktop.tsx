@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default function DmRoomDesktop({ conversationData }: Props) {
-    const { user, checkUserIsOnline } = useUserContext();
+    const { user, checkUserIsOnline, setNotifications } = useUserContext();
     const { t } = useTranslation();
     const [message, setMessage] = useState("");
     const [allMessages, setAllMessages] = useState<ChatMessage[]>(conversationData.messages);
@@ -28,6 +28,20 @@ export default function DmRoomDesktop({ conversationData }: Props) {
 
     // Sincronizar mensajes cuando cambia la conversación
     useEffect(() => {
+        // ELIMINAR LAS NOIFICACIONES DE ESTE CHAT
+        setNotifications((prev) =>
+            prev.filter(
+                (n) =>
+                    !(
+                        (n.type_msg === "NEW_DM_MESSAGE" || n.type_msg === "chat_message") &&
+                        n.conversation_id === conversationData.conversation.id
+                    )
+            )
+        );
+
+
+        // Actualizar mensajes
+        if (!conversationData.messages) return;
         setAllMessages(conversationData.messages);
         firstLoadRef.current = true; // para scroll instantáneo en nuevo chat
     }, [conversationData]);

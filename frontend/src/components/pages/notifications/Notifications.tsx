@@ -3,6 +3,7 @@ import type { Notification } from "../../../interfaces/notifications";
 import FriendRequestNotification from "./components/FriendRequestNotification";
 import ChatMessageNotification from "./components/ChatMessageNotification";
 import styles from './css/Notifications.module.css';
+import ChatMessageNotificationRealTime from "./components/ChatMessageNotificationRealTime";
 
 export default function Notifications() {
   const { notifications } = useUserContext();
@@ -15,6 +16,9 @@ export default function Notifications() {
 
       case 'chat_message':
         return <ChatMessageNotification n={n} />;
+      
+      case 'NEW_DM_MESSAGE':
+        return <ChatMessageNotificationRealTime n={n} />;
 
       default:
         return <p>🔔 Unknown notification type</p>;

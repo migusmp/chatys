@@ -117,6 +117,28 @@ impl AppState {
         }
     }
 
+    pub async fn notify_user_new_message(&self, recipient_id: i32, conversation_id: i32, from_user_id: i32, content_preview: String, from_user_username: &String, from_user_image: &String) {
+        // Notifica al usuario destinatario del nuevo mensaje
+        // Verifica si el usuario está conectado
+    let connected = self.connected_users.lock().await;
+    if let Some(sender) = connected.get(&recipient_id) {
+        let notification = serde_json::json!({
+            "type_msg": "NEW_DM_MESSAGE",
+            "conversation_id": conversation_id,
+            "from_user": from_user_id,
+            "to_user": recipient_id,
+            "from_user_username": from_user_username, // Aquí podrías obtener el nombre de usuario real si
+            "from_user_image": from_user_image, // y la imagen del usuario
+            "content": content_preview,
+            "created_at": time::OffsetDateTime::now_utc().format(&time::format_description::well_known::Rfc3339).unwrap_or_default(),
+        }).to_string();
+
+        if sender.send(notification).await.is_err() {
+            eprintln!("Error enviando notificación a usuario {}", recipient_id);
+        }
+    }
+}
+
     // <--------------------------------------------------------------------------------------------->
 
     // Agrega una conexión del usuario aconnected_users
