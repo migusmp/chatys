@@ -41,7 +41,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                 borderRight: "1px solid #272727",
             }}
         >
-            <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0, gap: "0.2rem" }}>
+            <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0, gap: "0.2rem", marginTop: "1rem" }}>
                 {sortedDms.map((dm) => {
                     const userOther = dm.participants[0];
                     const isLastMessageFromCurrentUser = dm.last_message_user_id === user?.id;
@@ -79,7 +79,13 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                         ? "rgba(0, 255, 102, 0.15)" // mismo color que hover
                                         : "transparent"
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(0, 255, 102, 0.15)")}
+                            onMouseEnter={(e) => {
+                                const selected = route === "dm" && currentUsername === userOther.username;
+                                e.currentTarget.style.backgroundColor = selected
+                                    ? "rgba(0, 255, 102, 0.15)"
+                                    : "rgba(0, 255, 102, 0.07)";
+                            }}
+
                             onMouseLeave={(e) => {
                                 if (!(route === "dm" && currentUsername === userOther.username)) {
                                     e.currentTarget.style.backgroundColor = "transparent";
@@ -91,8 +97,8 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                     src={`/media/user/${userOther.image}`}
                                     alt={userOther.username}
                                     style={{
-                                        width: "40px",
-                                        height: "40px",
+                                        width: "37px",
+                                        height: "37px",
                                         borderRadius: "50%",
                                         objectFit: "cover",
                                     }}

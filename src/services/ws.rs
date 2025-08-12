@@ -211,6 +211,8 @@ async fn handle_socket(
             "🛑 Tarea de lectura finalizada para usuario {}",
             from_user_id
         );
+        // ELIMINAMOS LOS MENSAJES NO ENTREGADOS AL CERRAR LA CONEXIÓN
+        let _ = clear_undelivered_messages(from_user_id, conversation_id, &pool).await.ok();
     });
 
     select! {
