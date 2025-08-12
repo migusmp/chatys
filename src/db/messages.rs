@@ -87,6 +87,27 @@ pub async fn get_or_create_direct_conversation(
     Ok(conversation_id)
 }
 
+pub async fn get_other_participant_in_conversation(
+    conversation_id: i32,
+    user_id: i32,
+    pool: &PgPool,
+) -> Result<i32, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT user_id
+        FROM conversation_participants
+        WHERE conversation_id = $1 AND user_id != $2
+        LIMIT 1
+        "#,
+        conversation_id,
+        user_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(row.user_id)
+}
+
 pub async fn save_message(
     conversation_id: i32,
     sender_id: i32,

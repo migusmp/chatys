@@ -1,4 +1,4 @@
-use crate::db::conversations::get_user_conversations;
+use crate::db::conversations::{get_user_conversations_simple};
 use crate::db::db::{
     delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data, get_user_profile_data_by_username, update_name_from_user, update_user_description, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserDescription, UpdateUserEmail, UpdateUserName, UpdateUserPassword
 };
@@ -354,7 +354,7 @@ pub async fn user_conversations(
     Extension(payload): Extension<Payload>,
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
-    match get_user_conversations(payload.id, &pool).await {
+    match get_user_conversations_simple(payload.id, &pool).await {
         Ok(conversations) => Ok(Json(conversations)),
         Err(e) => {
             eprintln!(

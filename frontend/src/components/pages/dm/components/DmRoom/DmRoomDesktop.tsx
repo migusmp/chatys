@@ -1,9 +1,10 @@
 import { useUserContext } from "../../../../../context/UserContext";
 import type { FullConversation } from "../../../../../types/user";
-import { OnlineIndicator } from "../OnlineIndicator";
 import styles from "../../css/DmRoomDesktop.module.css";
+import { useState, useEffect, useRef } from "react";
+import type { ChatMessage } from "../../../../../types/chat_message";
+import { OnlineIndicator } from "../OnlineIndicator";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
 
 type Props = {
     conversationData: FullConversation;
@@ -13,19 +14,82 @@ export default function DmRoomDesktop({ conversationData }: Props) {
     const { user, checkUserIsOnline } = useUserContext();
     const { t } = useTranslation();
     const [message, setMessage] = useState("");
-    const handleSendMessage = () => {
-        if (!message.trim()) return;
-        // lógica para enviar el mensaje...
-        console.log("Enviado:", message);
-        setMessage("");
-    };
-
+    const [allMessages, setAllMessages] = useState<ChatMessage[]>(conversationData.messages);
+    const [socket, setSocket] = useState<WebSocket | null>(null);
 
     const otherParticipant = conversationData.conversation.participants.find(
         (p) => p.id !== user?.id
     );
 
     const isOnline = checkUserIsOnline(otherParticipant?.id ?? -1);
+
+    const bottomRef = useRef<HTMLDivElement | null>(null);
+    const firstLoadRef = useRef(true);
+
+    // Sincronizar mensajes cuando cambia la conversación
+    useEffect(() => {
+        setAllMessages(conversationData.messages);
+        firstLoadRef.current = true; // para scroll instantáneo en nuevo chat
+    }, [conversationData]);
+
+    // Scroll al último mensaje
+    useEffect(() => {
+        if (firstLoadRef.current) {
+            bottomRef.current?.scrollIntoView({ behavior: "auto" });
+            firstLoadRef.current = false;
+        } else {
+            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [allMessages]);
+
+    // Abrir socket y escuchar mensajes nuevos
+    useEffect(() => {
+        if (!otherParticipant) return;
+
+        const protocol = location.protocol === "https:" ? "wss" : "ws";
+        const ws = new WebSocket(`${protocol}://${location.host}/ws/${conversationData.conversation.id}`);
+        ws.onopen = () => {
+            console.log("[WS] Conectado al WebSocket de", otherParticipant.username);
+        }
+
+        ws.onmessage = (event) => {
+            const raw = JSON.parse(event.data);
+            console.log("[WS] Mensaje recibido:", raw);
+            const data: ChatMessage = {
+                id: Date.now(),
+                content: raw.content,
+                sender_id: raw.from_user,
+                created_at: new Date().toISOString(),
+            };
+            setAllMessages((prev) => [...prev, data]);
+        };
+
+        ws.onclose = () => {
+            console.log("[WS] Socket cerrado por servidor o cliente");
+        };
+
+        setSocket(ws);
+
+        return () => {
+            ws.close();
+            console.log("[WS] Socket cerrado");
+        };
+    }, [otherParticipant]);
+
+    const handleSendMessage = () => {
+        if (!message.trim() || !socket) return;
+        socket.send(JSON.stringify({ content: message }));
+        // setAllMessages((prev) => [
+        //     ...prev,
+        //     {
+        //         id: Date.now(),
+        //         content: message,
+        //         sender_id: user?.id ?? 0,
+        //         created_at: new Date().toISOString(),
+        //     },
+        // ]);
+        setMessage("");
+    };
 
     if (!otherParticipant) return null;
 
@@ -44,24 +108,27 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     <div className={styles.userText}>
                         <span className={styles.username}>{otherParticipant.username}</span>
                         <span className={isOnline ? styles.online : styles.offline}>
-                            {isOnline ? t("directMessages.userDm.connected") : t("directMessages.userDm.disconnected")}
+                            {isOnline
+                                ? t("directMessages.userDm.connected")
+                                : t("directMessages.userDm.disconnected")}
                         </span>
                     </div>
                 </div>
             </header>
 
             <div className={styles.chatArea}>
-                {conversationData.messages.map((msg) => {
+                {allMessages.map((msg) => {
                     const isOwn = msg.sender_id === user?.id;
                     const time = new Date(msg.created_at).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
+                        hour: "2-digit",
+                        minute: "2-digit",
                     });
 
                     return (
                         <div
                             key={msg.id}
-                            className={`${styles.messageBubble} ${isOwn ? styles.ownMessage : styles.otherMessage}`}
+                            className={`${styles.messageBubble} ${isOwn ? styles.ownMessage : styles.otherMessage
+                                }`}
                         >
                             <div className={styles.messageRow}>
                                 <span className={styles.messageText}>{msg.content}</span>
@@ -70,6 +137,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                         </div>
                     );
                 })}
+                <div ref={bottomRef}></div>
             </div>
 
             <div className={styles.inputSection}>
@@ -79,9 +147,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     className={styles.messageInput}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSendMessage();
-                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 />
                 <button
                     className={styles.sendButton}
@@ -91,7 +157,6 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     Enviar
                 </button>
             </div>
-
         </div>
     );
 }
