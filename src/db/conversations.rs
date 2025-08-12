@@ -13,6 +13,8 @@ pub struct ConversationSummarySimpleRaw {
     pub is_group: Option<bool>,
     pub updated_at: Option<OffsetDateTime>,
     pub participants: Option<Value>, // <-- Aquí JSON crudo
+    pub last_message: Option<String>,
+    pub last_message_user_id: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -22,6 +24,8 @@ pub struct ConversationSummarySimple {
     #[serde(with = "offset_date_time_serde")]
     pub updated_at: Option<OffsetDateTime>,
     pub participants: Vec<UserSummary>,
+    pub last_message: Option<String>,
+    pub last_message_user_id: Option<i32>,
 }
 
 pub async fn get_user_conversations_simple(
@@ -45,7 +49,21 @@ pub async fn get_user_conversations_simple(
                 JOIN users u ON u.id = cp2.user_id
                 WHERE cp2.conversation_id = c.id
                   AND cp2.user_id != $1
-            ) as participants
+            ) as participants,
+            (
+                SELECT m.content
+                FROM messages m
+                WHERE m.conversation_id = c.id
+                ORDER BY m.created_at DESC
+                LIMIT 1
+            ) as last_message,
+            (
+                SELECT m.sender_id
+                FROM messages m
+                WHERE m.conversation_id = c.id
+                ORDER BY m.created_at DESC
+                LIMIT 1
+            ) as last_message_user_id
         FROM conversations c
         JOIN conversation_participants cp ON cp.conversation_id = c.id
         WHERE cp.user_id = $1
@@ -56,7 +74,6 @@ pub async fn get_user_conversations_simple(
     .fetch_all(pool)
     .await?;
 
-    // Si es None, devolver un vec vacío para no romper en frontend
     let conversations = raw_conversations
         .into_iter()
         .map(|r| {
@@ -70,11 +87,33 @@ pub async fn get_user_conversations_simple(
                 is_group: r.is_group,
                 updated_at: r.updated_at,
                 participants,
+                last_message: r.last_message,
+                last_message_user_id: r.last_message_user_id,
             }
         })
         .collect();
 
     Ok(conversations)
+}
+
+pub async fn get_last_message_content(
+    conversation_id: i32,
+    pool: &PgPool,
+) -> Result<Option<String>, sqlx::Error> {
+    let result = sqlx::query_scalar!(
+        r#"
+        SELECT content
+        FROM messages
+        WHERE conversation_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+        "#,
+        conversation_id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(result)
 }
 
 // pub async fn get_user_conversations(

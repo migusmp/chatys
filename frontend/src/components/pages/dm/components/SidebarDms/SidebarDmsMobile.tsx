@@ -59,7 +59,7 @@ export default function SidebarDmsMobile({ dms }: Props) {
                                         textOverflow: "ellipsis",
                                     }}
                                 >
-                                    {dm.last_message_content || <i>No hay mensajes</i>}
+                                    {dm.last_message || <i>No hay mensajes</i>}
                                 </div>
                             </div>
                         </li>

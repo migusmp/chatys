@@ -1,11 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { OnlineIndicator } from "../OnlineIndicator";
 import type { Conversations } from "../../../../../types/user";
+import { useUserContext } from "../../../../../context/UserContext";
 
 type Props = { dms: Conversations[] };
 
 export default function SidebarDmsDesktop({ dms }: Props) {
     const navigate = useNavigate();
+    const { user } = useUserContext();
 
     return (
         <div
@@ -19,11 +21,16 @@ export default function SidebarDmsDesktop({ dms }: Props) {
         >
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {dms.map((dm) => {
-                    const user = dm.participants[0];
+                    const userOther = dm.participants[0];
+                    const isLastMessageFromCurrentUser = dm.last_message_user_id === user?.id;
+                    const lastMessageText = dm.last_message
+                        ? (isLastMessageFromCurrentUser ? `Tú: ${dm.last_message}` : dm.last_message)
+                        : "";
+
                     return (
                         <li
                             key={dm.conversation_id}
-                            onClick={() => navigate(`/dm/${dm.participants[0].username}`)}
+                            onClick={() => navigate(`/dm/${userOther.username}`)}
                             style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -36,8 +43,8 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                         >
                             <div style={{ position: "relative", marginRight: "1rem" }}>
                                 <img
-                                    src={`/media/user/${user.image}`}
-                                    alt={user.username}
+                                    src={`/media/user/${userOther.image}`}
+                                    alt={userOther.username}
                                     style={{
                                         width: "45px",
                                         height: "45px",
@@ -45,10 +52,10 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                         objectFit: "cover",
                                     }}
                                 />
-                                <OnlineIndicator userId={user.id} isHeader={false} />
+                                <OnlineIndicator userId={userOther.id} isHeader={false} />
                             </div>
                             <div style={{ flex: 1, overflow: "hidden" }}>
-                                <div style={{ fontWeight: "bold", color: "#fff" }}>{user.username}</div>
+                                <div style={{ fontWeight: "bold", color: "#fff" }}>{userOther.username}</div>
                                 <div
                                     style={{
                                         fontSize: "0.85rem",
@@ -58,7 +65,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                         textOverflow: "ellipsis",
                                     }}
                                 >
-                                    {dm.last_message_content || <i>No hay mensajes</i>}
+                                    {lastMessageText || <i></i>}
                                 </div>
                             </div>
                         </li>

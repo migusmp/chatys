@@ -16,9 +16,10 @@ use crate::{
     db::{
         db::get_user_chat_data,
         messages::{
-            get_or_create_direct_conversation, get_other_participant_in_conversation, save_message, update_updated_at_from_conversation
+            get_or_create_direct_conversation, get_other_participant_in_conversation, save_message,
+            update_updated_at_from_conversation,
         },
-        undelivered_messages::{delete_undelivered_message, set_undelivered_message},
+        undelivered_messages::{clear_undelivered_messages, delete_undelivered_message, set_undelivered_message},
     },
     models::user::Payload,
     state::{app_state::AppState, chat_message::ChatMessage, types::IncomingMessage},
@@ -62,6 +63,15 @@ async fn handle_socket(
         "✅ Usuario {} registrado en canal de conversación {}",
         from_user_id, conversation_id
     );
+
+    // TODO | MARCAR MENSAJES NO VISTOS COMO LEÍDOS
+    // Aquí eliminamos las notificaciones pendientes porque el usuario ya está conectado
+    if let Err(e) = clear_undelivered_messages(from_user_id, conversation_id, &pool).await {
+        eprintln!(
+            "❌ Error al eliminar mensajes no entregados para usuario {} en conversación {}: {}",
+            from_user_id, conversation_id, e
+        );
+    }
 
     let (mut sender, mut receiver) = socket.split();
 
@@ -140,7 +150,8 @@ async fn handle_socket(
                                     }
                                 };
 
-                            if let Err(e) = update_updated_at_from_conversation(conv_id, &pool).await
+                            if let Err(e) =
+                                update_updated_at_from_conversation(conv_id, &pool).await
                             {
                                 eprintln!(
                                     "Error actualizando updated_at en conversación {}: {}",
@@ -150,8 +161,13 @@ async fn handle_socket(
 
                             app_state_clone.send_direct_message(msg.clone()).await;
 
-                            if let Err(e) =
-                                set_undelivered_message(saved_message_id, to_user_id, &pool).await
+                            if let Err(e) = set_undelivered_message(
+                                conversation_id,
+                                saved_message_id,
+                                to_user_id,
+                                &pool,
+                            )
+                            .await
                             {
                                 eprintln!("Error guardando mensaje no entregado: {}", e);
                             }
@@ -166,13 +182,19 @@ async fn handle_socket(
                     break;
                 }
                 Err(e) => {
-                    eprintln!("Error recibiendo mensaje de usuario {}: {}", from_user_id, e);
+                    eprintln!(
+                        "Error recibiendo mensaje de usuario {}: {}",
+                        from_user_id, e
+                    );
                     break;
                 }
                 _ => {}
             }
         }
-        println!("🛑 Tarea de lectura finalizada para usuario {}", from_user_id);
+        println!(
+            "🛑 Tarea de lectura finalizada para usuario {}",
+            from_user_id
+        );
     });
 
     // Esperar a que termine cualquiera de las dos tareas
@@ -187,7 +209,6 @@ async fn handle_socket(
     );
     app_state.unregister_user_channel(conversation_id, from_user_id);
 }
-
 
 // HANDLE WS CONNECTION FOR GENERAL USE IN THE APP
 pub async fn handle_ws_connection(

@@ -59,8 +59,9 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
     let pool_for_chats = pool.clone();
     let pool_for_router = pool.clone();
 
-    tokio::spawn(print_connected_user_ids_periodically(app_state.clone()));
-    tokio::spawn(print_active_dm_channels_periodically(app_state.clone()));
+    // MONITOREO DE USUARIOS CONECTADOS Y CANALES DE CHAT ENTRE USUARIOS ACTIVOS
+    // tokio::spawn(print_connected_user_ids_periodically(app_state.clone()));
+    // tokio::spawn(print_active_dm_channels_periodically(app_state.clone()));
 
 
     let ws_router = Router::new()
@@ -98,24 +99,24 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool,) -> shuttle_axum::Shu
 }
 
 
-async fn print_connected_user_ids_periodically(app_state: Arc<AppState>) {
-    let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(2));
+// async fn print_connected_user_ids_periodically(app_state: Arc<AppState>) {
+//     let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(2));
 
-    loop {
-        interval.tick().await;
+//     loop {
+//         interval.tick().await;
 
-        let connected_users = app_state.connected_users.lock().await;
+//         let connected_users = app_state.connected_users.lock().await;
 
-        let ids: Vec<i32> = connected_users.keys().copied().collect();
+//         let ids: Vec<i32> = connected_users.keys().copied().collect();
 
-        println!("Users connected ({}): {:?}", connected_users.len(), ids);
-    }
-}
+//         println!("Users connected ({}): {:?}", connected_users.len(), ids);
+//     }
+// }
 
-async fn print_active_dm_channels_periodically(app_state: Arc<AppState>) {
-    loop {
-        app_state.print_active_direct_message_channels();
-        sleep(tokio::time::Duration::from_secs(2)).await;
-    }
-}
+// async fn print_active_dm_channels_periodically(app_state: Arc<AppState>) {
+//     loop {
+//         app_state.print_active_direct_message_channels();
+//         sleep(tokio::time::Duration::from_secs(2)).await;
+//     }
+// }
 
