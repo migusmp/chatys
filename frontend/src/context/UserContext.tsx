@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { UserContextType } from "../interfaces/user";
-import type { NewDmMessageNotification, Notification } from "../interfaces/notifications";
+import type { DmNotification, NewDmMessageNotification, Notification } from "../interfaces/notifications";
 import type { UserProfile } from "../types/user";
 import useUser from "../hooks/useUser";
 import Loader from "../components/Loader";
@@ -25,6 +25,7 @@ export function UserProvider({ children }: Props) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeFriends, setActiveFriends] = useState<number[]>([]); // Lista de amigos activos
   const [newLastMessage, setNewLastMessage] = useState<NewDmMessageNotification[]>([]);
+  const [dmNotifications, setDmNotifications] = useState<DmNotification[]>([]);
 
 
   const [loading, setLoading] = useState(true);
@@ -73,7 +74,7 @@ export function UserProvider({ children }: Props) {
   if (loading) return <Loader />;
 
   return (
-    <UserContext.Provider value={{ user, setUser, refreshUser, logout, loading, notifications, setNotifications, activeFriends, setActiveFriends, checkUserIsOnline, setNewLastMessage, newLastMessage }}>
+    <UserContext.Provider value={{ user, setUser, refreshUser, logout, loading, notifications, setNotifications, activeFriends, setActiveFriends, checkUserIsOnline, setNewLastMessage, newLastMessage, dmNotifications, setDmNotifications }}>
       {children}
     </UserContext.Provider>
   );

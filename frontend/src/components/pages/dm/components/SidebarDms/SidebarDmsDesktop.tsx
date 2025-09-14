@@ -8,7 +8,7 @@ type Props = { dms: Conversations[] };
 export default function SidebarDmsDesktop({ dms }: Props) {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, newLastMessage, notifications } = useUserContext();
+    const { user, newLastMessage, dmNotifications } = useUserContext();
 
     const [, route, currentUsername] = location.pathname.split("/");
     console.log("Current route:", route, "Current username:", currentUsername);
@@ -51,12 +51,13 @@ export default function SidebarDmsDesktop({ dms }: Props) {
 
                     // Calcular número de mensajes no leídos
                     const [, route, username] = location.pathname.split("/");
-                    const unreadCount = notifications.filter(
+                    const unreadCount = dmNotifications.filter(
                         n =>
                             (n.type_msg === "NEW_DM_MESSAGE" || n.type_msg === "chat_message") &&
                             n.conversation_id === dm.conversation_id &&
                             !(route === "dm" && username === userOther.username)
                     ).length;
+                    console.log("unreadCount", unreadCount);
 
                     return (
 

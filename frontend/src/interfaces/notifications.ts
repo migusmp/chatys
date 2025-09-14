@@ -3,6 +3,10 @@ export type Notification =
   |NewDmMessageNotification
   | ChatMessageNotification;
 
+export type DmNotification = 
+  | ChatMessageNotification
+  | NewDmMessageNotification;
+
 export interface FriendRequestNotification {
   id: number;
   message: string;

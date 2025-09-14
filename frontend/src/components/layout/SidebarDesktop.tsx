@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import LogoutDesktop from "./LogoutDesktop";
 
 export default function SidebarDesktop() {
-    const { notifications } = useUserContext();
+    const { notifications, dmNotifications } = useUserContext();
     const { user } = useUserContext();
     const location = useLocation();
     const { t } = useTranslation();
@@ -15,7 +15,7 @@ export default function SidebarDesktop() {
     const logoutRef = useRef<HTMLDivElement>(null); // Ref para el menú de logout
 
     // Contador solo de chat_message y NEW_DM_MESSAGE
-    const unreadChatsCount = notifications.filter(
+    const unreadChatsCount = dmNotifications.filter(
         n => n.type_msg === "chat_message" || n.type_msg === "NEW_DM_MESSAGE"
     ).length;
 
