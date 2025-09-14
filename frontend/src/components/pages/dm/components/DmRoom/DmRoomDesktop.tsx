@@ -93,6 +93,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
     const handleSendMessage = () => {
         if (!message.trim() || !socket) return;
         socket.send(JSON.stringify({ content: message }));
+        console.log("ALL MESSAGES:", allMessages);
         // setAllMessages((prev) => [
         //     ...prev,
         //     {
