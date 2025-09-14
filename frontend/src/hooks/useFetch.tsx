@@ -1,5 +1,5 @@
 import type { Friend } from "../types/friend";
-import type { Conversations, ProfileData } from "../types/user";
+import type { Conversations, FullConversation, ProfileData } from "../types/user";
 
 export default function useFetch() {
 
@@ -81,8 +81,25 @@ export default function useFetch() {
         }
     }
 
+    async function fetchFullConversationInfo(username: string): Promise<FullConversation | void> {
+        try {
+            const res = await fetch(`/api/chat/conversation/${username}`, {
+                method: "GET",
+                credentials: "include"
+            });
+
+            if (!res.ok) {
+                throw new Error(`Error HTTP: ${res.status}`);
+            }
+
+            const data = await res.json();
+            return data as FullConversation;
+        } catch (e) {
+            console.error("Error al cargar la conversación:", e);
+        }
+    }
 
 
 
-    return { fetchFriendsList, fetchProfileUserData, fetchProfileUserLogued, fetchUserDms }
+    return { fetchFriendsList, fetchProfileUserData, fetchProfileUserLogued, fetchUserDms, fetchFullConversationInfo }
 }

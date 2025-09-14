@@ -14,6 +14,11 @@ export default function SidebarDesktop() {
     const [logout, setLogout] = useState(false);
     const logoutRef = useRef<HTMLDivElement>(null); // Ref para el menú de logout
 
+    // Contador solo de chat_message y NEW_DM_MESSAGE
+    const unreadChatsCount = notifications.filter(
+        n => n.type_msg === "chat_message" || n.type_msg === "NEW_DM_MESSAGE"
+    ).length;
+
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
     function handleUserProfileClick() {
@@ -60,7 +65,12 @@ export default function SidebarDesktop() {
                             <span>{t("sidebar.chats")}</span>
                         </Link>
                         <Link to="/dm" className={`link ${isActive('/dm') ? 'active' : ''}`}>
-                            <i className={`bi ${isActive('/dm') ? 'bi-send-fill' : 'bi-send'}`}></i>
+                            <div className="icon-with-badge">
+                                <i className={`bi ${isActive('/dm') ? 'bi-send-fill' : 'bi-send'}`}></i>
+                                {unreadChatsCount > 0 && (
+                                    <span className="badge">{unreadChatsCount}</span>
+                                )}
+                            </div>
                             <span>{t("sidebar.messages")}</span>
                         </Link>
                         <Link to="/notifications" className={`link ${isActive('/notifications') ? 'active' : ''}`}>

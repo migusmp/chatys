@@ -42,50 +42,102 @@ impl AppState {
         }
     }
 
-    pub fn is_user_connected(&self, user_id: i32) -> bool {
-        self.direct_message_channels.contains_key(&user_id)
+    // Imprime las claves activas, ahora son pares (conversation_id, user_id)
+    pub fn print_active_direct_message_channels(&self) {
+        let keys: Vec<(i32, i32)> = self
+            .direct_message_channels
+            .iter()
+            .map(|entry| *entry.key())
+            .collect();
+        println!(
+            "Active direct message channels (conversation_id, user_id): {:?}",
+            keys
+        );
     }
 
-    // <------------------------- FUNCIONES PARA DIRECT_MESSAGE_CHANNELS ---------------------------->
+    // Verifica si un usuario tiene algún canal activo en alguna conversación
+    pub fn is_user_connected(&self, user_id: i32) -> bool {
+        self.direct_message_channels
+            .iter()
+            .any(|entry| entry.key().1 == user_id)
+    }
 
-    pub fn register_user_channel(&self, user_id: i32) -> mpsc::Receiver<ChatMessage> {
+    // Registra un canal para un usuario en una conversación específica
+    pub fn register_user_channel(
+        &self,
+        conversation_id: i32,
+        user_id: i32,
+    ) -> mpsc::Receiver<ChatMessage> {
         let (tx, rx) = mpsc::channel(100);
-        self.direct_message_channels.insert(user_id, tx);
+        self.direct_message_channels
+            .insert((conversation_id, user_id), tx);
+        // Debug: imprimir los canales activos después de insertar
+        self.print_active_direct_message_channels();
         rx
     }
 
-    pub fn unregister_user_channel(&self, user_id: i32) {
-        self.direct_message_channels.remove(&user_id);
+    // Desregistra un canal dado conversation_id y user_id
+    pub fn unregister_user_channel(&self, conversation_id: i32, user_id: i32) {
+        self.direct_message_channels
+            .remove(&(conversation_id, user_id));
     }
 
+    // Envía mensaje a todos los usuarios conectados en la conversación
     pub async fn send_direct_message(&self, message: ChatMessage) {
-        // Enviar al receptor (to_user)
-        if let Some(sender) = self.direct_message_channels.get(&message.to_user) {
-            if sender.send(message.clone()).await.is_err() {
-                println!(
-                    "❌ Error enviando mensaje a {} (canal roto)",
-                    message.to_user
-                );
-                self.store_undelivered_message(message.to_user, message.content.clone())
-                    .await;
+        // Filtra canales que coincidan con la conversación y usuario destinatario
+        let mut delivered = false;
+
+        for entry in self.direct_message_channels.iter() {
+            let (conv_id, user_id) = *entry.key();
+            let sender = entry.value();
+
+            // Enviar solo si el canal corresponde a la conversación y al usuario destinatario o emisor
+            if conv_id == message.conversation_id
+                && (user_id == message.to_user || user_id == message.from_user)
+            {
+                if sender.send(message.clone()).await.is_err() {
+                    println!(
+                        "❌ Error enviando mensaje a user {} en conv {} (canal roto)",
+                        user_id, conv_id
+                    );
+                    // Aquí podrías eliminar canal roto si quieres
+                } else {
+                    delivered = true;
+                }
             }
-        } else {
+        }
+
+        if !delivered {
             println!(
-                "📭 Usuario {} no está conectado. Mensaje no entregado",
-                message.to_user
+                "📭 No se entregó mensaje en conv {} de {} a {}",
+                message.conversation_id, message.from_user, message.to_user
             );
             self.store_undelivered_message(message.to_user, message.content.clone())
                 .await;
         }
+    }
 
-        // Enviar al emisor (from_user)
-        if let Some(sender) = self.direct_message_channels.get(&message.from_user) {
-            if sender.send(message.clone()).await.is_err() {
-                println!("❌ Error enviando mensaje a {}", message.from_user);
-                // Este mensaje no es "no entregado" realmente, pero puedes almacenarlo si lo deseas
-            }
+    pub async fn notify_user_new_message(&self, recipient_id: i32, conversation_id: i32, from_user_id: i32, content_preview: String, from_user_username: &String, from_user_image: &String) {
+        // Notifica al usuario destinatario del nuevo mensaje
+        // Verifica si el usuario está conectado
+    let connected = self.connected_users.lock().await;
+    if let Some(sender) = connected.get(&recipient_id) {
+        let notification = serde_json::json!({
+            "type_msg": "NEW_DM_MESSAGE",
+            "conversation_id": conversation_id,
+            "from_user": from_user_id,
+            "to_user": recipient_id,
+            "from_user_username": from_user_username, // Aquí podrías obtener el nombre de usuario real si
+            "from_user_image": from_user_image, // y la imagen del usuario
+            "content": content_preview,
+            "created_at": time::OffsetDateTime::now_utc().format(&time::format_description::well_known::Rfc3339).unwrap_or_default(),
+        }).to_string();
+
+        if sender.send(notification).await.is_err() {
+            eprintln!("Error enviando notificación a usuario {}", recipient_id);
         }
     }
+}
 
     // <--------------------------------------------------------------------------------------------->
 

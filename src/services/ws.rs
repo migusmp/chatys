@@ -10,15 +10,16 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use sqlx::PgPool;
-use tokio::sync::mpsc;
+use tokio::{select, sync::mpsc};
 
 use crate::{
     db::{
         db::get_user_chat_data,
         messages::{
-            get_or_create_direct_conversation, save_message, update_updated_at_from_conversation,
+            get_or_create_direct_conversation, get_other_participant_in_conversation, save_message,
+            update_updated_at_from_conversation,
         },
-        undelivered_messages::{delete_undelivered_message, set_undelivered_message},
+        undelivered_messages::{clear_undelivered_messages, delete_undelivered_message, set_undelivered_message},
     },
     models::user::Payload,
     state::{app_state::AppState, chat_message::ChatMessage, types::IncomingMessage},
@@ -32,126 +33,198 @@ pub async fn handle_socket_connection_for_direct_chat(
     pool: PgPool,
     Path(chat_id): Path<String>,
 ) -> impl IntoResponse {
-    let to_user_id = chat_id.parse::<i32>().unwrap_or(0);
+    let chat_id = chat_id.parse::<i32>().unwrap_or(0);
 
-    ws.on_upgrade(move |socket| handle_socket(socket, app_state, payload.id, to_user_id, pool))
+    ws.on_upgrade(move |socket| handle_socket(socket, app_state, payload.id, chat_id, pool))
 }
 
 async fn handle_socket(
     socket: WebSocket,
     app_state: Arc<AppState>,
     from_user_id: i32,
-    to_user_id: i32,
+    conversation_id: i32,
     pool: PgPool,
 ) {
     println!(
-        "📡 Nueva conexión WebSocket: {} -> {}",
-        from_user_id, to_user_id
+        "📡 Nueva conexión WebSocket: usuario {} en conversación {}",
+        from_user_id, conversation_id
     );
 
     let user_from_data = match get_user_chat_data(from_user_id, &pool).await {
         Ok(data) => data,
         Err(e) => {
-            eprintln!("Error obteniendo datos del usuario al conectar: {}", e);
+            eprintln!("Error obteniendo datos del usuario: {}", e);
             return;
         }
     };
 
-    let mut rx = app_state.register_user_channel(from_user_id);
+    // Ponemos user_from_data en un Arc para compartirlo eficientemente
+    let user_from_data = Arc::new(user_from_data);
+
+    let mut rx = app_state.register_user_channel(conversation_id, from_user_id);
     println!(
-        "✅ Usuario {} registrado en direct_message_channels",
-        from_user_id
+        "✅ Usuario {} registrado en canal de conversación {}",
+        from_user_id, conversation_id
     );
+
+    if let Err(e) = clear_undelivered_messages(from_user_id, conversation_id, &pool).await {
+        eprintln!(
+            "❌ Error al eliminar mensajes no entregados para usuario {} en conversación {}: {}",
+            from_user_id, conversation_id, e
+        );
+    }
 
     let (mut sender, mut receiver) = socket.split();
 
-    // Tarea de escritura: mensajes que el usuario debe recibir
-    let write_task = tokio::spawn(async move {
-        println!(
-            "✉️ Tarea de envío de mensajes iniciada para {}",
-            from_user_id
-        );
-        while let Some(message) = rx.recv().await {
-            let json = serde_json::to_string(&message).unwrap();
-            println!("➡️ Enviando mensaje a {}: {}", from_user_id, json);
-            if let Err(e) = sender.send(Message::Text(json.into())).await {
-                println!("⚠️ Error al enviar mensaje a {}: {}", from_user_id, e);
-                break;
+    let write_task = {
+        let from_user_id = from_user_id; // copia del id simple
+        tokio::spawn(async move {
+            while let Some(message) = rx.recv().await {
+                let json = serde_json::to_string(&message).unwrap();
+                println!("➡️ Enviando mensaje a usuario {}: {}", from_user_id, json);
+                if let Err(e) = sender.send(Message::Text(json.into())).await {
+                    println!(
+                        "⚠️ Error enviando mensaje a usuario {}: {}",
+                        from_user_id, e
+                    );
+                    break;
+                }
             }
-        }
-        println!("🛑 Tarea de escritura finalizada para {}", from_user_id);
-    });
+            println!(
+                "🛑 Tarea de escritura finalizada para usuario {}",
+                from_user_id
+            );
+        })
+    };
 
-    // Tarea de lectura: mensajes que el usuario envía
-    let app_state_clone = app_state.clone();
+    let app_state_clone = Arc::clone(&app_state);
+    let user_from_data_clone = Arc::clone(&user_from_data);
+
     let read_task = tokio::spawn(async move {
-        println!("🕵️ Tarea de lectura iniciada para {}", from_user_id);
-        while let Some(Ok(Message::Text(text))) = receiver.next().await {
-            println!("📥 Mensaje recibido de {}: {}", from_user_id, text);
-            match serde_json::from_str::<IncomingMessage>(&text) {
-                Ok(incoming) => {
-                    let conversation_id =
-                        match get_or_create_direct_conversation(from_user_id, to_user_id, &pool)
+        while let Some(msg_result) = receiver.next().await {
+            match msg_result {
+                Ok(Message::Text(text)) => {
+                    println!("📥 Mensaje recibido de usuario {}: {}", from_user_id, text);
+                    match serde_json::from_str::<IncomingMessage>(&text) {
+                        Ok(incoming) => {
+                            let to_user_id = match get_other_participant_in_conversation(
+                                conversation_id,
+                                from_user_id,
+                                &pool,
+                            )
                             .await
-                        {
-                            Ok(id) => id,
-                            Err(e) => {
-                                eprintln!("Error obteniendo o creando conversacion: {}", e);
-                                continue;
-                            }
-                        };
+                            {
+                                Ok(id) => id,
+                                Err(e) => {
+                                    eprintln!("Error obteniendo participante destino: {}", e);
+                                    return;
+                                }
+                            };
 
-                    let msg = ChatMessage {
-                        from_user: from_user_id,
-                        to_user: to_user_id,
-                        content: incoming.content.clone(),
-                        from_username: user_from_data.username.to_string(),
-                        from_username_image: user_from_data.image.to_string(), // cualquier otro campo si tienes
-                    };
-
-                    let saved_message_id =
-                        match save_message(conversation_id, from_user_id, &incoming.content, &pool)
+                            let conv_id = match get_or_create_direct_conversation(
+                                from_user_id,
+                                to_user_id,
+                                &pool,
+                            )
                             .await
-                        {
-                            Ok(id) => id, // Asegúrate de que `save_message` devuelva el `id` del mensaje guardado
-                            Err(e) => {
-                                eprintln!("Error guardando el mensaje: {}", e);
-                                continue;
+                            {
+                                Ok(id) => id,
+                                Err(e) => {
+                                    eprintln!("Error obteniendo o creando conversación: {}", e);
+                                    continue;
+                                }
+                            };
+
+                            let msg = ChatMessage {
+                                conversation_id: conv_id,
+                                from_user: from_user_id,
+                                to_user: to_user_id,
+                                content: incoming.content.clone(),
+                                from_username: user_from_data_clone.username.to_string(),
+                                from_username_image: user_from_data_clone.image.to_string(),
+                            };
+
+                            let saved_message_id =
+                                match save_message(conv_id, from_user_id, &incoming.content, &pool)
+                                    .await
+                                {
+                                    Ok(id) => id,
+                                    Err(e) => {
+                                        eprintln!("Error guardando mensaje: {}", e);
+                                        continue;
+                                    }
+                                };
+
+                            if let Err(e) =
+                                update_updated_at_from_conversation(conv_id, &pool).await
+                            {
+                                eprintln!(
+                                    "Error actualizando updated_at en conversación {}: {}",
+                                    conv_id, e
+                                );
                             }
-                        };
 
-                    if let Err(e) =
-                        update_updated_at_from_conversation(conversation_id, &pool).await
-                    {
-                        eprintln!(
-                            "Error a actualizar updated_at en la conversacion {}: {}",
-                            conversation_id, e
-                        );
+                            app_state_clone.send_direct_message(msg.clone()).await;
+
+                            app_state_clone
+                                .notify_user_new_message(
+                                    to_user_id,
+                                    conv_id,
+                                    from_user_id,
+                                    incoming.content,
+                                    &user_from_data_clone.username,
+                                    &user_from_data_clone.image,
+                                )
+                                .await;
+
+                            if let Err(e) = set_undelivered_message(
+                                conversation_id,
+                                saved_message_id,
+                                to_user_id,
+                                &pool,
+                            )
+                            .await
+                            {
+                                eprintln!("Error guardando mensaje no entregado: {}", e);
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Error deserializando mensaje JSON: {}", e);
+                        }
                     }
-
-                    app_state_clone.send_direct_message(msg.clone()).await;
-
-                    // Siempre guardar la notificación de mensaje no leído
-                    if let Err(e) =
-                        set_undelivered_message(saved_message_id, to_user_id, &pool).await
-                    {
-                        eprintln!("❌ Error al guardar undelivered message: {}", e);
-                    }
+                }
+                Ok(Message::Close(_)) => {
+                    println!("🛑 Usuario {} cerró la conexión", from_user_id);
+                    break;
                 }
                 Err(e) => {
-                    println!("❌ Error al deserializar mensaje JSON: {}", e);
+                    eprintln!(
+                        "Error recibiendo mensaje de usuario {}: {}",
+                        from_user_id, e
+                    );
+                    break;
                 }
+                _ => {}
             }
         }
-        println!("🛑 Tarea de lectura finalizada para {}", from_user_id);
+        println!(
+            "🛑 Tarea de lectura finalizada para usuario {}",
+            from_user_id
+        );
+        // ELIMINAMOS LOS MENSAJES NO ENTREGADOS AL CERRAR LA CONEXIÓN
+        let _ = clear_undelivered_messages(from_user_id, conversation_id, &pool).await.ok();
     });
 
-    let _ = tokio::join!(write_task, read_task);
+    select! {
+        _ = write_task => (),
+        _ = read_task => (),
+    }
+
     println!(
-        "❎ Cerrando conexión y eliminando canal de usuario {}",
-        from_user_id
+        "❎ Cerrando conexión y eliminando canal de usuario {} en conversación {}",
+        from_user_id, conversation_id
     );
-    app_state.unregister_user_channel(from_user_id);
+    app_state.unregister_user_channel(conversation_id, from_user_id);
 }
 
 // HANDLE WS CONNECTION FOR GENERAL USE IN THE APP

@@ -63,5 +63,15 @@
     "title": "Página no encontrada",
     "description": "Lo sentimos, la página que estás buscando no existe o ha sido movida.",
     "buttonText": "Volver al inicio"
+  },
+  "directMessages": {
+    "userDm": {
+      "connected": "En línea",
+      "disconnected": "Desconectado",
+      "noMessages": "Aún no hay mensajes",
+      "sendMessagePlaceholder": "Escribe tu mensaje aquí...",
+      "sendButton": "Enviar",
+      "deleteMessage": "Eliminar mensaje"
+    }
   }
 }

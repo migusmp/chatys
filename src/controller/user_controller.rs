@@ -1,4 +1,4 @@
-use crate::db::conversations::get_user_conversations;
+use crate::db::conversations::{get_last_message_content, get_user_conversations_simple};
 use crate::db::db::{
     delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data, get_user_profile_data_by_username, update_name_from_user, update_user_description, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserDescription, UpdateUserEmail, UpdateUserName, UpdateUserPassword
 };
@@ -354,7 +354,7 @@ pub async fn user_conversations(
     Extension(payload): Extension<Payload>,
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
-    match get_user_conversations(payload.id, &pool).await {
+    match get_user_conversations_simple(payload.id, &pool).await {
         Ok(conversations) => Ok(Json(conversations)),
         Err(e) => {
             eprintln!(
@@ -365,4 +365,24 @@ pub async fn user_conversations(
         }
     }
     // Ok(ApiResponse::success("Routes added successfully"))
+}
+
+pub async fn user_conversation_last_message(
+    Path(chat_id): Path<String>,
+    pool: PgPool,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    // Convertir chat_id a i32
+    let chat_id_i32 = chat_id.parse::<i32>().map_err(|_| ErrorRequest::InvalidParameter)?;
+
+    // Obtener último mensaje (texto) de la conversación
+    match get_last_message_content(chat_id_i32, &pool).await {
+        Ok(last_message_opt) => {
+            // Devolver solo el texto (o null si no hay mensaje)
+            Ok(Json(last_message_opt))
+        }
+        Err(e) => {
+            eprintln!("Error obteniendo último mensaje: {}", e);
+            Err(ErrorRequest::InternalError)
+        }
+    }
 }

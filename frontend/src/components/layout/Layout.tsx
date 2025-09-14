@@ -11,8 +11,14 @@ export default function Layout() {
     const location = useLocation();
 
     const isHeaderMobileRoute = () => {
+        const path = location.pathname;
+
+        // Excluir si empieza por /dm/ pero no si es exactamente /dm
+        if (path.startsWith("/dm/")) return false;
+
+        // Excluir también /profile y /settings completamente
         const excludedPaths = ["/profile", "/settings"];
-        return !excludedPaths.some(path => location.pathname.startsWith(path));
+        return !excludedPaths.some(p => path.startsWith(p));
     };
 
     const shouldShowHeaderMobile = isMobile && isHeaderMobileRoute();

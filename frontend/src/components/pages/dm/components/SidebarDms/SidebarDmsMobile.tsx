@@ -24,7 +24,7 @@ export default function SidebarDmsMobile({ dms }: Props) {
                     return (
                         <li
                             key={dm.conversation_id}
-                            onClick={() => navigate(`/dm/${dm.conversation_id}`)}
+                            onClick={() => navigate(`/dm/${dm.participants[0].username}`)}
                             style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -46,7 +46,7 @@ export default function SidebarDmsMobile({ dms }: Props) {
                                         objectFit: "cover",
                                     }}
                                 />
-                                <OnlineIndicator userId={user.id} />
+                                <OnlineIndicator userId={user.id} isHeader={false} />
                             </div>
                             <div style={{ flex: 1, overflow: "hidden" }}>
                                 <div style={{ fontWeight: "bold", color: "#fff" }}>{user.username}</div>
@@ -59,7 +59,7 @@ export default function SidebarDmsMobile({ dms }: Props) {
                                         textOverflow: "ellipsis",
                                     }}
                                 >
-                                    {dm.last_message_content || <i>No hay mensajes</i>}
+                                    {dm.last_message || <i>No hay mensajes</i>}
                                 </div>
                             </div>
                         </li>
