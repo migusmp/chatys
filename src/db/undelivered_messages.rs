@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use time::OffsetDateTime;
 
+use crate::db::offset_date_time_serde;
+
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct UndeliveredMessage {
     pub undelivered_id: i32,
@@ -10,6 +12,8 @@ pub struct UndeliveredMessage {
     pub sender_id: i32,
     pub sender_username: String,
     pub content: String,
+
+    #[serde(with = "offset_date_time_serde")]
     pub created_at: Option<OffsetDateTime>,
     pub image: Option<String>,
 }
