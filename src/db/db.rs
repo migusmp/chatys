@@ -345,6 +345,24 @@ pub async fn get_user_data_to_friend_request(id: i32, pool: &PgPool) -> Result<(
     Ok(())
 }
 
+pub async fn find_user_by_username(
+    username: String,
+    pool: &PgPool,
+) -> Result<i32, sqlx::Error> {
+    let query = r#"
+        SELECT id 
+        FROM users 
+        WHERE username = $1
+    "#;
+
+    let user_id = sqlx::query_scalar::<_, i32>(query)
+        .bind(username)
+        .fetch_one(pool)
+        .await?;
+
+    Ok(user_id)
+}
+
 pub async fn get_user_profile_data(
     user_id: i32,
     pool: &PgPool,

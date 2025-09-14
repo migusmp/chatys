@@ -1,4 +1,5 @@
-use crate::db::messages::{find_conversation_id, get_messages};
+use crate::db::db::find_user_by_username;
+use crate::db::messages::{find_conversation_id, get_conversation_details, get_messages, FullConversationResponse};
 use crate::models::chat::ChatState;
 use crate::models::user::{ErrorRequest, Payload};
 use crate::services::chat::{
@@ -82,4 +83,70 @@ pub async fn get_conversation_messages(
             Err(ErrorRequest::InternalError)
         }
     }
+}
+
+pub async fn get_conversation_messages_by_id(
+    Path(conversation_id): Path<i32>,
+    Query(pagination): Query<Pagination>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    let limit = pagination.limit.unwrap_or(50);
+    let offset = pagination.offset.unwrap_or(0);
+
+    match get_messages(conversation_id, limit, offset, &pool).await {
+        Ok(messages) => Ok(Json(messages)),
+        Err(e) => {
+            eprintln!("ERROR al obtener mensajes: {}", e);
+            Err(ErrorRequest::InternalError)
+        }
+    }
+}   
+
+pub async fn get_conversation_messages_by_username(
+    Path(username): Path<String>,
+    Extension(payload): Extension<Payload>,
+    Query(pagination): Query<Pagination>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    let limit = pagination.limit.unwrap_or(50);
+    let offset = pagination.offset.unwrap_or(0);
+
+    let to_user_id = match find_user_by_username(username, &pool).await {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("ERROR al obtener el usuario: {}", e);
+            return Err(ErrorRequest::InternalError);
+        }
+    };
+
+    let conversation_id = match find_conversation_id(payload.id, to_user_id, &pool).await {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("ERROR al obtener la conversación: {}", e);
+            return Err(ErrorRequest::InternalError);
+        }
+    };
+
+    let messages = match get_messages(conversation_id, limit, offset, &pool).await {
+        Ok(msgs) => msgs,
+        Err(e) => {
+            eprintln!("ERROR al obtener mensajes: {}", e);
+            return Err(ErrorRequest::InternalError);
+        }
+    };
+
+    let conversation_details = match get_conversation_details(conversation_id, &pool).await {
+        Ok(details) => details,
+        Err(e) => {
+            eprintln!("ERROR al obtener los detalles de la conversación: {}", e);
+            return Err(ErrorRequest::InternalError);
+        }
+    };
+
+    let response = FullConversationResponse {
+        conversation: conversation_details,
+        messages,
+    };
+    Ok(Json(response))
+
 }

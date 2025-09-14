@@ -63,5 +63,15 @@
     "title": "Page Not Found",
     "description": "Sorry, the page you are looking for does not exist or has been moved.",
     "buttonText": "Back to Home"
+  },
+  "directMessages": {
+    "userDm": {
+      "connected": "Online",
+      "disconnected": "Offline",
+      "noMessages": "No messages yet",
+      "sendMessagePlaceholder": "Type your message here...",
+      "sendButton": "Send",
+      "deleteMessage": "Delete message"
+    }
   }
 }

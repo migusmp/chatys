@@ -49,20 +49,37 @@ pub async fn get_undelivered_messages(
 }
 
 pub async fn set_undelivered_message(
+    conversation_id: i32,
     message_id: i32,
     user_id_to_send_notification: i32,
     pool: &PgPool,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-            INSERT INTO undelivered_messages (message_id, recipient_id) VALUES ($1, $2)
+            INSERT INTO undelivered_messages (message_id, recipient_id, conversation_id) VALUES ($1, $2, $3)
         "#,
         message_id,
-        user_id_to_send_notification
+        user_id_to_send_notification,
+        conversation_id
     )
     .execute(pool)
     .await?;
 
+    Ok(())
+}
+
+pub async fn clear_undelivered_messages(
+    recipient_id: i32,
+    conversation_id: i32,
+    pool: &PgPool,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "DELETE FROM undelivered_messages WHERE recipient_id = $1 AND conversation_id = $2",
+        recipient_id,
+        conversation_id
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }
 

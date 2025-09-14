@@ -2,11 +2,17 @@ use serde::Serialize;
 use sqlx::PgPool;
 use time::OffsetDateTime;
 
-use crate::db::offset_date_time_serde;
+use crate::{db::offset_date_time_serde, models::user::UserSummary};
 
 #[derive(sqlx::FromRow)]
 struct ConversationId {
     pub conversation_id: i32,
+}
+
+#[derive(Serialize)]
+pub struct FullConversationResponse {
+    pub conversation: ConversationDetails,
+    pub messages: Vec<Message>,
 }
 
 
@@ -19,6 +25,17 @@ pub struct Message {
     #[serde(with = "offset_date_time_serde")]
     pub created_at: Option<OffsetDateTime>,
     pub read_by: serde_json::Value,
+}
+
+#[derive(Serialize)]
+pub struct ConversationDetails {
+    pub id: i32,
+    #[serde(with = "offset_date_time_serde")]
+    pub created_at: Option<OffsetDateTime>,
+    #[serde(with = "offset_date_time_serde")]
+    pub updated_at: Option<OffsetDateTime>,
+    pub is_group: Option<bool>,
+    pub participants: Vec<UserSummary>,
 }
 
 pub async fn get_or_create_direct_conversation(
@@ -43,10 +60,10 @@ pub async fn get_or_create_direct_conversation(
         to_user_id
     )
     .fetch_optional(pool)
-    .await? {
+    .await?
+    {
         return Ok(row.conversation_id);
     }
-
 
     // Crear nueva conversación si no existe
     let conversation = sqlx::query!(
@@ -68,6 +85,27 @@ pub async fn get_or_create_direct_conversation(
     .await?;
 
     Ok(conversation_id)
+}
+
+pub async fn get_other_participant_in_conversation(
+    conversation_id: i32,
+    user_id: i32,
+    pool: &PgPool,
+) -> Result<i32, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT user_id
+        FROM conversation_participants
+        WHERE conversation_id = $1 AND user_id != $2
+        LIMIT 1
+        "#,
+        conversation_id,
+        user_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(row.user_id)
 }
 
 pub async fn save_message(
@@ -101,11 +139,16 @@ pub async fn save_message(
     Ok(result.id)
 }
 
-pub async fn update_updated_at_from_conversation(conversation_id: i32, pool: &PgPool) -> Result<(), sqlx::Error> {
+pub async fn update_updated_at_from_conversation(
+    conversation_id: i32,
+    pool: &PgPool,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "UPDATE conversations SET updated_at = NOW() WHERE id = $1",
         conversation_id
-    ).execute(pool).await?;
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -157,4 +200,55 @@ pub async fn get_messages(
     .await?;
 
     Ok(messages)
+}
+
+pub async fn get_conversation_details(
+    conversation_id: i32,
+    pool: &PgPool,
+) -> Result<ConversationDetails, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"
+        SELECT 
+            c.id AS conversation_id,
+            c.created_at,
+            c.updated_at,
+            c.is_group,
+            u.id AS user_id,
+            u.username,
+            u.image
+        FROM conversations c
+        JOIN conversation_participants cp ON c.id = cp.conversation_id
+        JOIN users u ON cp.user_id = u.id
+        WHERE c.id = $1
+        "#,
+        conversation_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    if rows.is_empty() {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    let first_id = rows[0].conversation_id;
+    let created_at = rows[0].created_at;
+    let updated_at = rows[0].updated_at;
+    let is_group = rows[0].is_group;
+
+    let participants = rows
+        .into_iter()
+        .map(|r| UserSummary {
+            id: r.user_id,
+            username: r.username,
+            image: r.image,
+        })
+        .collect();
+
+    Ok(ConversationDetails {
+        id: first_id,
+        created_at,
+        updated_at,
+        is_group,
+        participants,
+    })
 }

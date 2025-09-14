@@ -1,5 +1,5 @@
 import type { UserProfile } from "../types/user";
-import type { Notification } from "./notifications";
+import type { NewDmMessageNotification, Notification } from "./notifications";
 
 // Interface to UserContext
 export interface UserContextType {
@@ -13,6 +13,8 @@ export interface UserContextType {
     activeFriends: number[]; // Lista de amigos activos
     setActiveFriends: React.Dispatch<React.SetStateAction<number[]>>;
     checkUserIsOnline: (userId: number) => boolean;
+    setNewLastMessage: React.Dispatch<React.SetStateAction<NewDmMessageNotification[]>>;
+    newLastMessage: NewDmMessageNotification[];
 }
 
 export interface RegisterUserData {

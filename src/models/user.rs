@@ -131,6 +131,7 @@ pub enum ErrorRequest {
     NoFriendRequestFound,
     InvalidImageSize,
     InvalidImageFormat,
+    InvalidParameter,
     ErrorPasswordUpdate,
     ErrorEmailUpdate,
     AlreadyFriends,
@@ -187,6 +188,11 @@ impl IntoResponse for ErrorRequest {
                 StatusCode::BAD_REQUEST,
                 "INVALID_FRIEND_REQUEST",
                 "You can't add yourself as a friend",
+            ),
+            ErrorRequest::InvalidParameter => (
+                StatusCode::BAD_REQUEST,
+                "INVALID_PARAMETER",
+                "Invalid parameter provided in request",
             ),
             ErrorRequest::DuplicateFriendRequest => (
                 StatusCode::OK,

@@ -12,7 +12,7 @@ use crate::state::chat_message::ChatMessage;
 use crate::db::offset_date_time_serde;
 
 // TYPES FOR APPSTATE
-pub type DirectMessageChannels = DashMap<i32, tokio::sync::mpsc::Sender<ChatMessage>>;
+pub type DirectMessageChannels = DashMap<(i32, i32), tokio::sync::mpsc::Sender<ChatMessage>>;
 pub type UndeliveredMessages = Arc<Mutex<HashMap<i32, Vec<String>>>>;
 
 #[derive(Deserialize)]
