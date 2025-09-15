@@ -1,6 +1,9 @@
 use crate::db::conversations::{get_last_message_content, get_user_conversations_simple};
 use crate::db::db::{
-    delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data, get_user_profile_data_by_username, update_name_from_user, update_user_description, update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserDescription, UpdateUserEmail, UpdateUserName, UpdateUserPassword
+    delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data,
+    get_user_profile_data_by_username, search_user, update_name_from_user, update_user_description,
+    update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserDescription,
+    UpdateUserEmail, UpdateUserName, UpdateUserPassword,
 };
 use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, UpdateData};
 use crate::services::user::{login, register};
@@ -9,11 +12,11 @@ use axum::extract::{Multipart, Path};
 use axum::http::{HeaderMap, HeaderValue};
 use axum::{http::StatusCode, response::IntoResponse, Form};
 use axum::{Extension, Json};
+use infer;
 use sqlx::PgPool;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
-use infer;
 
 const MAX_CONTENT_LENGTH: u64 = 5 * 1024 * 1024; // 10 MB
 
@@ -325,7 +328,6 @@ pub async fn upload_image(
     ))
 }
 
-
 pub async fn delete_user_route(
     Extension(payload): Extension<Payload>,
     pool: PgPool,
@@ -372,7 +374,9 @@ pub async fn user_conversation_last_message(
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     // Convertir chat_id a i32
-    let chat_id_i32 = chat_id.parse::<i32>().map_err(|_| ErrorRequest::InvalidParameter)?;
+    let chat_id_i32 = chat_id
+        .parse::<i32>()
+        .map_err(|_| ErrorRequest::InvalidParameter)?;
 
     // Obtener último mensaje (texto) de la conversación
     match get_last_message_content(chat_id_i32, &pool).await {
@@ -383,6 +387,19 @@ pub async fn user_conversation_last_message(
         Err(e) => {
             eprintln!("Error obteniendo último mensaje: {}", e);
             Err(ErrorRequest::InternalError)
+        }
+    }
+}
+
+pub async fn user_search(
+    Path(username): Path<String>,
+    pool: PgPool,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    match search_user(username, &pool).await {
+        Ok(users) => Ok(Json(users)),
+        Err(e) => {
+            eprintln!("Error al buscar usuarios: {}", e);
+            Err(ErrorRequest::UserNotFound)
         }
     }
 }

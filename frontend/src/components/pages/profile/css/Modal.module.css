@@ -49,11 +49,10 @@
     padding: 0.5rem;
     background-color: #0d0d0d;
     /* negro suave */
-    ;
+
     outline: none;
     color: white;
     border-radius: 8px;
-    transition: border 0.2s ease, box-shadow 0.2s ease;
     border: 2px solid transparent;
 }
 
@@ -66,7 +65,7 @@
     padding: 0.5rem;
     background-color: #0d0d0d;
     /* negro suave */
-    ;
+
     outline: none;
     color: white;
     border-radius: 8px;
@@ -136,7 +135,55 @@
 
 .textarea:hover {
     border-color: #00cc55;
-    box-shadow: 0 0 5px #00ff66;
 }
 
+@media (max-width: 1275px) {
+    .modalContent {
+        margin-left: 100px;
+    }
+}
 
+@media (max-width: 1100px) {
+    .modalContent {
+        margin-left: 130px;
+    }
+}
+
+@media (max-width: 965px) {
+    .modalContent {
+        margin-left: 180px;
+    }
+}
+
+@media (max-width: 960px) {
+    .modalContent {
+        margin-left: 0px;
+    }
+}
+
+@media (max-width: 715px) {
+    .modalContent {
+        margin-left: 60px;
+    }
+
+    .modalContent {
+        padding: 1rem;
+        border-radius: 12px;
+        width: 60%;
+        max-width: 500px;
+        color: #fff;
+        box-sizing: border-box;
+    }
+
+
+}
+
+@media (max-width: 415px) {
+    .modalContent {
+        margin-left: 0px;
+    }
+
+    .modalContent {
+        width: 80%;
+    }
+}

@@ -9,6 +9,7 @@ use crate::models::user::ProfileData;
 use crate::models::user::UserChatData;
 use crate::models::user::UserData;
 use crate::models::user::UserFriendRequest;
+use crate::models::user::UserSearchData;
 
 // Función para obtener el pool de conexiones a la base de datos
 // pub async fn get_db_pool() -> Result<PgPool, sqlx::Error> {
@@ -99,6 +100,22 @@ pub async fn update_user_image(
     Ok(())
 }
 
+pub async fn search_user(
+    username: String,
+    pool: &PgPool,
+) -> Result<Vec<UserSearchData>, sqlx::Error> {
+    let pattern = format!("%{}%", username);
+
+    sqlx::query_as::<_, UserSearchData>(
+        r#"
+    SELECT * FROM users WHERE username ILIKE $1
+"#,
+    )
+    .bind(pattern)
+    .fetch_all(pool)
+    .await
+}
+
 pub enum UpdateUserName {
     UserExists,
     UserNameUpdated,
@@ -184,10 +201,14 @@ async fn update_description(new_description: String, id: i32, pool: &PgPool) -> 
     Ok(())
 }
 
-pub async fn update_user_description(new_description: String, id: i32, pool: &PgPool) -> UpdateUserDescription {
+pub async fn update_user_description(
+    new_description: String,
+    id: i32,
+    pool: &PgPool,
+) -> UpdateUserDescription {
     match update_description(new_description, id, pool).await {
         Ok(_) => UpdateUserDescription::DescriptionUpdated,
-        Err(_) => UpdateUserDescription::ErrorDescriptionUpdate
+        Err(_) => UpdateUserDescription::ErrorDescriptionUpdate,
     }
 }
 
@@ -246,11 +267,7 @@ pub async fn update_user_email(new_email: String, id: i32, pool: &PgPool) -> Upd
     }
 }
 
-pub async fn update_name_from_user(
-    new_name: String,
-    id: i32,
-    pool: &PgPool,
-) -> UpdateUserName {
+pub async fn update_name_from_user(new_name: String, id: i32, pool: &PgPool) -> UpdateUserName {
     match update_name(new_name, id, &pool).await {
         Ok(_) => UpdateUserName::UserNameUpdated,
         Err(_) => UpdateUserName::ConsultError,
@@ -287,10 +304,7 @@ pub struct Friend {
     pub image: String,
 }
 
-pub async fn get_user_friends(
-    user_id: i32,
-    pool: &PgPool,
-) -> Result<Vec<Friend>, sqlx::Error> {
+pub async fn get_user_friends(user_id: i32, pool: &PgPool) -> Result<Vec<Friend>, sqlx::Error> {
     let query = r#"
         SELECT u.id, u.username, u.name, u.image 
         FROM friends f
@@ -345,10 +359,7 @@ pub async fn get_user_data_to_friend_request(id: i32, pool: &PgPool) -> Result<(
     Ok(())
 }
 
-pub async fn find_user_by_username(
-    username: String,
-    pool: &PgPool,
-) -> Result<i32, sqlx::Error> {
+pub async fn find_user_by_username(username: String, pool: &PgPool) -> Result<i32, sqlx::Error> {
     let query = r#"
         SELECT id 
         FROM users 
@@ -363,10 +374,7 @@ pub async fn find_user_by_username(
     Ok(user_id)
 }
 
-pub async fn get_user_profile_data(
-    user_id: i32,
-    pool: &PgPool,
-) -> Result<UserData, sqlx::Error> {
+pub async fn get_user_profile_data(user_id: i32, pool: &PgPool) -> Result<UserData, sqlx::Error> {
     let query = r#"
         SELECT 
             u.id,
@@ -434,10 +442,7 @@ pub async fn get_user_profile_data_by_username(
     Ok(user_data)
 }
 
-pub async fn get_user_chat_data(
-    user_id: i32,
-    pool: &PgPool,
-) -> Result<UserChatData, sqlx::Error> {
+pub async fn get_user_chat_data(user_id: i32, pool: &PgPool) -> Result<UserChatData, sqlx::Error> {
     let query = r#"
         SELECT username, image
         FROM users
@@ -464,8 +469,8 @@ pub async fn delete_all_db(pool: &PgPool) -> Result<(), sqlx::Error> {
 
 pub async fn delete_user(user_id: i32, pool: PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM users WHERE id = $1")
-    .bind(user_id)
-    .execute(&pool)
-    .await?;
+        .bind(user_id)
+        .execute(&pool)
+        .await?;
     Ok(())
 }

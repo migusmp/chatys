@@ -68,7 +68,7 @@ export default function SidebarDesktop() {
                             <div className="icon-with-badge">
                                 <i className={`bi ${isActive('/dm') ? 'bi-send-fill' : 'bi-send'}`}></i>
                                 {unreadChatsCount > 0 && (
-                                    <span className="badge">{unreadChatsCount}</span>
+                                    <article className="badge">{unreadChatsCount}</article>
                                 )}
                             </div>
                             <span>{t("sidebar.messages")}</span>

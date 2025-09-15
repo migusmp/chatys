@@ -131,22 +131,22 @@
 
 /* Estilos para la cantidad de notificaciones que hay */
 .icon-with-badge {
-  position: relative;
-  display: inline-block;
+    position: relative;
+    display: inline-block;
 }
 
 .badge {
-  position: absolute;
-  top: -6px;
-  right: -7px;
-  background-color: #ff563c;
-  color: #ffffff;
-  font-size: 0.65rem;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 50%;
-  min-width: 20px;
-  text-align: center;
+    position: absolute;
+    top: -6px;
+    right: -7px;
+    background-color: #ff563c;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 50%;
+    min-width: 20px;
+    text-align: center;
 }
 
 
@@ -158,7 +158,7 @@
     gap: 0.75rem;
     height: 3rem;
     transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-    padding-left: 1rem;
+    padding-left: 0.5rem;
     padding-right: 1rem;
     margin-bottom: 2rem;
     cursor: pointer;
@@ -174,6 +174,9 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    /* ajusta la imagen sin deformarla */
 }
 
 .info {
@@ -260,6 +263,10 @@
         /* ocultar los textos */
     }
 
+    /* .badge { */
+    /*     display: block; */
+    /* } */
+
     .menu .link:hover {
         color: #00ff66;
         background-color: none;
@@ -273,8 +280,19 @@
     .profile {
         flex-direction: column;
         gap: 0.3rem;
-        width: 100%;
+        width: 90%;
         padding: 0.5rem;
+    }
+
+    .profile:hover {
+        background: none !important;
+    }
+
+    .profile img {
+        width: 45px;
+        height: 45px;
+        object-fit: cover;
+        /* ajusta la imagen sin deformarla */
     }
 
     .profile .info {

@@ -5,13 +5,14 @@ import { useState, useEffect, useRef } from "react";
 import type { ChatMessage } from "../../../../../types/chat_message";
 import { OnlineIndicator } from "../OnlineIndicator";
 import { useTranslation } from "react-i18next";
+import type { NewDmMessageNotification } from "../../../../../interfaces/notifications";
 
 type Props = {
     conversationData: FullConversation;
 };
 
 export default function DmRoomDesktop({ conversationData }: Props) {
-    const { user, checkUserIsOnline, setDmNotifications } = useUserContext();
+    const { user, checkUserIsOnline, setDmNotifications, setNewLastMessage } = useUserContext();
     const { t } = useTranslation();
     const [message, setMessage] = useState("");
     const [allMessages, setAllMessages] = useState<ChatMessage[]>(conversationData.messages);
@@ -92,8 +93,21 @@ export default function DmRoomDesktop({ conversationData }: Props) {
 
     const handleSendMessage = () => {
         if (!message.trim() || !socket) return;
+
         socket.send(JSON.stringify({ content: message }));
-        console.log("ALL MESSAGES:", allMessages);
+
+        const newMessage: NewDmMessageNotification = {
+            type_msg: "NEW_DM_MESSAGE",
+            conversation_id: conversationData.conversation.id,
+            from_user: user?.id ?? 0,
+            to_user: otherParticipant?.id ?? 0,
+            created_at: new Date().toISOString(),
+            from_user_username: user?.username ?? "",
+            from_user_image: user?.image ?? "",
+            content: message,
+        };
+
+        // // ✅ Actualizar la lista de mensajes en la sala
         // setAllMessages((prev) => [
         //     ...prev,
         //     {
@@ -103,6 +117,16 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         //         created_at: new Date().toISOString(),
         //     },
         // ]);
+
+        // ✅ Actualizar el "lastMessage" global para la Sidebar
+        setNewLastMessage((prev) => {
+            const arr = Array.isArray(prev) ? prev : [];
+            const filtered = arr.filter(
+                (n) => Number(n.conversation_id) !== conversationData.conversation.id
+            );
+            return [newMessage, ...filtered];
+        });
+
         setMessage("");
     };
 

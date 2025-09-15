@@ -1,7 +1,7 @@
-use crate::controller::user_controller::{*};
+use crate::controller::user_controller::*;
 use crate::middlewares::auth::auth;
 use axum::routing::{delete, get, patch, post};
-use axum::{Router};
+use axum::Router;
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
 
@@ -37,8 +37,10 @@ pub fn user_router(pool: PgPool) -> Router {
         )
         .route(
             "/get-friends/{username}",
-            get(move |username, payload| get_friends_from_user(username ,payload, pool_get_friends_from_user))
-                .route_layer(axum::middleware::from_fn(auth)),
+            get(move |username, payload| {
+                get_friends_from_user(username, payload, pool_get_friends_from_user)
+            })
+            .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(
             "/profile",
@@ -47,8 +49,10 @@ pub fn user_router(pool: PgPool) -> Router {
         )
         .route(
             "/profile/{username}",
-            get(move |username, payload| get_profile_data_from_user(username, payload, pool_profile_from_user))
-                .route_layer(axum::middleware::from_fn(auth)),
+            get(move |username, payload| {
+                get_profile_data_from_user(username, payload, pool_profile_from_user)
+            })
+            .route_layer(axum::middleware::from_fn(auth)),
         )
         .route(
             "/update",
@@ -72,9 +76,15 @@ pub fn user_router(pool: PgPool) -> Router {
             "/delete",
             delete({
                 let pool = pool.clone();
-                move |payload| {
-                    delete_user_route(payload, pool)
-                }
+                move |payload| delete_user_route(payload, pool)
+            })
+            .route_layer(axum::middleware::from_fn(auth)),
+        )
+        .route(
+            "/search/{username}",
+            get({
+                let pool = pool.clone();
+                move |username| user_search(username, pool)
             })
             .route_layer(axum::middleware::from_fn(auth)),
         )
@@ -82,9 +92,7 @@ pub fn user_router(pool: PgPool) -> Router {
             "/conversations",
             get({
                 let pool = pool.clone();
-                move |payload| {
-                    user_conversations(payload, pool)
-                }
+                move |payload| user_conversations(payload, pool)
             })
             .route_layer(axum::middleware::from_fn(auth)),
         )

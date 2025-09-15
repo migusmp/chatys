@@ -1,15 +1,13 @@
 use crate::utils::jwt::generate_token;
 use crate::utils::responses::ErrorResponse;
 use axum::{http::StatusCode, response::IntoResponse, Json};
-use chrono::{ NaiveDateTime};
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 use sqlx::{prelude::FromRow, types::Json as JsonSqlx};
 use time::OffsetDateTime;
 
 use crate::db::offset_date_time_serde;
-
-
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct RegisterUser {
@@ -28,7 +26,16 @@ pub struct UserData {
     pub image: String,
     pub created_at: NaiveDateTime,
     pub description: String,
-    pub friends_count: i64,
+    // pub friends_count: i64,
+}
+
+#[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
+pub struct UserSearchData {
+    pub id: i32,
+    pub username: String,
+    pub name: String,
+    pub image: String,
+    pub description: String,
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]
@@ -47,7 +54,6 @@ pub struct UserChatData {
     pub username: String,
     pub image: String,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct LoginUser {
@@ -91,7 +97,7 @@ pub struct UpdateData {
 pub struct UserFriendRequest {
     pub id: i32,
     pub username: String,
-    pub image: Option<String>
+    pub image: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, FromRow)]
@@ -100,7 +106,6 @@ pub struct UserSummary {
     pub username: String,
     pub image: Option<String>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct RawConversationSummary {
@@ -139,6 +144,7 @@ pub enum ErrorRequest {
     BadParameter,
     OnlyOneFileAllowed,
     FileTooLarge,
+    UserNotFound,
 }
 
 impl IntoResponse for ErrorRequest {
@@ -159,11 +165,9 @@ impl IntoResponse for ErrorRequest {
                 "NAME_EMPTY",
                 "You must enter a name",
             ),
-            ErrorRequest::InvalidEmail => (
-                StatusCode::BAD_REQUEST,
-                "EMAIL_INVALID",
-                "Invalid email",
-            ),
+            ErrorRequest::InvalidEmail => {
+                (StatusCode::BAD_REQUEST, "EMAIL_INVALID", "Invalid email")
+            }
             ErrorRequest::ShortPassword => (
                 StatusCode::BAD_REQUEST,
                 "SHORT_PASSWORD",
@@ -234,8 +238,19 @@ impl IntoResponse for ErrorRequest {
                 "BAD_PARAMETER",
                 "Bad parameter provided in request",
             ),
-            ErrorRequest::OnlyOneFileAllowed => (StatusCode::BAD_REQUEST, "ONLY_ONE_FILE_ALLOWED", "You can upload one file at the same time!"),
-            ErrorRequest::FileTooLarge => (StatusCode::PAYLOAD_TOO_LARGE, "FILE_TO_LARGE", "The uploaded file is too large. Maximum allowed size is 5 MB")
+            ErrorRequest::OnlyOneFileAllowed => (
+                StatusCode::BAD_REQUEST,
+                "ONLY_ONE_FILE_ALLOWED",
+                "You can upload one file at the same time!",
+            ),
+            ErrorRequest::FileTooLarge => (
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "FILE_TO_LARGE",
+                "The uploaded file is too large. Maximum allowed size is 5 MB",
+            ),
+            ErrorRequest::UserNotFound => {
+                (StatusCode::NOT_FOUND, "USER_NOT_FOUND", "User not found")
+            }
         };
 
         let body = Json(ErrorResponse {

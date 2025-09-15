@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { OnlineIndicator } from "../OnlineIndicator";
 import type { Conversations } from "../../../../../types/user";
 import { useUserContext } from "../../../../../context/UserContext";
+import SearchUsers from "../SearchUsers";
 
 type Props = { dms: Conversations[] };
 
@@ -41,6 +42,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                 borderRight: "1px solid #272727",
             }}
         >
+            <SearchUsers />
             <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0, gap: "0.2rem", marginTop: "1rem" }}>
                 {sortedDms.map((dm) => {
                     const userOther = dm.participants[0];
@@ -57,7 +59,6 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                             n.conversation_id === dm.conversation_id &&
                             !(route === "dm" && username === userOther.username)
                     ).length;
-                    console.log("unreadCount", unreadCount);
 
                     return (
 
