@@ -145,6 +145,7 @@ pub enum ErrorRequest {
     OnlyOneFileAllowed,
     FileTooLarge,
     UserNotFound,
+    CreateConversationError,
 }
 
 impl IntoResponse for ErrorRequest {
@@ -251,6 +252,11 @@ impl IntoResponse for ErrorRequest {
             ErrorRequest::UserNotFound => {
                 (StatusCode::NOT_FOUND, "USER_NOT_FOUND", "User not found")
             }
+            ErrorRequest::CreateConversationError => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "CREATE_CONVERSATION_ERROR",
+                "Error creating conversation",
+            ),
         };
 
         let body = Json(ErrorResponse {

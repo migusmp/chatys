@@ -268,7 +268,7 @@ async fn handle_socket_connection(
     println!("✅ Usuario {} conectado al WebSocket", user_id);
     //let mut is_connected = true;
 
-    if let Ok(friends) = app_state.get_user_friends(user_id).await {
+    if let Ok(friends) = app_state.get_user_friends_and_users_from_dms(user_id).await {
         let connected = app_state.connected_users.lock().await;
 
         let active_friends: Vec<i32> = friends
@@ -348,7 +348,7 @@ async fn handle_incoming_message(msg: String, app_state: Arc<AppState>, _user_id
 }
 
 async fn notify_friends_user_connected(app_state: &AppState, user_id: i32) {
-    if let Ok(friends) = app_state.get_user_friends(user_id).await {
+    if let Ok(friends) = app_state.get_user_friends_and_users_from_dms(user_id).await {
         for friend_id in friends {
             notify_user_with_active_friends(app_state, friend_id).await;
         }
@@ -356,7 +356,7 @@ async fn notify_friends_user_connected(app_state: &AppState, user_id: i32) {
 }
 
 pub async fn notify_user_with_active_friends(app_state: &AppState, user_id: i32) {
-    let friends = match app_state.get_user_friends(user_id).await {
+    let friends = match app_state.get_user_friends_and_users_from_dms(user_id).await {
         Ok(f) => f,
         Err(_) => return,
     };

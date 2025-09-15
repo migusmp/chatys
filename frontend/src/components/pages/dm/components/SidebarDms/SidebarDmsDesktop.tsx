@@ -1,20 +1,25 @@
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { OnlineIndicator } from "../OnlineIndicator";
-import type { Conversations } from "../../../../../types/user";
+import type { Conversations, Participants, UserSearchData } from "../../../../../types/user";
 import { useUserContext } from "../../../../../context/UserContext";
 import SearchUsers from "../SearchUsers";
 
-type Props = { dms: Conversations[] };
+type Props = {
+    dms: Conversations[];
+    setDms: React.Dispatch<React.SetStateAction<Conversations[]>>;
+};
 
 export default function SidebarDmsDesktop({ dms }: Props) {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, newLastMessage, dmNotifications } = useUserContext();
+    const [searchResults, setSearchResults] = useState<UserSearchData[]>([]);
 
     const [, route, currentUsername] = location.pathname.split("/");
-    console.log("Current route:", route, "Current username:", currentUsername);
+    console.log(route)
 
-    // Actualizar las conversaciones con posibles nuevos mensajes
+    // Actualizar mensajes en DMs
     const dmsWithUpdatedMessages = dms.map(dm => {
         const newMsg = newLastMessage.find(msg => msg.conversation_id === dm.conversation_id);
         if (!newMsg) return dm;
@@ -23,12 +28,71 @@ export default function SidebarDmsDesktop({ dms }: Props) {
             ...dm,
             last_message: newMsg.content,
             last_message_user_id: newMsg.from_user,
-            updated_at: newMsg.created_at // importante para reordenar
+            updated_at: newMsg.created_at
         };
     });
 
-    // Ordenar por el último mensaje más reciente
-    const sortedDms = [...dmsWithUpdatedMessages].sort(
+    const handleClickDm = async (userOther: UserSearchData | Participants) => {
+        // Si tiene conversation_id numérico ya existe
+        if ("conversation_id" in userOther && typeof userOther.conversation_id === "number") {
+            navigate(`/dm/${userOther.username}`);
+            return;
+        }
+
+        // Si no, es un UserSearchData, crear la conversación
+        try {
+            const res = await fetch(`/api/chat/create-dm/${userOther.id}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+            if (!res.ok) throw new Error("Error al crear la conversación");
+            // const data = await res.json();
+
+            // // Opcional: actualizar la lista de DMs en el frontend
+            // setDms(prev => [
+            //     ...prev,
+            //     {
+            //         conversation_id: data.id,                 // ID que devuelve tu endpoint
+            //         participants: [
+            //             {
+            //                 id: userOther.id,
+            //                 username: userOther.username,
+            //                 image: userOther.image,
+            //                 // otros campos necesarios de Participant
+            //             },
+            //         ],
+            //         last_message: "",
+            //         last_message_user_id: 0,
+            //         updated_at: new Date().toISOString(),
+            //         is_group: false,                         // ⚠ obligatorio
+            //     },
+            // ]);
+
+
+
+            navigate(`/dm/${userOther.username}`);
+        } catch (err) {
+            console.error("No se pudo iniciar el chat:", err);
+        }
+    };
+
+
+    // Fusionar resultados de búsqueda con los DMs
+    const combinedList = searchResults.length > 0
+        ? searchResults.map(u => {
+            const existingDm = dmsWithUpdatedMessages.find(dm => dm.participants[0].id === u.id);
+            return existingDm || {
+                conversation_id: `temp-${u.id}`,
+                participants: [u],
+                last_message: "",
+                last_message_user_id: null,
+                updated_at: new Date(0).toISOString(),
+            };
+        })
+        : dmsWithUpdatedMessages;
+
+    // Ordenar por updated_at
+    const sortedDms = [...combinedList].sort(
         (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
 
@@ -42,7 +106,8 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                 borderRight: "1px solid #272727",
             }}
         >
-            <SearchUsers />
+            <SearchUsers onResults={setSearchResults} />
+
             <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0, gap: "0.2rem", marginTop: "1rem" }}>
                 {sortedDms.map((dm) => {
                     const userOther = dm.participants[0];
@@ -51,20 +116,20 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                         ? (isLastMessageFromCurrentUser ? `Tú: ${dm.last_message}` : dm.last_message)
                         : "";
 
-                    // Calcular número de mensajes no leídos
                     const [, route, username] = location.pathname.split("/");
+                    console.log("ROUTE:", route, username);
+                    // LOG para ver qué mensajes hay en dmNotifications
+                    console.log("🔔 DM NOTIFICATIONS:", dmNotifications);
+                    console.log("🔔 Filtrando para conversation_id:", dm.conversation_id);
+
                     const unreadCount = dmNotifications.filter(
-                        n =>
-                            (n.type_msg === "NEW_DM_MESSAGE" || n.type_msg === "chat_message") &&
-                            n.conversation_id === dm.conversation_id &&
-                            !(route === "dm" && username === userOther.username)
+                        n => Number(n.conversation_id) === dm.conversation_id
                     ).length;
 
                     return (
-
                         <li
                             key={dm.conversation_id}
-                            onClick={() => navigate(`/dm/${userOther.username}`)}
+                            onClick={() => handleClickDm(userOther)}
                             style={{
                                 display: "flex",
                                 width: "90%",
@@ -78,20 +143,8 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                 position: "relative",
                                 backgroundColor:
                                     route === "dm" && currentUsername === userOther.username
-                                        ? "rgba(0, 255, 102, 0.15)" // mismo color que hover
+                                        ? "rgba(0, 255, 102, 0.15)"
                                         : "transparent"
-                            }}
-                            onMouseEnter={(e) => {
-                                const selected = route === "dm" && currentUsername === userOther.username;
-                                e.currentTarget.style.backgroundColor = selected
-                                    ? "rgba(0, 255, 102, 0.15)"
-                                    : "rgba(0, 255, 102, 0.07)";
-                            }}
-
-                            onMouseLeave={(e) => {
-                                if (!(route === "dm" && currentUsername === userOther.username)) {
-                                    e.currentTarget.style.backgroundColor = "transparent";
-                                }
                             }}
                         >
                             <div style={{ position: "relative", marginRight: "1rem" }}>
@@ -118,11 +171,10 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                         textOverflow: "ellipsis",
                                     }}
                                 >
-                                    {lastMessageText || <i></i>}
+                                    {lastMessageText || ""}
                                 </div>
                             </div>
 
-                            {/* Badge de mensajes nuevos */}
                             {unreadCount > 0 && (
                                 <div
                                     style={{

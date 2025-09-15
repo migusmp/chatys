@@ -49,7 +49,8 @@ export const WebSocketProvider = ({
                     });
 
                     // ✅ Solo guardamos como notificación si NO estoy dentro del chat abierto
-                    if (!(route === "dm" && username === data.from_user_username)) {
+                    console.log("Estoy en la ruta?,"!,(route === "dm" && username === data.from_user_username));
+                    if (!(route === "dm" && data.type_msg === "NEW_DM_MESSAGE" && username === data.from_user_username || data.type_msg === "chat_message" && username === data.sender_username)) {
                         console.log("🔔 Nueva notificación de DM:", data);
                         setDmNotifications((prev) => [data, ...prev]);
                     }
