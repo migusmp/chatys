@@ -1,3 +1,4 @@
+use crate::db::conversations::create_conversation;
 use crate::db::db::find_user_by_username;
 use crate::db::messages::{find_conversation_id, get_conversation_details, get_messages, FullConversationResponse};
 use crate::models::chat::ChatState;
@@ -12,6 +13,7 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use hyper::StatusCode;
 use serde::Deserialize;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -149,4 +151,22 @@ pub async fn get_conversation_messages_by_username(
     };
     Ok(Json(response))
 
+}
+
+pub async fn create_new_conversation(
+    Path(user2_id): Path<i32>,
+    Extension(payload): Extension<Payload>, // aquí Payload debe tener user_id (user1)
+    Extension(pool): Extension<PgPool>,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    // 1. Extraer el user1_id del payload (usuario autenticado)
+    let user1_id = payload.id;
+
+    // 2. Crear la conversación
+    match create_conversation(user1_id, user2_id, &pool).await {
+        Ok(conversation_id) => Ok((StatusCode::CREATED, conversation_id.to_string())),
+        Err(e) => {
+            eprintln!("Error creando conversación: {:?}", e);
+            Err(ErrorRequest::CreateConversationError)
+        }
+    }
 }

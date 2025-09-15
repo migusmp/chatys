@@ -33,7 +33,7 @@ export default function DirectMessages() {
     // En desktop: sidebar fijo y área de chat
     return (
         <div style={{ display: "flex", height: "100vh" }}>
-            <SidebarDesktop dms={dms} />
+            <SidebarDesktop dms={dms} setDms={setDms}/>
             <div style={{ flex: 1, backgroundColor: "#111", color: "#fff", overflowY: "auto" }}>
                 <Outlet />
             </div>

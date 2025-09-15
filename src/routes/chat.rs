@@ -11,6 +11,7 @@ use crate::models::chat::ChatState;
 pub fn chat_router(state: Arc<RwLock<ChatState>>, pool: PgPool) -> Router {
     Router::new()
         .route("/create/{room_id}", post(create_chat))
+        .route("/create-dm/{user2_id}", post(create_new_conversation))
         .route("/join/{room_id}", get(join_chat))
         .route("/stats/{room_id}", get(get_room_stats))
         .route("/active-rooms", get(get_active_rooms))

@@ -5,7 +5,7 @@ use sqlx::PgPool;
 use sqlx::types::time::OffsetDateTime;
 
 use crate::db::offset_date_time_serde;
-use crate::models::user::{UserSummary};
+use crate::models::user::UserSummary;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct ConversationSummarySimpleRaw {
@@ -114,6 +114,48 @@ pub async fn get_last_message_content(
     .await?;
 
     Ok(result)
+}
+
+pub async fn create_conversation(
+    user1_id: i32,
+    user2_id: i32,
+    pool: &PgPool,
+) -> Result<i32, sqlx::Error> {
+    // 0. Comprobar si ya existe una conversación entre estos dos usuarios
+    if let Some(existing) = sqlx::query!(
+        r#"
+        SELECT c.id
+        FROM conversations c
+        JOIN conversation_participants p1 ON c.id = p1.conversation_id
+        JOIN conversation_participants p2 ON c.id = p2.conversation_id
+        WHERE p1.user_id = $1 AND p2.user_id = $2
+        "#,
+        user1_id,
+        user2_id
+    )
+    .fetch_optional(pool)
+    .await?
+    {
+        return Ok(existing.id); // ya existe, devolvemos el id
+    }
+
+    // 1. Crear la conversación
+    let conversation_id: (i32,) =
+        sqlx::query_as("INSERT INTO conversations DEFAULT VALUES RETURNING id")
+            .fetch_one(pool)
+            .await?;
+
+    // 2. Insertar a los dos participantes
+    sqlx::query!(
+        "INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1, $2), ($1, $3)",
+        conversation_id.0,
+        user1_id,
+        user2_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(conversation_id.0)
 }
 
 // pub async fn get_user_conversations(

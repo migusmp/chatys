@@ -15,6 +15,14 @@ export type RegisterUserData = {
     password: string,
 }
 
+export type UserSearchData = {
+  id: number;
+  username: string;
+  name: string;
+  image: string;
+  description: string;
+};
+
 export type LoginUserData = {
     username: string,
     password: string,

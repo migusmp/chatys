@@ -117,12 +117,20 @@ impl AppState {
         }
     }
 
-    pub async fn notify_user_new_message(&self, recipient_id: i32, conversation_id: i32, from_user_id: i32, content_preview: String, from_user_username: &String, from_user_image: &String) {
+    pub async fn notify_user_new_message(
+        &self,
+        recipient_id: i32,
+        conversation_id: i32,
+        from_user_id: i32,
+        content_preview: String,
+        from_user_username: &String,
+        from_user_image: &String,
+    ) {
         // Notifica al usuario destinatario del nuevo mensaje
         // Verifica si el usuario está conectado
-    let connected = self.connected_users.lock().await;
-    if let Some(sender) = connected.get(&recipient_id) {
-        let notification = serde_json::json!({
+        let connected = self.connected_users.lock().await;
+        if let Some(sender) = connected.get(&recipient_id) {
+            let notification = serde_json::json!({
             "type_msg": "NEW_DM_MESSAGE",
             "conversation_id": conversation_id,
             "from_user": from_user_id,
@@ -133,11 +141,11 @@ impl AppState {
             "created_at": time::OffsetDateTime::now_utc().format(&time::format_description::well_known::Rfc3339).unwrap_or_default(),
         }).to_string();
 
-        if sender.send(notification).await.is_err() {
-            eprintln!("Error enviando notificación a usuario {}", recipient_id);
+            if sender.send(notification).await.is_err() {
+                eprintln!("Error enviando notificación a usuario {}", recipient_id);
+            }
         }
     }
-}
 
     // <--------------------------------------------------------------------------------------------->
 
@@ -410,6 +418,41 @@ impl AppState {
         Ok(friends.into_iter().map(|f| f.friend_id).collect())
     }
 
+    pub async fn get_user_friends_and_users_from_dms(
+        &self,
+        user_id: i32,
+    ) -> Result<Vec<i32>, sqlx::Error> {
+        // 1️⃣ Obtener amigos
+        let mut friends = self.get_user_friends(user_id).await?;
+
+        // 2️⃣ Obtener usuarios con los que ha tenido DMs directos
+        let dm_users = sqlx::query!(
+            r#"
+        SELECT DISTINCT cp2.user_id
+        FROM conversation_participants cp1
+        JOIN conversation_participants cp2
+          ON cp1.conversation_id = cp2.conversation_id
+        JOIN conversations c
+          ON c.id = cp1.conversation_id
+        WHERE cp1.user_id = $1
+          AND cp2.user_id != $1
+          AND c.is_group = false
+        "#,
+            user_id
+        )
+        .fetch_all(&self.db_pool)
+        .await?;
+
+        for record in dm_users {
+            let dm_user_id = record.user_id;
+            if !friends.contains(&dm_user_id) {
+                friends.push(dm_user_id);
+            }
+        }
+
+        Ok(friends)
+    }
+
     // Agrega un usuario al broadcast global
     pub async fn add_user_to_global_broadcast(&self) -> broadcast::Receiver<String> {
         self.global_broadcast.subscribe()
@@ -443,7 +486,7 @@ impl AppState {
         }
 
         // Aquí podrías limpiar otros recursos relacionados con el usuario si existen.
-        if let Ok(friends) = self.get_user_friends(user_id).await {
+        if let Ok(friends) = self.get_user_friends_and_users_from_dms(user_id).await {
             for friend_id in friends {
                 notify_user_with_active_friends(self, friend_id).await;
             }
