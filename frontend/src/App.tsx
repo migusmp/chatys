@@ -32,62 +32,62 @@ const NotFound = lazy(() => import('./components/NotFound'))
 
 function App() {
 
-  return (
-    <BrowserRouter>
-      <Suspense fallback={<Loader />}>
-        <Routes>
-          {/* Rutas protegidas */}
-          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="/" element={<Home />} />
-            <Route path="/friends" element={<Friends />} />
-            <Route path="/chats" element={<Chats />} />
+    return (
+        <BrowserRouter>
+            <Suspense fallback={<Loader />}>
+                <Routes>
+                    {/* Rutas protegidas */}
+                    <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/friends" element={<Friends />} />
+                        <Route path="/chats" element={<Chats />} />
 
-            <Route path="/dm" element={<DirectMessages />}>
-              <Route index element={<DmList />} />
-              {/* Ruta para el chat individual */}
-              <Route path=":username" element={<DmRoom />} />
-            </Route>
+                        <Route path="/dm" element={<DirectMessages />}>
+                            <Route index element={<DmList />} />
+                            {/* Ruta para el chat individual */}
+                            <Route path=":username" element={<DmRoom />} />
+                        </Route>
 
-            <Route path="/notifications" element={<Notifications />} />
+                        <Route path="/notifications" element={<Notifications />} />
 
-            <Route path="/profile/:username" element={<Profile />}>
-              <Route index element={<PostsProfile />} />
-              <Route path="friends" element={<FriendsProfile />} />
-            </Route>
+                        <Route path="/profile/:username" element={<Profile />}>
+                            <Route index element={<PostsProfile />} />
+                            <Route path="friends" element={<FriendsProfile />} />
+                        </Route>
 
-            <Route path="/settings" element={<Settings />}>
-              <Route index element={<AccountSettings />} />
-              <Route path="account" element={<AccountSettings />} />
-              <Route path="language" element={<SelectLanguage />} />
-              <Route path="theme" element={<SelectTheme />} />
-            </Route>
-          </Route>
+                        <Route path="/settings" element={<Settings />}>
+                            <Route index element={<AccountSettings />} />
+                            <Route path="account" element={<AccountSettings />} />
+                            <Route path="language" element={<SelectLanguage />} />
+                            <Route path="theme" element={<SelectTheme />} />
+                        </Route>
+                    </Route>
 
-          {/* Rutas públicas */}
-          <Route
-            path="/login"
-            element={
-              <ProtectedRoute>
-                <Login />
-              </ProtectedRoute>
-            }
-          />
+                    {/* Rutas públicas */}
+                    <Route
+                        path="/login"
+                        element={
+                            <ProtectedRoute>
+                                <Login />
+                            </ProtectedRoute>
+                        }
+                    />
 
-          <Route
-            path="/register"
-            element={
-              <ProtectedRoute>
-                <Register />
-              </ProtectedRoute>
-            }
-          />
+                    <Route
+                        path="/register"
+                        element={
+                            <ProtectedRoute>
+                                <Register />
+                            </ProtectedRoute>
+                        }
+                    />
 
-          {/* Página 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
-  )
+                    {/* Página 404 */}
+                    <Route path="*" element={<NotFound />} />
+                </Routes>
+            </Suspense>
+        </BrowserRouter>
+    )
 }
 
 export default App

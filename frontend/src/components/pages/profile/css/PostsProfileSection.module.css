@@ -11,6 +11,7 @@
 .body h2 {
     font-size: 2rem;
     color: #999;
+    margin-top: 1.5rem;
 }
 
 /* styles for back button on Profile */
@@ -18,17 +19,21 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: rgba(0, 0, 0, 0.75); /* fondo negro con opacidad */
+    background: rgba(0, 0, 0, 0.75);
+    /* fondo negro con opacidad */
     display: flex;
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
-    pointer-events: none; /* para que el contenedor no capture eventos */
+    pointer-events: none;
+    /* para que el contenedor no capture eventos */
 }
 
 .backButtonInner {
     width: 100%;
-    max-width: 45%; /* igual al límite de .userInfoSection */
-    pointer-events: auto; /* para que el botón sí capture eventos */
+    max-width: 45%;
+    /* igual al límite de .userInfoSection */
+    pointer-events: auto;
+    /* para que el botón sí capture eventos */
 }
 
 .backButton {
@@ -37,7 +42,8 @@
     padding: 1rem;
     font-size: 1rem;
     border: none;
-    background: transparent; /* quitar fondo del botón */
+    background: transparent;
+    /* quitar fondo del botón */
     text-align: left;
     cursor: pointer;
     border-radius: 0 0 8px 8px;
@@ -81,11 +87,13 @@
     .backButtonInner {
         max-width: 100%;
     }
+
     .backButton {
         max-width: 300px;
         margin: 0 auto;
         border-radius: 0 0 8px 8px;
     }
+
     .body h2 {
         font-size: 1.5rem;
     }

@@ -43,7 +43,8 @@
       "noPublications": "No posts found"
     },
     "friendsSection": {
-      "noFriendsMessage": "You're alone... for now"
+      "noUserFriendsMessage": "You're alone... for now",
+      "noUserRandomFriendsMessage": "No friends yet"
     },
     "editProfileModal": {
       "changeImgMessage": "Click on the image to change it",
@@ -56,6 +57,7 @@
     }
   },
   "notifications": {
+    "noNotifications": "No notifications yet",
     "message": "sent you a friend request"
   },
   "notFound": {
@@ -64,6 +66,7 @@
     "description": "Sorry, the page you are looking for does not exist or has been moved.",
     "buttonText": "Back to Home"
   },
+  "dmRoomSearchUserPlaceholder": "Search user...",
   "directMessages": {
     "userDm": {
       "connected": "Online",

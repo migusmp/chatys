@@ -43,7 +43,8 @@
       "noPublications": "No hay ningún post"
     },
     "friendsSection": {
-      "noFriendsMessage": "No tienes amigos aún"
+      "noUserFriendsMessage": "No tienes amigos aún",
+      "noUserRandomFriendsMessage": "No tiene amigos"
     },
     "editProfileModal": {
       "changeImgMessage": "Haz clic en la imagen para cambiarla",
@@ -56,6 +57,7 @@
     }
   },
   "notifications": {
+    "noNotifications": "No tienes ninguna notificación",
     "message": "quiere ser tu amigo"
   },
   "notFound": {
@@ -64,6 +66,7 @@
     "description": "Lo sentimos, la página que estás buscando no existe o ha sido movida.",
     "buttonText": "Volver al inicio"
   },
+  "dmRoomSearchUserPlaceholder": "Buscar usuario...",
   "directMessages": {
     "userDm": {
       "connected": "En línea",

@@ -107,17 +107,6 @@ export default function DmRoomDesktop({ conversationData }: Props) {
             content: message,
         };
 
-        // // ✅ Actualizar la lista de mensajes en la sala
-        // setAllMessages((prev) => [
-        //     ...prev,
-        //     {
-        //         id: Date.now(),
-        //         content: message,
-        //         sender_id: user?.id ?? 0,
-        //         created_at: new Date().toISOString(),
-        //     },
-        // ]);
-
         // ✅ Actualizar el "lastMessage" global para la Sidebar
         setNewLastMessage((prev) => {
             const arr = Array.isArray(prev) ? prev : [];
