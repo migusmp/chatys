@@ -22,7 +22,7 @@ export default function SidebarMovile() {
                         <div className="icon-with-badge">
                             <i className={`bi ${isActive('/dm') ? 'bi-send-fill' : 'bi-send'}`}></i>
                             {dmNotifications.length > 0 && (
-                                <span className="badge">{dmNotifications.length}</span>
+                                <span className="badge">{dmNotifications.length > 9 ? '9+' : dmNotifications.length}</span>
                             )}
                         </div>
                     </Link>

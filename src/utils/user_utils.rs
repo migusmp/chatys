@@ -1,4 +1,4 @@
-use std::{borrow::Cow};
+use std::borrow::Cow;
 
 use axum::{http::StatusCode, response::Response};
 use bcrypt::BcryptError;
@@ -14,10 +14,7 @@ use tokio::task::JoinError;
 use crate::models::user::{LoginUser, Payload, RegisterUser, User};
 
 // Verificamos que el usuario exista
-pub async fn verify_user_exists(
-    user: &RegisterUser,
-    pool: &PgPool,
-) -> Result<bool, JoinError> {
+pub async fn verify_user_exists(user: &RegisterUser, pool: &PgPool) -> Result<bool, JoinError> {
     // Consulta SQL para verificar si el usuario existe por correo o nombre de usuario
     let result: (i64,) = sqlx::query_as(
         r#"
@@ -115,10 +112,8 @@ pub async fn create_payload(user_data: User) -> Result<String, jsonwebtoken::err
 pub async fn create_token_cookie<'a>(name_cookie: &'a str, token: Cow<'a, str>) -> Cookie<'a> {
     Cookie::build((name_cookie, token))
         .http_only(true) // Evita que sea accesible desde JavaScript.
-        // .same_site(cookie::SameSite::Lax)
         .same_site(cookie::SameSite::Lax)
         .secure(true)
-        // .partitioned(true)
         .path("/")
         .max_age(time::Duration::days(7))
         .build()

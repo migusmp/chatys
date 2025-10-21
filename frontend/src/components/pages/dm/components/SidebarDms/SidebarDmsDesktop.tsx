@@ -46,29 +46,6 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                 headers: { "Content-Type": "application/json" },
             });
             if (!res.ok) throw new Error("Error al crear la conversación");
-            // const data = await res.json();
-
-            // // Opcional: actualizar la lista de DMs en el frontend
-            // setDms(prev => [
-            //     ...prev,
-            //     {
-            //         conversation_id: data.id,                 // ID que devuelve tu endpoint
-            //         participants: [
-            //             {
-            //                 id: userOther.id,
-            //                 username: userOther.username,
-            //                 image: userOther.image,
-            //                 // otros campos necesarios de Participant
-            //             },
-            //         ],
-            //         last_message: "",
-            //         last_message_user_id: 0,
-            //         updated_at: new Date().toISOString(),
-            //         is_group: false,                         // ⚠ obligatorio
-            //     },
-            // ]);
-
-
 
             navigate(`/dm/${userOther.username}`);
         } catch (err) {
@@ -191,7 +168,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                         marginLeft: "8px"
                                     }}
                                 >
-                                    {unreadCount}
+                                    {unreadCount > 9 ? "9+" : unreadCount}
                                 </div>
                             )}
                         </li>
