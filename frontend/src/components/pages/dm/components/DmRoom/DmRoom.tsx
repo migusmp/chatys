@@ -33,9 +33,9 @@ export default function DmRoom() {
     return (
         <>
             {isMobile ? (
-                <DmRoomMobile conversationData={conversationData} />
+                <DmRoomMobile key={conversationData.conversation.id} conversationData={conversationData} />
             ) : (
-                <DmRoomDesktop conversationData={conversationData} />
+                <DmRoomDesktop key={conversationData.conversation.id} conversationData={conversationData} />
             )}
         </>
 

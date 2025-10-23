@@ -19,7 +19,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
     const [allMessages, setAllMessages] = useState<ChatMessage[]>([...conversationData.messages].reverse());
     const [socket, setSocket] = useState<WebSocket | null>(null);
 
-    const limit = 20;
+    const limit = 10;
     const [offset, setOffset] = useState(allMessages.length);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -32,11 +32,22 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         (p) => p.id !== user?.id
     );
 
+    function mergeMessages(existing: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
+        const map = new Map<number, ChatMessage>();
+        for (const msg of [...existing, ...incoming]) {
+            map.set(msg.id, msg);
+        }
+        // Mantén el orden por fecha
+        return Array.from(map.values()).sort(
+            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+    }
+
+
     const isOnline = checkUserIsOnline(otherParticipant?.id ?? -1);
 
-    // --- Cargar mensajes antiguos ---
-    const loadOlderMessages = async (initial = false) => {
-        console.log("Cargando mensajes antiguos...")
+    // === Cargar mensajes antiguos (scroll arriba, estilo WhatsApp) ===
+    const loadOlderMessages = async () => {
         if (!hasMore || loadingMore || !otherParticipant) return;
         setLoadingMore(true);
 
@@ -53,71 +64,49 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         }
 
         const data = await res.json(); // { messages: ChatMessage[] }
-        const olderMessages = [...data.messages].reverse(); // antiguos primero
+        const olderMessages = [...data.messages].reverse();
 
         if (data.messages.length < limit) setHasMore(false);
-        setAllMessages((prev) => [...olderMessages, ...prev]);
+
+        // Agregar arriba sin alterar el scroll
+        setAllMessages((prev) => mergeMessages(prev, olderMessages));
         setOffset((prev) => prev + data.messages.length);
 
-        if (!initial) {
-            setTimeout(() => {
-                if (container) container.scrollTop = container.scrollHeight - previousScrollHeight;
-            }, 0);
-        }
-        // Mantener scroll en la misma posición
-        setTimeout(() => {
+        // Restaurar posición exacta
+        requestAnimationFrame(() => {
             if (container) {
-                container.scrollTop = container.scrollHeight - previousScrollHeight;
+                const newScrollHeight = container.scrollHeight;
+                container.scrollTop = newScrollHeight - previousScrollHeight;
             }
-        }, 0);
+        });
 
         setLoadingMore(false);
     };
 
-    // --- Scroll infinito ---
-    // --- Scroll infinito y carga de mensajes antiguos correcta ---
+    // === Scroll infinito (detectar cuando se llega al top) ===
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
-        // Inicial: colocar scroll abajo
-        container.scrollTop = container.scrollHeight;
-        firstLoadRef.current = false;
-
         const handleScroll = () => {
-            if (!hasMore || loadingMore) return;
-            // Solo cargar si el usuario hace scroll hacia arriba
-            if (container.scrollTop < 50) loadOlderMessages();
+            if (container.scrollTop < 80 && !loadingMore && hasMore) {
+                loadOlderMessages();
+            }
         };
 
         container.addEventListener("scroll", handleScroll);
         return () => container.removeEventListener("scroll", handleScroll);
-    }, [hasMore, loadingMore]);
+    }, [allMessages, hasMore, loadingMore]);
 
-    // --- Efecto para scroll al último mensaje cuando llega uno nuevo ---
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        // Si el usuario está casi al final, hacemos scroll automático
-        const nearBottom =
-            container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-
-        if (nearBottom) {
-            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [allMessages]);
-
-    // --- Sincronizar conversación ---
+    // === Sincronizar conversación inicial ===
     useEffect(() => {
         if (!conversationData.messages) return;
 
         setAllMessages([...conversationData.messages].reverse());
-        setOffset(conversationData.messages.length); // offset inicial = número de mensajes que ya tenemos
-        setHasMore(true); // por si hay más mensajes en la DB
+        setOffset(conversationData.messages.length);
+        setHasMore(true);
         firstLoadRef.current = true;
 
-        // Marcar notificaciones de este chat como leídas
         setDmNotifications((prev) =>
             prev.filter(
                 (n) =>
@@ -129,18 +118,15 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         );
     }, [conversationData]);
 
-
-    // --- Scroll al último mensaje ---
+    // === Scroll automático solo en primera carga ===
     useEffect(() => {
         if (firstLoadRef.current) {
             bottomRef.current?.scrollIntoView({ behavior: "auto" });
             firstLoadRef.current = false;
-        } else {
-            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         }
-    }, [allMessages]);
+    }, [allMessages.length]);
 
-    // --- WebSocket para mensajes en tiempo real ---
+    // === WebSocket para recibir mensajes en tiempo real ===
     useEffect(() => {
         if (!otherParticipant) return;
 
@@ -157,7 +143,18 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                 sender_id: raw.from_user,
                 created_at: new Date().toISOString(),
             };
+
+            const container = containerRef.current;
+            const isAtBottom =
+                container &&
+                container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
             setAllMessages((prev) => [...prev, data]);
+
+            // Solo hacer scroll si estaba al fondo (como WhatsApp)
+            if (isAtBottom) {
+                setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+            }
         };
 
         ws.onclose = () => console.log("[WS] Socket cerrado por servidor o cliente");
@@ -166,7 +163,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         return () => ws.close();
     }, [otherParticipant]);
 
-    // --- Enviar mensaje ---
+    // === Enviar mensaje ===
     const handleSendMessage = () => {
         if (!message.trim() || !socket) return;
 
@@ -192,6 +189,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         });
 
         setMessage("");
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     };
 
     if (!otherParticipant) return null;
@@ -230,7 +228,8 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     return (
                         <div
                             key={msg.id}
-                            className={`${styles.messageBubble} ${isOwn ? styles.ownMessage : styles.otherMessage}`}
+                            className={`${styles.messageBubble} ${isOwn ? styles.ownMessage : styles.otherMessage
+                                }`}
                         >
                             <div className={styles.messageRow}>
                                 <span className={styles.messageText}>{msg.content}</span>
