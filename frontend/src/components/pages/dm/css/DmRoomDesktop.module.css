@@ -1,7 +1,8 @@
 .container {
     display: flex;
     flex-direction: column;
-    height: 100vh; /* ocupa toda la altura visible */
+    height: 100vh;
+    /* ocupa toda la altura visible */
     width: 100%;
 }
 
@@ -54,8 +55,6 @@
 }
 
 
-
-
 /* ESTILOS PARA LA SECCIÓN DEL INPUT PARA EL MENSAJE Y ENVIARLO */
 .inputSection {
     display: flex;
@@ -82,6 +81,7 @@
 .messageInput::placeholder {
     color: #666;
 }
+
 /*rgba(0, 255, 102, 0.15)*/
 .sendButton {
     padding: 0.6rem 1.2rem;
@@ -95,10 +95,13 @@
 }
 
 .sendButton:disabled {
-    background-color: rgba(0, 255, 102, 0.12); /* verde tenue pero visible */
-    color: rgba(0, 255, 102, 0.4);             /* texto menos saturado */
+    background-color: rgba(0, 255, 102, 0.12);
+    /* verde tenue pero visible */
+    color: rgba(0, 255, 102, 0.4);
+    /* texto menos saturado */
     cursor: not-allowed;
-    opacity: 0.8; /* se mantiene visible pero menos viva */
+    opacity: 0.8;
+    /* se mantiene visible pero menos viva */
 }
 
 .sendButton:hover:enabled {
@@ -109,7 +112,8 @@
 /* ESTILOS PARA LA SECCION DEL CHAT, DONDE SE VEN LOS MENSAJES */
 .messageBubble {
     max-width: 60%;
-    padding: 0.6rem; /* espacio inferior para la hora */
+    padding: 0.6rem;
+    /* espacio inferior para la hora */
     border-radius: 1rem;
     margin: 0.4rem 0;
     word-wrap: break-word;
@@ -135,7 +139,8 @@
 .messageRow {
     display: flex;
     justify-content: space-between;
-    align-items: baseline; /* en vez de flex-end */
+    align-items: baseline;
+    /* en vez de flex-end */
     width: 100%;
     gap: 0.5rem;
 }
@@ -148,7 +153,8 @@
 .messageTime {
     font-size: 0.7rem;
     color: #888;
-    padding-bottom: 0.1rem; /* opcional */
+    padding-bottom: 0.1rem;
+    /* opcional */
 }
 
 .chatArea {
@@ -159,4 +165,37 @@
     flex-direction: column;
     gap: 0.2rem;
     background-color: #000000;
+}
+
+/* Loader arriba del chat (sin fondo) */
+.loaderWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 0;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+/* Spinner verde estilo Chatys */
+.loader {
+    width: 25px;
+    height: 25px;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    /* borde tenue */
+    border-top: 3px solid #0f6;
+    /* 💚 verde Chatys */
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }

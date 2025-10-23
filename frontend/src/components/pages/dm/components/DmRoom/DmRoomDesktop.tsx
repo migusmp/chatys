@@ -218,6 +218,12 @@ export default function DmRoomDesktop({ conversationData }: Props) {
             </header>
 
             <div className={styles.chatArea} ref={containerRef}>
+                {loadingMore && (
+                    <div className={styles.loaderWrapper}>
+                        <div className={styles.loader}></div>
+                    </div>
+                )}
+
                 {allMessages.map((msg) => {
                     const isOwn = msg.sender_id === user?.id;
                     const time = new Date(msg.created_at).toLocaleTimeString([], {
