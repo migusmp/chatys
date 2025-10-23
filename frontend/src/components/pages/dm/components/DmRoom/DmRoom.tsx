@@ -16,7 +16,7 @@ export default function DmRoom() {
 
     useEffect(() => {
         const fetch = async () => {
-            const data = await fetchFullConversationInfo(username ?? "");
+            const data = await fetchFullConversationInfo(username ?? "", 25, 0);
             if (data) {
                 setConversationData(data);
             } else {

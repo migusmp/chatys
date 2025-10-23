@@ -81,12 +81,12 @@ export default function useFetch() {
         }
     }
 
-    async function fetchFullConversationInfo(username: string): Promise<FullConversation | void> {
+    async function fetchFullConversationInfo(username: string, limit: number, offset: number): Promise<FullConversation | void> {
         try {
-            const res = await fetch(`/api/chat/conversation/${username}`, {
-                method: "GET",
-                credentials: "include"
-            });
+            const res = await fetch(
+                `/api/chat/conversation/${username}?limit=${limit}&offset=${offset}`,
+                { method: "GET", credentials: "include" }
+            );
 
             if (!res.ok) {
                 throw new Error(`Error HTTP: ${res.status}`);

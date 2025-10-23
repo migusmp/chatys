@@ -15,7 +15,6 @@ pub struct FullConversationResponse {
     pub messages: Vec<Message>,
 }
 
-
 #[derive(sqlx::FromRow, Serialize)]
 pub struct Message {
     pub id: i32,
@@ -189,7 +188,7 @@ pub async fn get_messages(
         SELECT id, conversation_id, sender_id, content, created_at, read_by
         FROM messages
         WHERE conversation_id = $1
-        ORDER BY created_at ASC
+        ORDER BY created_at DESC
         LIMIT $2 OFFSET $3
         "#,
     )

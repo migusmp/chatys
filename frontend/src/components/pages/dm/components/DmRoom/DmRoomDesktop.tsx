@@ -14,9 +14,19 @@ type Props = {
 export default function DmRoomDesktop({ conversationData }: Props) {
     const { user, checkUserIsOnline, setDmNotifications, setNewLastMessage } = useUserContext();
     const { t } = useTranslation();
+
     const [message, setMessage] = useState("");
-    const [allMessages, setAllMessages] = useState<ChatMessage[]>(conversationData.messages);
+    const [allMessages, setAllMessages] = useState<ChatMessage[]>([...conversationData.messages].reverse());
     const [socket, setSocket] = useState<WebSocket | null>(null);
+
+    const limit = 20;
+    const [offset, setOffset] = useState(allMessages.length);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const bottomRef = useRef<HTMLDivElement | null>(null);
+    const firstLoadRef = useRef(true);
 
     const otherParticipant = conversationData.conversation.participants.find(
         (p) => p.id !== user?.id
@@ -24,12 +34,90 @@ export default function DmRoomDesktop({ conversationData }: Props) {
 
     const isOnline = checkUserIsOnline(otherParticipant?.id ?? -1);
 
-    const bottomRef = useRef<HTMLDivElement | null>(null);
-    const firstLoadRef = useRef(true);
+    // --- Cargar mensajes antiguos ---
+    const loadOlderMessages = async (initial = false) => {
+        console.log("Cargando mensajes antiguos...")
+        if (!hasMore || loadingMore || !otherParticipant) return;
+        setLoadingMore(true);
 
-    // Sincronizar mensajes cuando cambia la conversación
+        const container = containerRef.current;
+        const previousScrollHeight = container?.scrollHeight ?? 0;
+
+        const res = await fetch(
+            `/api/chat/conversation/${otherParticipant.username}?limit=${limit}&offset=${offset}`
+        );
+        if (!res.ok) {
+            console.error("Error al cargar mensajes antiguos");
+            setLoadingMore(false);
+            return;
+        }
+
+        const data = await res.json(); // { messages: ChatMessage[] }
+        const olderMessages = [...data.messages].reverse(); // antiguos primero
+
+        if (data.messages.length < limit) setHasMore(false);
+        setAllMessages((prev) => [...olderMessages, ...prev]);
+        setOffset((prev) => prev + data.messages.length);
+
+        if (!initial) {
+            setTimeout(() => {
+                if (container) container.scrollTop = container.scrollHeight - previousScrollHeight;
+            }, 0);
+        }
+        // Mantener scroll en la misma posición
+        setTimeout(() => {
+            if (container) {
+                container.scrollTop = container.scrollHeight - previousScrollHeight;
+            }
+        }, 0);
+
+        setLoadingMore(false);
+    };
+
+    // --- Scroll infinito ---
+    // --- Scroll infinito y carga de mensajes antiguos correcta ---
     useEffect(() => {
-        // ELIMINAR LAS NOIFICACIONES DE ESTE CHAT
+        const container = containerRef.current;
+        if (!container) return;
+
+        // Inicial: colocar scroll abajo
+        container.scrollTop = container.scrollHeight;
+        firstLoadRef.current = false;
+
+        const handleScroll = () => {
+            if (!hasMore || loadingMore) return;
+            // Solo cargar si el usuario hace scroll hacia arriba
+            if (container.scrollTop < 50) loadOlderMessages();
+        };
+
+        container.addEventListener("scroll", handleScroll);
+        return () => container.removeEventListener("scroll", handleScroll);
+    }, [hasMore, loadingMore]);
+
+    // --- Efecto para scroll al último mensaje cuando llega uno nuevo ---
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        // Si el usuario está casi al final, hacemos scroll automático
+        const nearBottom =
+            container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+        if (nearBottom) {
+            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [allMessages]);
+
+    // --- Sincronizar conversación ---
+    useEffect(() => {
+        if (!conversationData.messages) return;
+
+        setAllMessages([...conversationData.messages].reverse());
+        setOffset(conversationData.messages.length); // offset inicial = número de mensajes que ya tenemos
+        setHasMore(true); // por si hay más mensajes en la DB
+        firstLoadRef.current = true;
+
+        // Marcar notificaciones de este chat como leídas
         setDmNotifications((prev) =>
             prev.filter(
                 (n) =>
@@ -39,15 +127,10 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     )
             )
         );
-
-
-        // Actualizar mensajes
-        if (!conversationData.messages) return;
-        setAllMessages(conversationData.messages);
-        firstLoadRef.current = true; // para scroll instantáneo en nuevo chat
     }, [conversationData]);
 
-    // Scroll al último mensaje
+
+    // --- Scroll al último mensaje ---
     useEffect(() => {
         if (firstLoadRef.current) {
             bottomRef.current?.scrollIntoView({ behavior: "auto" });
@@ -57,19 +140,17 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         }
     }, [allMessages]);
 
-    // Abrir socket y escuchar mensajes nuevos
+    // --- WebSocket para mensajes en tiempo real ---
     useEffect(() => {
         if (!otherParticipant) return;
 
         const protocol = location.protocol === "https:" ? "wss" : "ws";
         const ws = new WebSocket(`${protocol}://${location.host}/ws/${conversationData.conversation.id}`);
-        ws.onopen = () => {
-            console.log("[WS] Conectado al WebSocket de", otherParticipant.username);
-        }
+
+        ws.onopen = () => console.log("[WS] Conectado al WebSocket de", otherParticipant.username);
 
         ws.onmessage = (event) => {
             const raw = JSON.parse(event.data);
-            console.log("[WS] Mensaje recibido:", raw);
             const data: ChatMessage = {
                 id: Date.now(),
                 content: raw.content,
@@ -79,18 +160,13 @@ export default function DmRoomDesktop({ conversationData }: Props) {
             setAllMessages((prev) => [...prev, data]);
         };
 
-        ws.onclose = () => {
-            console.log("[WS] Socket cerrado por servidor o cliente");
-        };
+        ws.onclose = () => console.log("[WS] Socket cerrado por servidor o cliente");
 
         setSocket(ws);
-
-        return () => {
-            ws.close();
-            console.log("[WS] Socket cerrado");
-        };
+        return () => ws.close();
     }, [otherParticipant]);
 
+    // --- Enviar mensaje ---
     const handleSendMessage = () => {
         if (!message.trim() || !socket) return;
 
@@ -107,7 +183,6 @@ export default function DmRoomDesktop({ conversationData }: Props) {
             content: message,
         };
 
-        // ✅ Actualizar el "lastMessage" global para la Sidebar
         setNewLastMessage((prev) => {
             const arr = Array.isArray(prev) ? prev : [];
             const filtered = arr.filter(
@@ -144,7 +219,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                 </div>
             </header>
 
-            <div className={styles.chatArea}>
+            <div className={styles.chatArea} ref={containerRef}>
                 {allMessages.map((msg) => {
                     const isOwn = msg.sender_id === user?.id;
                     const time = new Date(msg.created_at).toLocaleTimeString([], {
@@ -155,8 +230,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     return (
                         <div
                             key={msg.id}
-                            className={`${styles.messageBubble} ${isOwn ? styles.ownMessage : styles.otherMessage
-                                }`}
+                            className={`${styles.messageBubble} ${isOwn ? styles.ownMessage : styles.otherMessage}`}
                         >
                             <div className={styles.messageRow}>
                                 <span className={styles.messageText}>{msg.content}</span>
@@ -188,3 +262,4 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         </div>
     );
 }
+

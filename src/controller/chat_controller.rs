@@ -1,6 +1,8 @@
 use crate::db::conversations::create_conversation;
 use crate::db::db::find_user_by_username;
-use crate::db::messages::{find_conversation_id, get_conversation_details, get_messages, FullConversationResponse};
+use crate::db::messages::{
+    find_conversation_id, get_conversation_details, get_messages, FullConversationResponse,
+};
 use crate::models::chat::ChatState;
 use crate::models::user::{ErrorRequest, Payload};
 use crate::services::chat::{
@@ -42,7 +44,7 @@ pub async fn join_chat(
     Path(room_id): Path<String>,
     Extension(state): Extension<Arc<RwLock<ChatState>>>,
     Extension(payload): Extension<Payload>,
-    Extension(pool): Extension<PgPool>
+    Extension(pool): Extension<PgPool>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, room_id, state, payload, pool))
 }
@@ -64,22 +66,18 @@ pub async fn get_conversation_messages(
     Path((from_user, to_user)): Path<(i32, i32)>,
     Query(pagination): Query<Pagination>,
     Extension(pool): Extension<PgPool>,
-
 ) -> Result<impl IntoResponse, ErrorRequest> {
-
     let limit = pagination.limit.unwrap_or(50);
     let offset = pagination.offset.unwrap_or(0);
 
     match find_conversation_id(from_user, to_user, &pool).await {
-        Ok(conversation_id) => {
-            match get_messages(conversation_id, limit, offset, &pool).await {
-                Ok(messages) => Ok(Json(messages)),
-                Err(e) => {
-                    eprintln!("ERROR al obtener mensajes: {}", e);
-                    Err(ErrorRequest::InternalError)
-                }
+        Ok(conversation_id) => match get_messages(conversation_id, limit, offset, &pool).await {
+            Ok(messages) => Ok(Json(messages)),
+            Err(e) => {
+                eprintln!("ERROR al obtener mensajes: {}", e);
+                Err(ErrorRequest::InternalError)
             }
-        }
+        },
         Err(e) => {
             eprintln!("ERROR al obtener la conversación: {}", e);
             Err(ErrorRequest::InternalError)
@@ -102,7 +100,7 @@ pub async fn get_conversation_messages_by_id(
             Err(ErrorRequest::InternalError)
         }
     }
-}   
+}
 
 pub async fn get_conversation_messages_by_username(
     Path(username): Path<String>,
@@ -110,6 +108,7 @@ pub async fn get_conversation_messages_by_username(
     Query(pagination): Query<Pagination>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<impl IntoResponse, ErrorRequest> {
+    println!("LIMITES: {:?} {:?} ", pagination.limit, pagination.offset);
     let limit = pagination.limit.unwrap_or(50);
     let offset = pagination.offset.unwrap_or(0);
 
@@ -150,7 +149,6 @@ pub async fn get_conversation_messages_by_username(
         messages,
     };
     Ok(Json(response))
-
 }
 
 pub async fn create_new_conversation(
