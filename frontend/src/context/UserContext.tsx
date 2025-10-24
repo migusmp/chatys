@@ -5,77 +5,105 @@ import type { UserProfile } from "../types/user";
 import useUser from "../hooks/useUser";
 import Loader from "../components/Loader";
 
-const UserContext = createContext<UserContextType | undefined>(undefined)
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 // Provider
 interface Props {
-  children: ReactNode
+    children: ReactNode;
 }
 
 export function useUserContext() {
-  const context = useContext(UserContext)
-  if (!context) {
-    throw new Error("useUserContext debe usarse dentro de un <UserProvider>")
-  }
-  return context
+    const context = useContext(UserContext);
+    if (!context) {
+        throw new Error("useUserContext debe usarse dentro de un <UserProvider>");
+    }
+    return context;
 }
 
 export function UserProvider({ children }: Props) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [activeFriends, setActiveFriends] = useState<number[]>([]); // Lista de amigos activos
-  const [newLastMessage, setNewLastMessage] = useState<NewDmMessageNotification[]>([]);
-  const [dmNotifications, setDmNotifications] = useState<DmNotification[]>([]);
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [activeFriends, setActiveFriends] = useState<number[]>([]);
+    const [newLastMessage, setNewLastMessage] = useState<NewDmMessageNotification[]>([]);
+    const [dmNotifications, setDmNotifications] = useState<DmNotification[]>([]);
+    const [loading, setLoading] = useState(true);
 
+    const { profile } = useUser();
 
-  const [loading, setLoading] = useState(true);
-  const { profile } = useUser();
+    // 🔔 Actualiza el título del navegador según notificaciones
+    useEffect(() => {
+        const totalNotifications = notifications.length + dmNotifications.length;
 
-  async function logout(): Promise<boolean> {
-    try {
-      const res = await fetch("/api/user/logout", {
-        method: "POST",
-        credentials: "include"
-      })
+        if (totalNotifications > 0) {
+            document.title = `(${totalNotifications}) Chatys`;
+        } else {
+            document.title = "Chatys";
+        }
+    }, [notifications, dmNotifications]);
 
-      if (!res.ok) {
-        return false;
-      }
+    async function logout(): Promise<boolean> {
+        try {
+            const res = await fetch("/api/user/logout", {
+                method: "POST",
+                credentials: "include",
+            });
 
-      return true;
-    } catch (e) {
-      console.error("Error al cerrar sesión");
-      return false;
+            if (!res.ok) {
+                return false;
+            }
+
+            return true;
+        } catch (e) {
+            console.error("Error al cerrar sesión");
+            return false;
+        }
     }
-  }
 
-  const checkUserIsOnline = (userId: number): boolean => {
-    return activeFriends.includes(userId);
-  };
+    const checkUserIsOnline = (userId: number): boolean => {
+        return activeFriends.includes(userId);
+    };
 
-  const fetchProfile = async () => {
-    const userData = await profile();
-    if (userData) {
-      setUser(userData);
-    }
+    const fetchProfile = async () => {
+        const userData = await profile();
+        if (userData) {
+            setUser(userData);
+        }
 
-    setLoading(false); // Ya haya o no usuario
-  };
+        setLoading(false);
+    };
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+    useEffect(() => {
+        fetchProfile();
+    }, []);
 
-  const refreshUser = async () => {
-    setLoading(true);
-    await fetchProfile();
-  }
+    const refreshUser = async () => {
+        setLoading(true);
+        await fetchProfile();
+    };
 
-  if (loading) return <Loader />;
+    if (loading) return <Loader />;
 
-  return (
-    <UserContext.Provider value={{ user, setUser, refreshUser, logout, loading, notifications, setNotifications, activeFriends, setActiveFriends, checkUserIsOnline, setNewLastMessage, newLastMessage, dmNotifications, setDmNotifications }}>
-      {children}
-    </UserContext.Provider>
-  );
+    return (
+        <UserContext.Provider
+            value={{
+                user,
+                setUser,
+                refreshUser,
+                logout,
+                loading,
+                notifications,
+                setNotifications,
+                activeFriends,
+                setActiveFriends,
+                checkUserIsOnline,
+                setNewLastMessage,
+                newLastMessage,
+                dmNotifications,
+                setDmNotifications,
+            }}
+        >
+            {children}
+        </UserContext.Provider>
+    );
 }
+

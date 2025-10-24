@@ -1,1 +1,0 @@
-import{c as t,j as s}from"./index-B0LDK90A.js";import{s as e}from"./PostsProfileSection.module-DGZ87ELl.js";function a(){const{t:o}=t();return s.jsxs("section",{className:e.body,children:[s.jsx("h2",{children:o("profile.postsSection.noPublications")}),s.jsx("i",{className:"bi bi-camera",style:{fontSize:"3rem",color:"#00ff66",marginTop:"1rem",opacity:.6}})]})}export{a as default};
