@@ -68,6 +68,9 @@
   },
   "dmRoomSearchUserPlaceholder": "Search user...",
   "directMessages": {
+    "desktopSidebarDm": {
+        "userSearchNotFoundTxt": "No users found"
+    },
     "userDm": {
       "connected": "Online",
       "disconnected": "Offline",

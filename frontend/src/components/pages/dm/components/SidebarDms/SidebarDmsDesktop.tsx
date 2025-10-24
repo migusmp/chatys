@@ -4,6 +4,7 @@ import { OnlineIndicator } from "../OnlineIndicator";
 import type { Conversations, Participants, UserSearchData } from "../../../../../types/user";
 import { useUserContext } from "../../../../../context/UserContext";
 import SearchUsers from "../SearchUsers";
+import { useTranslation } from "react-i18next";
 
 type Props = {
     dms: Conversations[];
@@ -15,6 +16,8 @@ export default function SidebarDmsDesktop({ dms }: Props) {
     const location = useLocation();
     const { user, newLastMessage, dmNotifications } = useUserContext();
     const [searchResults, setSearchResults] = useState<UserSearchData[]>([]);
+    const [searching, setSearching] = useState(false);
+    const { t } = useTranslation();
 
     const [, route, currentUsername] = location.pathname.split("/");
     console.log(route)
@@ -73,6 +76,11 @@ export default function SidebarDmsDesktop({ dms }: Props) {
         (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
 
+    const handleSearchResults = (results: UserSearchData[], isSearching: boolean) => {
+        setSearchResults(results);
+        setSearching(isSearching);
+    };
+
     return (
         <div
             style={{
@@ -83,7 +91,12 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                 borderRight: "1px solid #272727",
             }}
         >
-            <SearchUsers onResults={setSearchResults} />
+            <SearchUsers onResults={handleSearchResults} />
+            {searching && searchResults.length === 0 && (
+                <div style={{ color: "#999", padding: "1rem", textAlign: "center" }}>
+                    {t("directMessages.desktopSidebarDm.userSearchNotFoundTxt")}
+                </div>
+            )}
 
             <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0, gap: "0.2rem", marginTop: "1rem" }}>
                 {sortedDms.map((dm) => {

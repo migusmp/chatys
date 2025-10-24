@@ -3,7 +3,7 @@ import type { UserSearchData } from "../../../../types/user";
 import { useTranslation } from "react-i18next";
 
 type Props = {
-    onResults: (results: UserSearchData[]) => void;
+    onResults: (results: UserSearchData[], searching: boolean) => void;
 };
 
 export default function SearchUsers({ onResults }: Props) {
@@ -12,7 +12,7 @@ export default function SearchUsers({ onResults }: Props) {
 
     async function fetchSearchedUsers(query: string) {
         if (!query.trim()) {
-            onResults([]);
+            onResults([], false); // búsqueda inactiva
             return;
         }
 
@@ -22,9 +22,10 @@ export default function SearchUsers({ onResults }: Props) {
                 credentials: "include",
             });
             const data: UserSearchData[] = await res.json();
-            onResults(data);
+            onResults(data, true); // búsqueda activa
         } catch (e) {
             console.error(e);
+            onResults([], true);
         }
     }
 
@@ -38,7 +39,7 @@ export default function SearchUsers({ onResults }: Props) {
 
     const clearSearch = () => {
         setUserSearched("");
-        onResults([]);
+        onResults([], false);
     };
 
     return (
