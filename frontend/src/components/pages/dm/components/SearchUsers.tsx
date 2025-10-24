@@ -12,7 +12,7 @@ export default function SearchUsers({ onResults }: Props) {
 
     async function fetchSearchedUsers(query: string) {
         if (!query.trim()) {
-            onResults([]); // limpiar resultados
+            onResults([]);
             return;
         }
 
@@ -36,6 +36,11 @@ export default function SearchUsers({ onResults }: Props) {
         return () => clearTimeout(timeout);
     }, [userSearched]);
 
+    const clearSearch = () => {
+        setUserSearched("");
+        onResults([]);
+    };
+
     return (
         <section
             style={{
@@ -45,6 +50,7 @@ export default function SearchUsers({ onResults }: Props) {
                 justifyContent: "center",
                 alignItems: "center",
                 borderBottom: "1px solid #333",
+                position: "relative",
             }}
         >
             <input
@@ -56,6 +62,7 @@ export default function SearchUsers({ onResults }: Props) {
                     width: "85%",
                     padding: "7px",
                     paddingLeft: "12px",
+                    paddingRight: "30px",
                     outline: "none",
                     fontSize: "1rem",
                     borderRadius: "24px",
@@ -64,6 +71,25 @@ export default function SearchUsers({ onResults }: Props) {
                     color: "#fff",
                 }}
             />
+            {userSearched && (
+                <button
+                    onClick={clearSearch}
+                    style={{
+                        position: "absolute",
+                        right: "12%",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
+                        border: "none",
+                        color: "#999",
+                        fontSize: "1.1rem",
+                        cursor: "pointer",
+                    }}
+                >
+                    ✕
+                </button>
+            )}
         </section>
     );
 }
+

@@ -4,6 +4,7 @@ import type { DmNotification, NewDmMessageNotification, Notification } from "../
 import type { UserProfile } from "../types/user";
 import useUser from "../hooks/useUser";
 import Loader from "../components/Loader";
+import useDynamicTitle from "../hooks/useDynamicTitle";
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
@@ -31,15 +32,8 @@ export function UserProvider({ children }: Props) {
     const { profile } = useUser();
 
     // 🔔 Actualiza el título del navegador según notificaciones
-    useEffect(() => {
-        const totalNotifications = notifications.length + dmNotifications.length;
-
-        if (totalNotifications > 0) {
-            document.title = `(${totalNotifications}) Chatys`;
-        } else {
-            document.title = "Chatys";
-        }
-    }, [notifications, dmNotifications]);
+    const totalNotifications = notifications.length + dmNotifications.length;
+    useDynamicTitle(totalNotifications);
 
     async function logout(): Promise<boolean> {
         try {

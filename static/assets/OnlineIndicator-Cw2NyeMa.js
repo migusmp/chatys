@@ -1,1 +1,0 @@
-import{u as r,j as e}from"./index-C76_MIMC.js";function a({userId:o,isHeader:n}){const{checkUserIsOnline:s}=r(),t=s(o);return e.jsx("span",{style:{position:"absolute",bottom:"0",right:"0",width:"14px",height:"14px",borderRadius:"50%",backgroundColor:t?"#0f6":"#888",border:"2px solid rgb(0, 0, 0)",transition:n?"none":"background-color 0.2s ease-in-out"}})}export{a as O};
