@@ -1,0 +1,72 @@
+
+---
+
+## `LICENSE`
+
+```text
+RUSTY API — SOURCE-AVAILABLE NON-COMMERCIAL & NO-REDISTRIBUTION LICENSE
+Version 1.0
+
+Copyright (c) 2026 Miguel
+All rights reserved.
+
+IMPORTANT: This is a proprietary, source-available license.
+You may clone and use the source for personal/internal purposes, but you may NOT
+redistribute or use it commercially.
+
+1) DEFINITIONS
+- “Software” means the source code, binaries, build scripts, configuration files,
+  and documentation in this repository, excluding third-party components.
+- “You” means any individual or entity that receives a copy of the Software.
+- “Non-Commercial” means not primarily intended for or directed toward commercial
+  advantage or monetary compensation.
+
+2) GRANT OF RIGHTS (PERMISSION)
+Subject to the restrictions below, the Licensor grants You a limited, worldwide,
+non-exclusive, non-transferable, revocable license to:
+a) Download/clone the Software from the official repository;
+b) Use the Software for personal, educational, or internal (in-house) purposes;
+c) Modify the Software for your own use.
+
+3) RESTRICTIONS (WHAT YOU MAY NOT DO)
+You may NOT, and may not permit others to:
+a) Redistribute the Software (source or binary) in whole or in part, including
+   by publishing copies, mirrors, re-uploads, packaged releases, or bundled
+   distributions, whether free or paid;
+b) Sublicense, sell, rent, lease, or otherwise transfer the Software or any
+   derivative work to third parties;
+c) Use the Software for any Commercial purpose, including offering it as a paid
+   product, a hosted service, or as part of a commercial platform, consulting
+   deliverable, or monetized application;
+d) Remove or alter copyright, trademark, or license notices.
+
+Exception: You may share links to the official repository without copying the
+Software itself.
+
+4) CONTRIBUTIONS
+If You submit a contribution (e.g., pull request, patch, issue code snippet),
+You grant the Licensor a perpetual, worldwide, royalty-free right to use,
+modify, and relicense Your contribution as part of the Software.
+
+5) THIRD-PARTY COMPONENTS
+The Software may depend on third-party libraries or tools that are licensed
+under their own terms. Those components are not covered by this License and
+remain subject to their respective licenses.
+
+6) TERMINATION
+This License is effective until terminated. It terminates automatically if You
+violate any term. Upon termination, You must stop using the Software and delete
+all copies in your possession or control.
+
+7) DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+8) LIMITATION OF LIABILITY
+IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+END OF TERMS
