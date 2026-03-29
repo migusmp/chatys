@@ -86,6 +86,7 @@ impl AppState {
     pub async fn send_direct_message(&self, message: ChatMessage) {
         // Filtra canales que coincidan con la conversación y usuario destinatario
         let mut delivered = false;
+        let mut dead_channels: Vec<(i32, i32)> = Vec::new();
 
         for entry in self.direct_message_channels.iter() {
             let (conv_id, user_id) = *entry.key();
@@ -100,11 +101,15 @@ impl AppState {
                         "❌ Error enviando mensaje a user {} en conv {} (canal roto)",
                         user_id, conv_id
                     );
-                    // Aquí podrías eliminar canal roto si quieres
+                    dead_channels.push((conv_id, user_id));
                 } else {
                     delivered = true;
                 }
             }
+        }
+
+        for key in dead_channels {
+            self.direct_message_channels.remove(&key);
         }
 
         if !delivered {

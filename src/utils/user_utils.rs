@@ -9,12 +9,12 @@ use cookie::{
 };
 use jsonwebtoken::{DecodingKey, TokenData, Validation};
 use sqlx::PgPool;
-use tokio::task::JoinError;
 
 use crate::models::user::{LoginUser, Payload, RegisterUser, User};
+use crate::utils::jwt::get_jwt_secret;
 
 // Verificamos que el usuario exista
-pub async fn verify_user_exists(user: &RegisterUser, pool: &PgPool) -> Result<bool, JoinError> {
+pub async fn verify_user_exists(user: &RegisterUser, pool: &PgPool) -> Result<bool, sqlx::Error> {
     // Consulta SQL para verificar si el usuario existe por correo o nombre de usuario
     let result: (i64,) = sqlx::query_as(
         r#"
@@ -26,8 +26,7 @@ pub async fn verify_user_exists(user: &RegisterUser, pool: &PgPool) -> Result<bo
     .bind(&user.email)
     .bind(&user.username)
     .fetch_one(&*pool) // Ejecuta la consulta de forma asíncrona
-    .await
-    .unwrap();
+    .await?;
 
     Ok(result.0 > 0) // Si COUNT(*) > 0, el usuario existe
 }
@@ -52,7 +51,7 @@ pub async fn email_exists(email: &str, pool: &PgPool) -> Result<bool, sqlx::Erro
 pub async fn verify_user_login(
     user_login: &LoginUser,
     pool: &PgPool,
-) -> Result<Option<User>, sqlx::Error> {
+) -> Result<Option<User>, Box<dyn std::error::Error + Send + Sync>> {
     // Realizamos la consulta para obtener los datos del usuario por `username`.
     let row = sqlx::query!(
         r#"
@@ -71,7 +70,7 @@ pub async fn verify_user_login(
         None => return Ok(None),
     };
 
-    if hashed_pwd(&user_login.password, &row.password).unwrap() {
+    if hashed_pwd(&user_login.password, &row.password)? {
         let created_at = row.created_at.map(|dt| dt.to_string());
 
         Ok(Some(User {
@@ -93,15 +92,14 @@ pub fn hashed_pwd(pwd: &String, hashed_pwd: &str) -> Result<bool, BcryptError> {
 }
 
 pub async fn create_payload(user_data: User) -> Result<String, jsonwebtoken::errors::Error> {
-    let iat = Utc::now().timestamp(); // tiempo actual
-    let exp = (Utc::now() + Duration::days(7)).timestamp(); // 1 hora de tiempo de expiración.
+    let iat = Utc::now().timestamp();
+    let exp = (Utc::now() + Duration::days(7)).timestamp();
     let user_payload = Payload::new(
         user_data.id,
         user_data.username,
         user_data.name,
         user_data.email,
         user_data.image,
-        user_data.password,
         user_data.created_at,
         exp,
         iat,
@@ -121,21 +119,32 @@ pub async fn create_token_cookie<'a>(name_cookie: &'a str, token: Cow<'a, str>) 
 
 pub fn append_cookie_to_response(res: &mut Response, cookie: Cookie) {
     let cookie_header = cookie.to_string();
-    res.headers_mut().append(
-        axum::http::header::SET_COOKIE,
-        cookie_header.parse().unwrap(),
-    );
+    let parsed_cookie = cookie_header
+        .parse::<axum::http::HeaderValue>()
+        .map_err(|err| eprintln!("Error parseando cookie para header: {err}"));
+
+    if let Ok(parsed_cookie) = parsed_cookie {
+        res.headers_mut()
+            .append(axum::http::header::SET_COOKIE, parsed_cookie);
+    }
 }
 
 pub async fn decode_token(auth_token: String) -> Result<Payload, StatusCode> {
     let token_data: TokenData<Payload> = jsonwebtoken::decode(
         &auth_token,
-        &DecodingKey::from_secret("sdadakj_19234ÑpoM14I83_.,@?¿98".as_ref()),
+        &DecodingKey::from_secret(get_jwt_secret().as_ref()),
         &Validation::default(),
     )
     .map_err(|e| {
-        eprintln!("Error al decodificar el token: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
+        use jsonwebtoken::errors::ErrorKind;
+        match e.kind() {
+            ErrorKind::ExpiredSignature => StatusCode::UNAUTHORIZED,
+            ErrorKind::InvalidToken | ErrorKind::InvalidSignature => StatusCode::UNAUTHORIZED,
+            _ => {
+                eprintln!("Error al decodificar el token: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        }
     })?;
 
     Ok(token_data.claims)

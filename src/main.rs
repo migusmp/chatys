@@ -26,10 +26,15 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
 use handlers::{index_handler, spa_fallback};
+use utils::jwt::init_jwt_secret;
 
 #[shuttle_runtime::main]
 async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::ShuttleAxum {
     dotenv::dotenv().ok();
+
+    let jwt_secret = std::env::var("SECRET_KEY_JWT")
+        .unwrap_or_else(|_| "sdadakj_19234ÑpoM14I83_.,@?¿98".to_string());
+    init_jwt_secret(jwt_secret);
 
     pool.execute(include_str!("../migrations/init.sql"))
         .await

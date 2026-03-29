@@ -15,7 +15,6 @@ export function useDmSocket<T = unknown>(friendId: number) {
 
     return () => {
       disconnectFromFriend(friendId);
-      setMessages([]); // limpia mensajes al desconectar
     };
   }, [friendId]);
 

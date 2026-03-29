@@ -76,11 +76,20 @@ async fn handle_socket(
 
     let (mut sender, mut receiver) = socket.split();
 
-    let write_task = {
+    let mut write_task = {
         let from_user_id = from_user_id; // copia del id simple
         tokio::spawn(async move {
             while let Some(message) = rx.recv().await {
-                let json = serde_json::to_string(&message).unwrap();
+                let json = match serde_json::to_string(&message) {
+                    Ok(json) => json,
+                    Err(err) => {
+                        eprintln!(
+                            "⚠️ Error serializando mensaje para usuario {}: {}",
+                            from_user_id, err
+                        );
+                        continue;
+                    }
+                };
                 println!("➡️ Enviando mensaje a usuario {}: {}", from_user_id, json);
                 if let Err(e) = sender.send(Message::Text(json.into())).await {
                     println!(
@@ -100,7 +109,7 @@ async fn handle_socket(
     let app_state_clone = Arc::clone(&app_state);
     let user_from_data_clone = Arc::clone(&user_from_data);
 
-    let read_task = tokio::spawn(async move {
+    let mut read_task = tokio::spawn(async move {
         while let Some(msg_result) = receiver.next().await {
             match msg_result {
                 Ok(Message::Text(text)) => {
@@ -216,8 +225,12 @@ async fn handle_socket(
     });
 
     select! {
-        _ = write_task => (),
-        _ = read_task => (),
+        _ = &mut write_task => {
+            read_task.abort();
+        },
+        _ = &mut read_task => {
+            write_task.abort();
+        },
     }
 
     println!(

@@ -31,6 +31,8 @@ export default function DmRoomDesktop({ conversationData }: Props) {
     const otherParticipant = conversationData.conversation.participants.find(
         (p) => p.id !== user?.id
     );
+    const otherParticipantId = otherParticipant?.id;
+    const otherParticipantUsername = otherParticipant?.username;
 
     function mergeMessages(existing: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
         const map = new Map<number, ChatMessage>();
@@ -128,12 +130,12 @@ export default function DmRoomDesktop({ conversationData }: Props) {
 
     // === WebSocket para recibir mensajes en tiempo real ===
     useEffect(() => {
-        if (!otherParticipant) return;
+        if (!otherParticipantId || !otherParticipantUsername) return;
 
         const protocol = location.protocol === "https:" ? "wss" : "ws";
         const ws = new WebSocket(`${protocol}://${location.host}/ws/${conversationData.conversation.id}`);
 
-        ws.onopen = () => console.log("[WS] Conectado al WebSocket de", otherParticipant.username);
+        ws.onopen = () => console.log("[WS] Conectado al WebSocket de", otherParticipantUsername);
 
         ws.onmessage = (event) => {
             const raw = JSON.parse(event.data);
@@ -160,8 +162,17 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         ws.onclose = () => console.log("[WS] Socket cerrado por servidor o cliente");
 
         setSocket(ws);
-        return () => ws.close();
-    }, [otherParticipant]);
+        return () => {
+            ws.onopen = null;
+            ws.onmessage = null;
+            ws.onclose = null;
+            ws.onerror = null;
+            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                ws.close();
+            }
+            setSocket((prev) => (prev === ws ? null : prev));
+        };
+    }, [conversationData.conversation.id, otherParticipantId, otherParticipantUsername]);
 
     // === Enviar mensaje ===
     const handleSendMessage = () => {
@@ -267,4 +278,3 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         </div>
     );
 }
-
