@@ -1,0 +1,80 @@
+CREATE SEQUENCE IF NOT EXISTS users_id_seq;
+
+CREATE TABLE IF NOT EXISTS users (
+    id          integer PRIMARY KEY DEFAULT nextval('users_id_seq'),
+    name        varchar(50) NOT NULL,
+    description text NOT NULL DEFAULT '',
+    username    varchar(50) NOT NULL UNIQUE,
+    email       varchar(100) NOT NULL UNIQUE,
+    password    text NOT NULL,
+    created_at  timestamp DEFAULT CURRENT_TIMESTAMP,
+    image       varchar(255) DEFAULT 'default.png'
+);
+
+CREATE TABLE IF NOT EXISTS friends (
+    user_id    integer NOT NULL,
+    friend_id  integer NOT NULL,
+    created_at timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, friend_id),
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_friend FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS friend_requests (
+    id          integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id     integer NOT NULL,
+    sender_id   integer NOT NULL,
+    sender_name text NOT NULL,
+    type_msg    text NOT NULL,
+    status      character varying(20) DEFAULT 'pending',
+    message     text NOT NULL DEFAULT 'FR',
+    seen        boolean NOT NULL DEFAULT false,
+    created_at  timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT friend_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT friend_requests_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS conversations (
+    id         integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    type       character varying(20),
+    is_group   boolean DEFAULT false
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id              integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    conversation_id integer NOT NULL,
+    sender_id       integer NOT NULL,
+    content         text NOT NULL,
+    created_at      timestamp with time zone DEFAULT now(),
+    read_by         jsonb DEFAULT '[]'::jsonb,
+    CONSTRAINT messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+    CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS conversation_participants (
+    conversation_id integer NOT NULL,
+    user_id         integer NOT NULL,
+    PRIMARY KEY (conversation_id, user_id),
+    CONSTRAINT fk_conversation
+        FOREIGN KEY (conversation_id)
+        REFERENCES conversations(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS undelivered_messages (
+    id              integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    message_id      integer NOT NULL,
+    recipient_id    integer NOT NULL,
+    conversation_id integer NOT NULL,
+    created_at      timestamp with time zone DEFAULT now(),
+    CONSTRAINT undelivered_messages_message_id_recipient_id_key UNIQUE (message_id, recipient_id),
+    CONSTRAINT undelivered_messages_message_id_fkey FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+    CONSTRAINT undelivered_messages_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT undelivered_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+);
