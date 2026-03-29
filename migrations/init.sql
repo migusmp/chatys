@@ -63,3 +63,11 @@ CREATE TABLE IF NOT EXISTS undelivered_messages (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(message_id, recipient_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_conv_participants_user_id ON conversation_participants(user_id);
+CREATE INDEX IF NOT EXISTS idx_undelivered_recipient ON undelivered_messages(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_friends_friend_id ON friends(friend_id);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_user_status ON friend_requests(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_sender ON friend_requests(sender_id);

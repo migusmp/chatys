@@ -32,45 +32,40 @@ pub async fn get_user_conversations_simple(
     user_id: i32,
     pool: &PgPool,
 ) -> Result<Vec<ConversationSummarySimple>, sqlx::Error> {
-    let raw_conversations = sqlx::query_as!(
-        ConversationSummarySimpleRaw,
+    let raw_conversations = sqlx::query_as::<_, ConversationSummarySimpleRaw>(
         r#"
         SELECT
             c.id as conversation_id,
             c.is_group,
             c.updated_at,
-            (
+            p.participants,
+            m.content as last_message,
+            m.sender_id as last_message_user_id
+        FROM conversations c
+        JOIN conversation_participants cp ON cp.conversation_id = c.id
+        LEFT JOIN LATERAL (
                 SELECT json_agg(json_build_object(
                     'id', u.id,
                     'username', u.username,
                     'image', u.image
-                ))
+                )) as participants
                 FROM conversation_participants cp2
                 JOIN users u ON u.id = cp2.user_id
                 WHERE cp2.conversation_id = c.id
                   AND cp2.user_id != $1
-            ) as participants,
-            (
-                SELECT m.content
-                FROM messages m
-                WHERE m.conversation_id = c.id
-                ORDER BY m.created_at DESC
-                LIMIT 1
-            ) as last_message,
-            (
-                SELECT m.sender_id
-                FROM messages m
-                WHERE m.conversation_id = c.id
-                ORDER BY m.created_at DESC
-                LIMIT 1
-            ) as last_message_user_id
-        FROM conversations c
-        JOIN conversation_participants cp ON cp.conversation_id = c.id
+        ) p ON true
+        LEFT JOIN LATERAL (
+            SELECT content, sender_id
+            FROM messages
+            WHERE conversation_id = c.id
+            ORDER BY created_at DESC
+            LIMIT 1
+        ) m ON true
         WHERE cp.user_id = $1
         ORDER BY c.updated_at DESC
         "#,
-        user_id
     )
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
@@ -121,8 +116,9 @@ pub async fn create_conversation(
     user2_id: i32,
     pool: &PgPool,
 ) -> Result<i32, sqlx::Error> {
-    // 0. Comprobar si ya existe una conversación entre estos dos usuarios
-    if let Some(existing) = sqlx::query!(
+    let mut tx = pool.begin().await?;
+
+    if let Some(existing_id) = sqlx::query_scalar::<_, i32>(
         r#"
         SELECT c.id
         FROM conversations c
@@ -130,32 +126,34 @@ pub async fn create_conversation(
         JOIN conversation_participants p2 ON c.id = p2.conversation_id
         WHERE p1.user_id = $1 AND p2.user_id = $2
         "#,
-        user1_id,
-        user2_id
     )
-    .fetch_optional(pool)
+    .bind(user1_id)
+    .bind(user2_id)
+    .fetch_optional(&mut *tx)
     .await?
     {
-        return Ok(existing.id); // ya existe, devolvemos el id
+        tx.commit().await?;
+        return Ok(existing_id);
     }
 
-    // 1. Crear la conversación
-    let conversation_id: (i32,) =
-        sqlx::query_as("INSERT INTO conversations DEFAULT VALUES RETURNING id")
-            .fetch_one(pool)
-            .await?;
-
-    // 2. Insertar a los dos participantes
-    sqlx::query!(
-        "INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1, $2), ($1, $3)",
-        conversation_id.0,
-        user1_id,
-        user2_id
+    let conversation_id = sqlx::query_scalar::<_, i32>(
+        "INSERT INTO conversations DEFAULT VALUES RETURNING id",
     )
-    .execute(pool)
+    .fetch_one(&mut *tx)
     .await?;
 
-    Ok(conversation_id.0)
+    sqlx::query(
+        "INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1, $2), ($1, $3)",
+    )
+    .bind(conversation_id)
+    .bind(user1_id)
+    .bind(user2_id)
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(conversation_id)
 }
 
 // pub async fn get_user_conversations(

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { type FriendRequestNotification, type Notification } from "../../../../interfaces/notifications";
 import styles from '../css/Notifications.module.css';
 import useUser from "../../../../hooks/useUser";
-import { useUserContext } from "../../../../context/UserContext";
+import { useNotificationsContext } from "../../../../context/UserContext";
 import { formatDistanceToNow, type Locale } from 'date-fns';
 import { es, enUS, fr } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
@@ -27,7 +27,7 @@ export default function FriendRequestNotification({ n }: Props) {
     const { t } = useTranslation();
 
     const { rejectFriendRequest, acceptFriendRequest } = useUser();
-    const { setNotifications } = useUserContext();
+    const { setNotifications } = useNotificationsContext();
 
     const [relativeTime, setRelativeTime] = useState("");
 

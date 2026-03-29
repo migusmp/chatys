@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useUserContext } from "./UserContext";
+import { useFriendsContext, useNotificationsContext } from "./UserContext";
 import type { NewDmMessageNotification } from "../interfaces/notifications";
 
 const WebSocketContext = createContext<WebSocket | null>(null);
@@ -16,8 +16,9 @@ export const WebSocketProvider = ({
     const retryCountRef = useRef(0);
     const shouldReconnectRef = useRef(true);
     const [ws, setWs] = useState<WebSocket | null>(null);
-    const { setNotifications, setActiveFriends, setNewLastMessage, setDmNotifications } =
-        useUserContext();
+    const { setActiveFriends } = useFriendsContext();
+    const { setNotifications, setNewLastMessage, setDmNotifications } =
+        useNotificationsContext();
 
     useEffect(() => {
         const clearReconnectTimeout = () => {

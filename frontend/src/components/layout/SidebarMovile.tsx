@@ -1,10 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
-import { useUserContext } from "../../context/UserContext";
+import {
+    useNotificationsContext,
+    useUserProfileContext,
+} from "../../context/UserContext";
 
 export default function SidebarMovile() {
-    const { user } = useUserContext()
+    const { user } = useUserProfileContext()
     const location = useLocation();
-    const { dmNotifications } = useUserContext();
+    const { dmNotifications } = useNotificationsContext();
 
     const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 

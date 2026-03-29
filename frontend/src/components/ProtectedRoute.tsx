@@ -1,12 +1,12 @@
 import { type JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import Loader from "./Loader";
-import { useUserContext } from "../context/UserContext";
+import { useUserProfileContext } from "../context/UserContext";
 import { WebSocketProvider } from "../context/WebSocketContext";
 
 
 export default function ProtectedRoute({ children }: { children: JSX.Element }) {
-  const { user, loading } = useUserContext();
+  const { user, loading } = useUserProfileContext();
   const location = useLocation();
 
   if (loading) return <Loader />;

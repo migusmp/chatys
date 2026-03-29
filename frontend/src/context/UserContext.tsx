@@ -1,24 +1,77 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { UserContextType } from "../interfaces/user";
-import type { DmNotification, NewDmMessageNotification, Notification } from "../interfaces/notifications";
+import type {
+    DmNotification,
+    NewDmMessageNotification,
+    Notification,
+} from "../interfaces/notifications";
 import type { UserProfile } from "../types/user";
 import useUser from "../hooks/useUser";
 import Loader from "../components/Loader";
 import useDynamicTitle from "../hooks/useDynamicTitle";
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+interface UserProfileContextType {
+    user: UserProfile | null;
+    setUser: (user: UserProfile | null) => void;
+    refreshUser: () => Promise<void>;
+    loading: boolean;
+    logout: () => Promise<boolean>;
+}
 
-// Provider
+interface FriendsContextType {
+    activeFriends: number[];
+    setActiveFriends: React.Dispatch<React.SetStateAction<number[]>>;
+    checkUserIsOnline: (userId: number) => boolean;
+}
+
+interface NotificationsContextType {
+    notifications: Notification[];
+    setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
+    setNewLastMessage: React.Dispatch<React.SetStateAction<NewDmMessageNotification[]>>;
+    newLastMessage: NewDmMessageNotification[];
+    dmNotifications: DmNotification[];
+    setDmNotifications: React.Dispatch<React.SetStateAction<DmNotification[]>>;
+}
+
+type UserContextType = UserProfileContextType & FriendsContextType & NotificationsContextType;
+
+const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
+const FriendsContext = createContext<FriendsContextType | undefined>(undefined);
+const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
+
 interface Props {
     children: ReactNode;
 }
 
-export function useUserContext() {
-    const context = useContext(UserContext);
+export function useUserProfileContext() {
+    const context = useContext(UserProfileContext);
     if (!context) {
-        throw new Error("useUserContext debe usarse dentro de un <UserProvider>");
+        throw new Error("useUserProfileContext debe usarse dentro de un <UserProvider>");
     }
     return context;
+}
+
+export function useFriendsContext() {
+    const context = useContext(FriendsContext);
+    if (!context) {
+        throw new Error("useFriendsContext debe usarse dentro de un <UserProvider>");
+    }
+    return context;
+}
+
+export function useNotificationsContext() {
+    const context = useContext(NotificationsContext);
+    if (!context) {
+        throw new Error("useNotificationsContext debe usarse dentro de un <UserProvider>");
+    }
+    return context;
+}
+
+export function useUserContext(): UserContextType {
+    return {
+        ...useUserProfileContext(),
+        ...useFriendsContext(),
+        ...useNotificationsContext(),
+    };
 }
 
 export function UserProvider({ children }: Props) {
@@ -31,7 +84,6 @@ export function UserProvider({ children }: Props) {
 
     const { profile } = useUser();
 
-    // 🔔 Actualiza el título del navegador según notificaciones
     const totalNotifications = notifications.length + dmNotifications.length;
     useDynamicTitle(totalNotifications);
 
@@ -47,7 +99,7 @@ export function UserProvider({ children }: Props) {
             }
 
             return true;
-        } catch (e) {
+        } catch {
             console.error("Error al cerrar sesión");
             return false;
         }
@@ -78,26 +130,25 @@ export function UserProvider({ children }: Props) {
     if (loading) return <Loader />;
 
     return (
-        <UserContext.Provider
-            value={{
-                user,
-                setUser,
-                refreshUser,
-                logout,
-                loading,
-                notifications,
-                setNotifications,
-                activeFriends,
-                setActiveFriends,
-                checkUserIsOnline,
-                setNewLastMessage,
-                newLastMessage,
-                dmNotifications,
-                setDmNotifications,
-            }}
+        <UserProfileContext.Provider
+            value={{ user, setUser, refreshUser, logout, loading }}
         >
-            {children}
-        </UserContext.Provider>
+            <FriendsContext.Provider
+                value={{ activeFriends, setActiveFriends, checkUserIsOnline }}
+            >
+                <NotificationsContext.Provider
+                    value={{
+                        notifications,
+                        setNotifications,
+                        setNewLastMessage,
+                        newLastMessage,
+                        dmNotifications,
+                        setDmNotifications,
+                    }}
+                >
+                    {children}
+                </NotificationsContext.Provider>
+            </FriendsContext.Provider>
+        </UserProfileContext.Provider>
     );
 }
-

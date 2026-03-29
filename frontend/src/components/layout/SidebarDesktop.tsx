@@ -1,13 +1,16 @@
 import { Link, useLocation } from "react-router-dom";
-import { useUserContext } from "../../context/UserContext";
+import {
+    useNotificationsContext,
+    useUserProfileContext,
+} from "../../context/UserContext";
 import { useTranslation } from "react-i18next";
 import chatysLogo from '../../assets/chatys-logo-official.png';
 import { useEffect, useRef, useState } from "react";
 import LogoutDesktop from "./LogoutDesktop";
 
 export default function SidebarDesktop() {
-    const { notifications, dmNotifications } = useUserContext();
-    const { user } = useUserContext();
+    const { notifications, dmNotifications } = useNotificationsContext();
+    const { user } = useUserProfileContext();
     const location = useLocation();
     const { t } = useTranslation();
 

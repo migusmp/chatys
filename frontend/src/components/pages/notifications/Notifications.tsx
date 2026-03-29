@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useUserContext } from "../../../context/UserContext";
+import { useNotificationsContext } from "../../../context/UserContext";
 import type { Notification } from "../../../interfaces/notifications";
 import FriendRequestNotification from "./components/FriendRequestNotification";
 // import ChatMessageNotification from "./components/ChatMessageNotification";
@@ -7,7 +7,7 @@ import styles from './css/Notifications.module.css';
 // import ChatMessageNotificationRealTime from "./components/ChatMessageNotificationRealTime";
 
 export default function Notifications() {
-    const { notifications } = useUserContext();
+    const { notifications } = useNotificationsContext();
     const { t } = useTranslation();
 
     const renderNotification = (n: Notification) => {

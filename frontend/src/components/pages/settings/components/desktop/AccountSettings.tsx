@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import styles from '../../css/AccountSettings.module.css';
 import ModalLogout from "./ModalLogout";
-import { useUserContext } from "../../../../../context/UserContext";
+import { useUserProfileContext } from "../../../../../context/UserContext";
 import SettingsPageLayout from "../../SettingsPageLayout";
 
 export default function AccountSettings() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setUser, logout } = useUserContext();
+  const { setUser, logout } = useUserProfileContext();
 
   const [showModal, setShowModal] = useState(false);
 

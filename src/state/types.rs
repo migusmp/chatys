@@ -1,11 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
-
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
 use dashmap::DashMap;
-use time::{OffsetDateTime};
-use tokio::sync::Mutex;
+use time::OffsetDateTime;
 
 use crate::state::chat_message::ChatMessage;
 
@@ -13,7 +10,7 @@ use crate::db::offset_date_time_serde;
 
 // TYPES FOR APPSTATE
 pub type DirectMessageChannels = DashMap<(i32, i32), tokio::sync::mpsc::Sender<ChatMessage>>;
-pub type UndeliveredMessages = Arc<Mutex<HashMap<i32, Vec<String>>>>;
+pub type UserChannels = DashMap<i32, tokio::sync::mpsc::Sender<String>>;
 
 #[derive(Deserialize)]
 pub struct IncomingMessage {
@@ -45,7 +42,7 @@ pub struct FriendNotificationRow {
     pub sender_name: Option<String>,
     pub message: String,
     pub image: String,
-    pub created_at: chrono::NaiveDateTime
+    pub created_at: chrono::NaiveDateTime,
 }
 
 pub struct AppConfig {

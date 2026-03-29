@@ -30,7 +30,8 @@ pub async fn init_db_pool() -> PgPool {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
 
     let pool = PgPoolOptions::new()
-        .max_connections(350)
+        .max_connections(20)
+        .acquire_timeout(std::time::Duration::from_secs(5))
         .idle_timeout(std::time::Duration::from_secs(10))
         .connect(&database_url)
         .await
@@ -141,36 +142,22 @@ pub enum UpdateUserEmail {
 
 pub async fn update_user_name(username: String, id: i32, pool: &PgPool) -> UpdateUserName {
     let query = r#"
-        SELECT username 
-        FROM users 
-        WHERE username = $1;
-    "#;
-    match sqlx::query(query).bind(&username).execute(&*pool).await {
-        Ok(info) => {
-            if info.rows_affected() > 0 {
-                return UpdateUserName::UserExists;
-            }
-            match update_username(username, id, pool).await {
-                Ok(_) => return UpdateUserName::UserNameUpdated,
-                Err(_) => return UpdateUserName::ConsultError,
-            }
-        }
-        Err(_) => UpdateUserName::ConsultError,
-    }
-}
-
-async fn update_username(new_username: String, id: i32, pool: &PgPool) -> Result<(), Error> {
-    let query = r#"
         UPDATE users
         SET username = $1
         WHERE id = $2
+          AND NOT EXISTS (
+              SELECT 1
+              FROM users
+              WHERE username = $1
+                AND id != $2
+          )
     "#;
-    sqlx::query(query)
-        .bind(new_username)
-        .bind(id)
-        .execute(&*pool)
-        .await?;
-    Ok(())
+
+    match sqlx::query(query).bind(&username).bind(id).execute(pool).await {
+        Ok(info) if info.rows_affected() > 0 => UpdateUserName::UserNameUpdated,
+        Ok(_) => UpdateUserName::UserExists,
+        Err(_) => UpdateUserName::ConsultError,
+    }
 }
 
 async fn update_name(new_name: String, id: i32, pool: &PgPool) -> Result<(), Error> {
@@ -247,23 +234,21 @@ pub async fn update_user_email(new_email: String, id: i32, pool: &PgPool) -> Upd
     }
 
     let query = r#"
-        SELECT email 
-        FROM users 
-        WHERE email = $1;
+        UPDATE users
+        SET email = $1
+        WHERE id = $2
+          AND NOT EXISTS (
+              SELECT 1
+              FROM users
+              WHERE email = $1
+                AND id != $2
+          )
     "#;
-    match sqlx::query(query).bind(&new_email).execute(&*pool).await {
-        Ok(info) => {
-            if info.rows_affected() > 0 {
-                return UpdateUserEmail::EmailAlreadyExist;
-            }
-            return match update_email(new_email, id, pool).await {
-                Ok(_) => UpdateUserEmail::EmailUpdated,
-                Err(_) => UpdateUserEmail::ErrorEmailUpdate,
-            };
-        }
-        Err(_) => {
-            return UpdateUserEmail::ErrorEmailUpdate;
-        }
+
+    match sqlx::query(query).bind(&new_email).bind(id).execute(pool).await {
+        Ok(info) if info.rows_affected() > 0 => UpdateUserEmail::EmailUpdated,
+        Ok(_) => UpdateUserEmail::EmailAlreadyExist,
+        Err(_) => UpdateUserEmail::ErrorEmailUpdate,
     }
 }
 
@@ -272,20 +257,6 @@ pub async fn update_name_from_user(new_name: String, id: i32, pool: &PgPool) -> 
         Ok(_) => UpdateUserName::UserNameUpdated,
         Err(_) => UpdateUserName::ConsultError,
     }
-}
-
-async fn update_email(new_email: String, id: i32, pool: &PgPool) -> Result<(), Error> {
-    let query = r#"
-        UPDATE users
-        SET email = $1
-        WHERE id = $2
-    "#;
-    sqlx::query(query)
-        .bind(new_email)
-        .bind(id)
-        .execute(&*pool)
-        .await?;
-    Ok(())
 }
 
 async fn check_updated_email(new_email: &String) -> Result<(), UpdateUserEmail> {

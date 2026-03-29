@@ -2,11 +2,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import React, { useState } from 'react'
 import useUser from '../../../hooks/useUser'
 import styles from '../../../styles/modules/Login.module.css'
-import { useUserContext } from '../../../context/UserContext'
+import { useUserProfileContext } from '../../../context/UserContext'
 
 export default function Login() {
     const { sendLoginFormData } = useUser()
-    const { refreshUser } = useUserContext()
+    const { refreshUser } = useUserProfileContext()
     const navigate = useNavigate()
 
     const [username, setUsername] = useState("")

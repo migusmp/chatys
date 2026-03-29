@@ -78,7 +78,7 @@ pub async fn verify_user_login(
             username: row.username,
             name: row.name,
             email: row.email,
-            image: row.image.unwrap(),
+            image: row.image.unwrap_or_else(|| "default.png".to_string()),
             password: row.password,
             created_at,
         }))

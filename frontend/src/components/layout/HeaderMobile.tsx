@@ -1,8 +1,8 @@
 import chatysLogo from '../../assets/logo_individual_claro.png';
-import { useUserContext } from '../../context/UserContext';
+import { useUserProfileContext } from '../../context/UserContext';
 
 export default function HeaderMobile() {
-    const { user } = useUserContext();
+    const { user } = useUserProfileContext();
 
     return (
         <header className="layout__header">

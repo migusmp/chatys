@@ -1,9 +1,9 @@
-import { useUserContext } from "../../../../context/UserContext";
+import { useFriendsContext } from "../../../../context/UserContext";
 
 type Props = { userId: number, isHeader: boolean };
 
 export function OnlineIndicator({ userId, isHeader }: Props) {
-    const { checkUserIsOnline } = useUserContext();
+    const { checkUserIsOnline } = useFriendsContext();
     const isOnline = checkUserIsOnline(userId);
 
     return (

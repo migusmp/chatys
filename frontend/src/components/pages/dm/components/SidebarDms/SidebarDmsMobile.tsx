@@ -1,14 +1,18 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Conversations } from "../../../../../types/user";
 import { OnlineIndicator } from "../OnlineIndicator";
-import { useUserContext } from "../../../../../context/UserContext";
+import {
+    useNotificationsContext,
+    useUserProfileContext,
+} from "../../../../../context/UserContext";
 
 type Props = { dms: Conversations[] };
 
 export default function SidebarDmsMobile({ dms }: Props) {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, newLastMessage, dmNotifications } = useUserContext();
+    const { user } = useUserProfileContext();
+    const { newLastMessage, dmNotifications } = useNotificationsContext();
 
     const [, route, currentUsername] = location.pathname.split("/");
 
@@ -141,4 +145,3 @@ export default function SidebarDmsMobile({ dms }: Props) {
         </div>
     );
 }
-

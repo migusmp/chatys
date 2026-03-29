@@ -17,7 +17,6 @@ use crate::{
         db::get_user_chat_data,
         messages::{
             get_or_create_direct_conversation, get_other_participant_in_conversation, save_message,
-            update_updated_at_from_conversation,
         },
         undelivered_messages::{clear_undelivered_messages, delete_undelivered_message, set_undelivered_message},
     },
@@ -164,15 +163,6 @@ async fn handle_socket(
                                     }
                                 };
 
-                            if let Err(e) =
-                                update_updated_at_from_conversation(conv_id, &pool).await
-                            {
-                                eprintln!(
-                                    "Error actualizando updated_at en conversación {}: {}",
-                                    conv_id, e
-                                );
-                            }
-
                             app_state_clone.send_direct_message(msg.clone()).await;
 
                             app_state_clone
@@ -256,15 +246,8 @@ pub async fn handle_ws_connection(
     //     .await
     //     .insert(user_id, tx.clone());
 
-    {
-        let mut connected = app_state.connected_users.lock().await;
-        connected.insert(user_id, tx.clone());
-    }
-
-    {
-        let mut friend_notifications = app_state.friend_notifications.lock().await;
-        friend_notifications.insert(user_id, tx.clone());
-    }
+    app_state.connected_users.insert(user_id, tx.clone());
+    app_state.friend_notifications.insert(user_id, tx.clone());
     app_state.deliver_undelivered_messages(user_id).await;
 
     notify_friends_user_connected(&app_state, user_id).await;
@@ -282,7 +265,7 @@ async fn handle_socket_connection(
     //let mut is_connected = true;
 
     if let Ok(friends) = app_state.get_user_friends_and_users_from_dms(user_id).await {
-        let connected = app_state.connected_users.lock().await;
+        let connected = &app_state.connected_users;
 
         let active_friends: Vec<i32> = friends
             .into_iter()
@@ -374,7 +357,7 @@ pub async fn notify_user_with_active_friends(app_state: &AppState, user_id: i32)
         Err(_) => return,
     };
 
-    let connected = app_state.connected_users.lock().await;
+    let connected = &app_state.connected_users;
     let tx = match connected.get(&user_id) {
         Some(t) => t.clone(),
         None => return,

@@ -6,14 +6,14 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Friend } from '../../../../types/friend'
 import { useTranslation } from 'react-i18next'
-import { useUserContext } from '../../../../context/UserContext'
+import { useUserProfileContext } from '../../../../context/UserContext'
 
 export default function Friends() {
     const { username } = useParams();
     const { fetchFriendsList } = useFetch();
     const [friends, setFriends] = useState<Friend[]>([]);
     const [loading, setLoading] = useState(true); // 👈 estado de carga
-    const { user } = useUserContext();
+    const { user } = useUserProfileContext();
 
     const { t } = useTranslation();
 

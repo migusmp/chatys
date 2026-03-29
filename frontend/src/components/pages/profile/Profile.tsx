@@ -6,14 +6,14 @@ import { useTranslation } from 'react-i18next';
 import useFetch from '../../../hooks/useFetch';
 import { useEffect, useState } from 'react';
 import type { ProfileData } from '../../../types/user';
-import { useUserContext } from '../../../context/UserContext';
+import { useUserProfileContext } from '../../../context/UserContext';
 import i18n from '../../../i18n';
 import BackButton from './components/BackButton';
 import EditProfileModal from './components/EditProfileModal';
 
 export default function Profile() {
     const { username } = useParams();
-    const { user } = useUserContext();
+    const { user } = useUserProfileContext();
 
     let data;
 

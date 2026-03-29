@@ -1,4 +1,8 @@
-import { useUserContext } from "../../../../../context/UserContext";
+import {
+    useFriendsContext,
+    useNotificationsContext,
+    useUserProfileContext,
+} from "../../../../../context/UserContext";
 import type { FullConversation } from "../../../../../types/user";
 import styles from "../../css/DmRoomDesktop.module.css";
 import { useState, useEffect, useRef } from "react";
@@ -12,7 +16,9 @@ type Props = {
 };
 
 export default function DmRoomDesktop({ conversationData }: Props) {
-    const { user, checkUserIsOnline, setDmNotifications, setNewLastMessage } = useUserContext();
+    const { user } = useUserProfileContext();
+    const { checkUserIsOnline } = useFriendsContext();
+    const { setDmNotifications, setNewLastMessage } = useNotificationsContext();
     const { t } = useTranslation();
 
     const [message, setMessage] = useState("");

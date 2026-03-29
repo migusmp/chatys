@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import styles from '../../styles/modules/LogoutDesktop.module.css';
 import { useNavigate } from 'react-router-dom';
-import { useUserContext } from '../../context/UserContext';
+import { useUserProfileContext } from '../../context/UserContext';
 
 export default function LogoutDesktop() {
     const { t } = useTranslation();
-    const { user, setUser, logout } = useUserContext();
+    const { user, setUser, logout } = useUserProfileContext();
     const navigate = useNavigate(); // Hook de navegación
 
     async function handleLogoutClick () {

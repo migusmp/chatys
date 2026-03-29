@@ -1,9 +1,7 @@
 use dashmap::DashMap;
 use sqlx::PgPool;
-use std::collections::HashMap;
-use std::sync::Arc;
 use time::PrimitiveDateTime;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{broadcast, mpsc};
 
 use crate::{
     db::undelivered_messages::get_undelivered_messages,
@@ -13,7 +11,7 @@ use crate::{
         chat_message::ChatMessage,
         types::{
             AppConfig, DirectMessageChannels, FriendNotification, FriendNotificationRow,
-            UndeliveredMessages,
+            UserChannels,
         },
     },
 };
@@ -22,9 +20,8 @@ pub struct AppState {
     pub db_pool: PgPool,
     pub direct_message_channels: DirectMessageChannels, // AÑADIDO RECIENTEMENTE
     pub global_broadcast: broadcast::Sender<String>,
-    pub connected_users: Arc<Mutex<HashMap<i32, mpsc::Sender<String>>>>,
-    pub friend_notifications: Arc<Mutex<HashMap<i32, mpsc::Sender<String>>>>,
-    pub undelivered_messages: UndeliveredMessages,
+    pub connected_users: UserChannels,
+    pub friend_notifications: UserChannels,
     pub config: AppConfig,
 }
 
@@ -34,9 +31,8 @@ impl AppState {
         Self {
             db_pool,
             global_broadcast,
-            connected_users: Arc::new(Mutex::new(HashMap::new())),
-            friend_notifications: Arc::new(Mutex::new(HashMap::new())),
-            undelivered_messages: Arc::new(Mutex::new(HashMap::new())),
+            connected_users: DashMap::new(),
+            friend_notifications: DashMap::new(),
             config: AppConfig::default(),
             direct_message_channels: DashMap::new(),
         }
@@ -117,8 +113,6 @@ impl AppState {
                 "📭 No se entregó mensaje en conv {} de {} a {}",
                 message.conversation_id, message.from_user, message.to_user
             );
-            self.store_undelivered_message(message.to_user, message.content.clone())
-                .await;
         }
     }
 
@@ -133,8 +127,8 @@ impl AppState {
     ) {
         // Notifica al usuario destinatario del nuevo mensaje
         // Verifica si el usuario está conectado
-        let connected = self.connected_users.lock().await;
-        if let Some(sender) = connected.get(&recipient_id) {
+        let sender = self.connected_users.get(&recipient_id).map(|entry| entry.clone());
+        if let Some(sender) = sender {
             let notification = serde_json::json!({
             "type_msg": "NEW_DM_MESSAGE",
             "conversation_id": conversation_id,
@@ -156,29 +150,20 @@ impl AppState {
 
     // Agrega una conexión del usuario aconnected_users
     pub async fn add_user_connection(&self, user_id: i32, sender: mpsc::Sender<String>) {
-        let mut connections = self.connected_users.lock().await;
-        connections.insert(user_id, sender);
+        self.connected_users.insert(user_id, sender);
     }
 
     pub async fn remove_user_connection(&self, user_id: i32) {
-        let mut connections = self.connected_users.lock().await;
-        connections.remove(&user_id);
+        self.connected_users.remove(&user_id);
     }
 
     // Añade un usuario a friend_notifications para enviarle notificaciones (y devuelve el receiver)
     pub async fn add_user_to_friend_notifications(&self, user_id: i32) -> mpsc::Receiver<String> {
         let (sender, receiver) = mpsc::channel::<String>(100);
-        let mut notifications = self.friend_notifications.lock().await;
-        notifications.insert(user_id, sender);
+        self.friend_notifications.insert(user_id, sender);
         // Entregamos notificaciones pendientes cuando se conecta
         self.deliver_undelivered_messages(user_id).await;
         receiver
-    }
-
-    // Guarda una notificación no entregada
-    async fn store_undelivered_message(&self, user_id: i32, message: String) {
-        let mut undelivered = self.undelivered_messages.lock().await;
-        undelivered.entry(user_id).or_default().push(message);
     }
 
     // Entrega todas las notificaciones pendientes de un usuario (si está conectado)
@@ -198,15 +183,14 @@ impl AppState {
         .await
         .unwrap_or_default();
 
-        let notifications_map = self.friend_notifications.lock().await;
-        if let Some(sender) = notifications_map.get(&user_id) {
+        let sender = self.friend_notifications.get(&user_id).map(|entry| entry.clone());
+        if let Some(sender) = sender {
             for notif in notifications {
                 if let Ok(json_msg) = serde_json::to_string(&notif) {
                     let _ = sender.try_send(json_msg);
                 }
             }
         }
-        drop(notifications_map);
 
         // 2. Entregar mensajes pendientes usando get_undelivered_messages
         let undelivered_messages = match get_undelivered_messages(user_id, &self.db_pool).await {
@@ -221,15 +205,13 @@ impl AppState {
         };
 
         // Obtener canal para enviar mensajes de chat
-        let connected = self.connected_users.lock().await;
-        let tx = match connected.get(&user_id) {
-            Some(tx) => tx.clone(),
+        let tx = match self.connected_users.get(&user_id).map(|entry| entry.clone()) {
+            Some(tx) => tx,
             None => {
                 println!("No se encontró canal para usuario {}", user_id);
                 return;
             }
         };
-        drop(connected);
 
         for msg in undelivered_messages {
             let json_msg = serde_json::json!({
@@ -326,22 +308,16 @@ impl AppState {
         let json_message = serde_json::to_string(&notification)
             .map_err(|_| "Failed to serialize the notification".to_string())?;
 
-        let mut notifications = self.friend_notifications.lock().await;
-        if let Some(sender) = notifications.get(&friend_id) {
+        let sender = self.friend_notifications.get(&friend_id).map(|entry| entry.clone());
+        if let Some(sender) = sender {
             match sender.try_send(json_message.clone()) {
                 Ok(_) => Ok(()),
                 Err(_) => {
-                    notifications.remove(&friend_id);
-                    drop(notifications);
-                    self.store_undelivered_message(friend_id, json_message)
-                        .await;
+                    self.friend_notifications.remove(&friend_id);
                     Err(format!("Unable to send notification to {}", friend_id))
                 }
             }
         } else {
-            drop(notifications);
-            self.store_undelivered_message(friend_id, json_message)
-                .await;
             Err(format!("User {} not connected", friend_id))
         }
     }
@@ -380,21 +356,13 @@ impl AppState {
             .map_err(|_| "Failed to serialize the notification".to_string())?;
 
         // 3. Intentar enviar la notificación
-        let notifications = self.friend_notifications.lock().await;
-        if let Some(sender) = notifications.get(&friend_id) {
+        let sender = self.friend_notifications.get(&friend_id).map(|entry| entry.clone());
+        if let Some(sender) = sender {
             match sender.try_send(json_message.clone()) {
                 Ok(_) => Ok(()),
-                Err(_) => {
-                    drop(notifications);
-                    self.store_undelivered_message(friend_id, json_message)
-                        .await;
-                    Err(format!("Unable to send notification to {}", friend_id))
-                }
+                Err(_) => Err(format!("Unable to send notification to {}", friend_id)),
             }
         } else {
-            drop(notifications);
-            self.store_undelivered_message(friend_id, json_message)
-                .await;
             Err(format!("User {} not connected", friend_id))
         }
     }
@@ -469,25 +437,19 @@ impl AppState {
     }
 
     pub async fn on_user_disconnected(&self, user_id: i32) {
-        {
-            let mut connected = self.connected_users.lock().await;
-            if connected.remove(&user_id).is_some() {
-                println!(
-                    "Conexión de usuario {} eliminada de connected_users",
-                    user_id
-                );
-            } else {
-                println!("Usuario {} no estaba en connected_users", user_id);
-            }
+        if self.connected_users.remove(&user_id).is_some() {
+            println!(
+                "Conexión de usuario {} eliminada de connected_users",
+                user_id
+            );
+        } else {
+            println!("Usuario {} no estaba en connected_users", user_id);
         }
 
-        {
-            let mut friend_notes = self.friend_notifications.lock().await;
-            if friend_notes.remove(&user_id).is_some() {
-                println!("Usuario {} eliminado de friend_notifications", user_id);
-            } else {
-                println!("Usuario {} no estaba en friend_notifications", user_id);
-            }
+        if self.friend_notifications.remove(&user_id).is_some() {
+            println!("Usuario {} eliminado de friend_notifications", user_id);
+        } else {
+            println!("Usuario {} no estaba en friend_notifications", user_id);
         }
 
         // Aquí podrías limpiar otros recursos relacionados con el usuario si existen.

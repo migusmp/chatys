@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { OnlineIndicator } from "../OnlineIndicator";
 import type { Conversations, Participants, UserSearchData } from "../../../../../types/user";
-import { useUserContext } from "../../../../../context/UserContext";
+import {
+    useNotificationsContext,
+    useUserProfileContext,
+} from "../../../../../context/UserContext";
 import SearchUsers from "../SearchUsers";
 import { useTranslation } from "react-i18next";
 
@@ -14,7 +17,8 @@ type Props = {
 export default function SidebarDmsDesktop({ dms }: Props) {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, newLastMessage, dmNotifications } = useUserContext();
+    const { user } = useUserProfileContext();
+    const { newLastMessage, dmNotifications } = useNotificationsContext();
     const [searchResults, setSearchResults] = useState<UserSearchData[]>([]);
     const [searching, setSearching] = useState(false);
     const { t } = useTranslation();

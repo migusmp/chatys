@@ -1,4 +1,4 @@
-import { useUserContext } from "../../../../../context/UserContext";
+import { useUserProfileContext } from "../../../../../context/UserContext";
 import type { FullConversation } from "../../../../../types/user";
 
 type Props = {
@@ -6,7 +6,7 @@ type Props = {
 };
 
 export default function DmRoomMobile({ conversationData }: Props) {
-    const { user } = useUserContext();
+    const { user } = useUserProfileContext();
 
     const otherParticipant = conversationData.conversation.participants.find(
         (p) => p.id !== user?.id
