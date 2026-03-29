@@ -1,10 +1,15 @@
-use std::{collections::HashMap, sync::{atomic::{AtomicUsize, Ordering}, Arc}};
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
 
 use axum::extract::ws::Message;
 use tokio::sync::broadcast;
 
 const BROADCAST_CAPACITY: usize = 100;
-
 
 #[derive(Default)]
 pub struct ChatState {
@@ -21,17 +26,20 @@ impl ChatState {
     // Crear una nueva sala
     pub fn create_room(&mut self, room_id: String) {
         let (tx, _) = broadcast::channel(BROADCAST_CAPACITY);
-        self.rooms.insert(room_id, Room { 
-            broadcaster: tx,
-            user_count: Arc::new(AtomicUsize::new(0)),
-        });
+        self.rooms.insert(
+            room_id,
+            Room {
+                broadcaster: tx,
+                user_count: Arc::new(AtomicUsize::new(0)),
+            },
+        );
     }
 
     // Un usuario se une a la sala y obtiene un receiver
     pub fn join_room(&mut self, room_id: &str) -> broadcast::Receiver<Message> {
         let room = self.rooms.entry(room_id.to_string()).or_insert_with(|| {
             let (tx, _) = broadcast::channel(BROADCAST_CAPACITY);
-            Room { 
+            Room {
                 broadcaster: tx,
                 user_count: Arc::new(AtomicUsize::new(0)),
             }
@@ -52,7 +60,9 @@ impl ChatState {
 
     // Obtener número de usuarios conectados
     pub fn get_room_user_count(&self, room_id: &str) -> Option<usize> {
-        self.rooms.get(room_id).map(|room| room.user_count.load(Ordering::SeqCst))
+        self.rooms
+            .get(room_id)
+            .map(|room| room.user_count.load(Ordering::SeqCst))
     }
 
     // Listado de salas activas

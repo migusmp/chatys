@@ -6,6 +6,7 @@ use crate::db::db::{
 };
 use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, UpdateData};
 use crate::services::user::{login, register};
+use crate::state::app_state::AppState;
 use crate::utils::responses::ApiResponse;
 use axum::extract::{Multipart, Path};
 use axum::http::{HeaderMap, HeaderValue};
@@ -13,6 +14,7 @@ use axum::{http::StatusCode, response::IntoResponse, Form};
 use axum::{Extension, Json};
 use infer;
 use sqlx::PgPool;
+use std::sync::Arc;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
@@ -405,10 +407,18 @@ pub async fn user_conversation_last_message(
 
 pub async fn user_search(
     Path(username): Path<String>,
+    Extension(app_state): Extension<Arc<AppState>>,
+    Extension(payload): Extension<Payload>,
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     match search_user(username, &pool).await {
-        Ok(users) => Ok(Json(users)),
+        Ok(mut users) => {
+            for user in &mut users {
+                user.is_online = user.id == payload.id || app_state.is_user_online(user.id);
+            }
+
+            Ok(Json(users))
+        }
         Err(e) => {
             eprintln!("Error al buscar usuarios: {}", e);
             Err(ErrorRequest::UserNotFound)

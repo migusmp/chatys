@@ -25,7 +25,6 @@ impl NotificationService {
             pending_notifications: Arc::new(Mutex::new(HashMap::new())),
         }
     }
-    
 
     pub async fn on_user_disconnected(&self, user_id: i32) {
         // Cuando el usuario se desconecta, lo elimina de la lista de usuarios conectados

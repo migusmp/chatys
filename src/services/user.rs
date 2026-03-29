@@ -3,7 +3,7 @@ use crate::models::user::RegisterUser;
 use crate::models::user::{ErrorRequest, LoginUser};
 use crate::utils::responses::ApiResponse;
 use crate::utils::user_utils::{
-    create_payload, create_token_cookie, email_exists, username_exists, verify_user_login
+    create_payload, create_token_cookie, email_exists, username_exists, verify_user_login,
 };
 use axum::Json;
 use axum::{http::StatusCode, response::IntoResponse};
@@ -26,8 +26,8 @@ pub async fn register(
     });
 
     // ejecutar verificación en paralelo
-    let (username_exists, email_exists) = try_join!(check_username, check_email)
-        .map_err(|_| ErrorRequest::InternalError)?;
+    let (username_exists, email_exists) =
+        try_join!(check_username, check_email).map_err(|_| ErrorRequest::InternalError)?;
 
     if username_exists {
         return Err(ErrorRequest::UserAlreadyExists);
@@ -40,7 +40,6 @@ pub async fn register(
         .await
         .map_err(|_| ErrorRequest::InternalError)? // si paniquea la task
         .map_err(|_| ErrorRequest::InternalError)?; // si bcrypt falla
-
 
     // insertamos el usuario
     insert_user(&user.username, &user.name, &user.email, &pool, &hashed_pwd)

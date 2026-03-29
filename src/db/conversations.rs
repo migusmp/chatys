@@ -136,11 +136,10 @@ pub async fn create_conversation(
         return Ok(existing_id);
     }
 
-    let conversation_id = sqlx::query_scalar::<_, i32>(
-        "INSERT INTO conversations DEFAULT VALUES RETURNING id",
-    )
-    .fetch_one(&mut *tx)
-    .await?;
+    let conversation_id =
+        sqlx::query_scalar::<_, i32>("INSERT INTO conversations DEFAULT VALUES RETURNING id")
+            .fetch_one(&mut *tx)
+            .await?;
 
     sqlx::query(
         "INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1, $2), ($1, $3)",

@@ -18,7 +18,9 @@ use crate::{
         messages::{
             get_or_create_direct_conversation, get_other_participant_in_conversation, save_message,
         },
-        undelivered_messages::{clear_undelivered_messages, delete_undelivered_message, set_undelivered_message},
+        undelivered_messages::{
+            clear_undelivered_messages, delete_undelivered_message, set_undelivered_message,
+        },
     },
     models::user::Payload,
     state::{app_state::AppState, chat_message::ChatMessage, types::IncomingMessage},
@@ -56,6 +58,11 @@ async fn handle_socket(
             return;
         }
     };
+
+    let active_connections = app_state.mark_user_connected(from_user_id);
+    if active_connections == 1 {
+        notify_friends_user_connected(&app_state, from_user_id).await;
+    }
 
     // Ponemos user_from_data en un Arc para compartirlo eficientemente
     let user_from_data = Arc::new(user_from_data);
@@ -211,7 +218,9 @@ async fn handle_socket(
             from_user_id
         );
         // ELIMINAMOS LOS MENSAJES NO ENTREGADOS AL CERRAR LA CONEXIÓN
-        let _ = clear_undelivered_messages(from_user_id, conversation_id, &pool).await.ok();
+        let _ = clear_undelivered_messages(from_user_id, conversation_id, &pool)
+            .await
+            .ok();
     });
 
     select! {
@@ -228,6 +237,7 @@ async fn handle_socket(
         from_user_id, conversation_id
     );
     app_state.unregister_user_channel(conversation_id, from_user_id);
+    app_state.on_user_disconnected(from_user_id).await;
 }
 
 // HANDLE WS CONNECTION FOR GENERAL USE IN THE APP
@@ -240,6 +250,8 @@ pub async fn handle_ws_connection(
 
     let (tx, rx) = mpsc::channel::<String>(100);
 
+    let active_connections = app_state.mark_user_connected(user_id);
+
     // app_state
     //     .connected_users
     //     .lock()
@@ -250,7 +262,9 @@ pub async fn handle_ws_connection(
     app_state.friend_notifications.insert(user_id, tx.clone());
     app_state.deliver_undelivered_messages(user_id).await;
 
-    notify_friends_user_connected(&app_state, user_id).await;
+    if active_connections == 1 {
+        notify_friends_user_connected(&app_state, user_id).await;
+    }
 
     ws.on_upgrade(move |socket| handle_socket_connection(socket, app_state, user_id, rx))
 }
@@ -265,11 +279,9 @@ async fn handle_socket_connection(
     //let mut is_connected = true;
 
     if let Ok(friends) = app_state.get_user_friends_and_users_from_dms(user_id).await {
-        let connected = &app_state.connected_users;
-
         let active_friends: Vec<i32> = friends
             .into_iter()
-            .filter(|friend_id| connected.contains_key(friend_id))
+            .filter(|friend_id| app_state.is_user_online(*friend_id))
             .collect();
 
         let msg = serde_json::json!({
@@ -365,7 +377,7 @@ pub async fn notify_user_with_active_friends(app_state: &AppState, user_id: i32)
 
     let active_friends: Vec<i32> = friends
         .into_iter()
-        .filter(|id| connected.contains_key(id))
+        .filter(|id| app_state.is_user_online(*id))
         .collect();
 
     let msg = serde_json::json!({

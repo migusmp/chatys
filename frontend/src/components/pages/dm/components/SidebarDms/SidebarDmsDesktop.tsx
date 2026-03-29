@@ -8,6 +8,7 @@ import {
 } from "../../../../../context/UserContext";
 import SearchUsers from "../SearchUsers";
 import { useTranslation } from "react-i18next";
+import { mergeDmsWithRealtimeMessages } from "./realtimeDmList";
 
 type Props = {
     dms: Conversations[];
@@ -26,18 +27,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
     const [, route, currentUsername] = location.pathname.split("/");
     console.log(route)
 
-    // Actualizar mensajes en DMs
-    const dmsWithUpdatedMessages = dms.map(dm => {
-        const newMsg = newLastMessage.find(msg => msg.conversation_id === dm.conversation_id);
-        if (!newMsg) return dm;
-
-        return {
-            ...dm,
-            last_message: newMsg.content,
-            last_message_user_id: newMsg.from_user,
-            updated_at: newMsg.created_at
-        };
-    });
+    const dmsWithUpdatedMessages = mergeDmsWithRealtimeMessages(dms, newLastMessage);
 
     const handleClickDm = async (userOther: UserSearchData | Participants) => {
         // Si tiene conversation_id numérico ya existe
@@ -84,6 +74,8 @@ export default function SidebarDmsDesktop({ dms }: Props) {
         setSearchResults(results);
         setSearching(isSearching);
     };
+
+    const searchPresenceById = new Map(searchResults.map((result) => [result.id, result.is_online]));
 
     return (
         <div
@@ -152,7 +144,11 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                         objectFit: "cover",
                                     }}
                                 />
-                                <OnlineIndicator userId={userOther.id} isHeader={false} />
+                                <OnlineIndicator
+                                    userId={userOther.id}
+                                    isHeader={false}
+                                    isOnline={searchPresenceById.get(userOther.id)}
+                                />
                             </div>
                             <div style={{ flex: 1, overflow: "hidden" }}>
                                 <div style={{ fontWeight: "bold", color: "#fff" }}>{userOther.username}</div>

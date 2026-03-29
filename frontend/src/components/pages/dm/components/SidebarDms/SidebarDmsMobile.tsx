@@ -5,6 +5,7 @@ import {
     useNotificationsContext,
     useUserProfileContext,
 } from "../../../../../context/UserContext";
+import { mergeDmsWithRealtimeMessages } from "./realtimeDmList";
 
 type Props = { dms: Conversations[] };
 
@@ -16,18 +17,7 @@ export default function SidebarDmsMobile({ dms }: Props) {
 
     const [, route, currentUsername] = location.pathname.split("/");
 
-    // Actualizar las conversaciones con posibles nuevos mensajes
-    const dmsWithUpdatedMessages = dms.map(dm => {
-        const newMsg = newLastMessage.find(msg => msg.conversation_id === dm.conversation_id);
-        if (!newMsg) return dm;
-
-        return {
-            ...dm,
-            last_message: newMsg.content,
-            last_message_user_id: newMsg.from_user,
-            updated_at: newMsg.created_at
-        };
-    });
+    const dmsWithUpdatedMessages = mergeDmsWithRealtimeMessages(dms, newLastMessage);
 
     // Ordenar por el último mensaje más reciente
     const sortedDms = [...dmsWithUpdatedMessages].sort(

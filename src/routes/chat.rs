@@ -15,9 +15,18 @@ pub fn chat_router(state: Arc<RwLock<ChatState>>, pool: PgPool) -> Router {
         .route("/join/{room_id}", get(join_chat))
         .route("/stats/{room_id}", get(get_room_stats))
         .route("/active-rooms", get(get_active_rooms))
-        .route("/conversations/{from_user}/{to_user}", get(get_conversation_messages))
-        .route("/messages/{conversation_id}", get(get_conversation_messages_by_id))
-        .route("/conversation/{username}", get(get_conversation_messages_by_username))
+        .route(
+            "/conversations/{from_user}/{to_user}",
+            get(get_conversation_messages),
+        )
+        .route(
+            "/messages/{conversation_id}",
+            get(get_conversation_messages_by_id),
+        )
+        .route(
+            "/conversation/{username}",
+            get(get_conversation_messages_by_username),
+        )
         .layer(from_fn(auth))
         .layer(Extension(pool))
         .layer(Extension(state))

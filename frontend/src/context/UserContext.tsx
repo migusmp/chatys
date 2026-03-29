@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type {
     DmNotification,
-    NewDmMessageNotification,
     Notification,
 } from "../interfaces/notifications";
 import type { UserProfile } from "../types/user";
@@ -26,8 +25,8 @@ interface FriendsContextType {
 interface NotificationsContextType {
     notifications: Notification[];
     setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
-    setNewLastMessage: React.Dispatch<React.SetStateAction<NewDmMessageNotification[]>>;
-    newLastMessage: NewDmMessageNotification[];
+    setNewLastMessage: React.Dispatch<React.SetStateAction<DmNotification[]>>;
+    newLastMessage: DmNotification[];
     dmNotifications: DmNotification[];
     setDmNotifications: React.Dispatch<React.SetStateAction<DmNotification[]>>;
 }
@@ -78,7 +77,7 @@ export function UserProvider({ children }: Props) {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [activeFriends, setActiveFriends] = useState<number[]>([]);
-    const [newLastMessage, setNewLastMessage] = useState<NewDmMessageNotification[]>([]);
+    const [newLastMessage, setNewLastMessage] = useState<DmNotification[]>([]);
     const [dmNotifications, setDmNotifications] = useState<DmNotification[]>([]);
     const [loading, setLoading] = useState(true);
 

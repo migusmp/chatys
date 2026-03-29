@@ -8,6 +8,8 @@ use crate::models::user::{ErrorRequest, Payload};
 use crate::services::chat::{
     handle_socket, handle_socket_for_active_rooms, handle_socket_for_room_stats,
 };
+use crate::services::ws::notify_user_with_active_friends;
+use crate::state::app_state::AppState;
 use axum::extract::Query;
 use axum::Json;
 use axum::{
@@ -155,13 +157,19 @@ pub async fn create_new_conversation(
     Path(user2_id): Path<i32>,
     Extension(payload): Extension<Payload>, // aquí Payload debe tener user_id (user1)
     Extension(pool): Extension<PgPool>,
+    Extension(app_state): Extension<Arc<AppState>>,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     // 1. Extraer el user1_id del payload (usuario autenticado)
     let user1_id = payload.id;
 
     // 2. Crear la conversación
     match create_conversation(user1_id, user2_id, &pool).await {
-        Ok(conversation_id) => Ok((StatusCode::CREATED, conversation_id.to_string())),
+        Ok(conversation_id) => {
+            notify_user_with_active_friends(app_state.as_ref(), user1_id).await;
+            notify_user_with_active_friends(app_state.as_ref(), user2_id).await;
+
+            Ok((StatusCode::CREATED, conversation_id.to_string()))
+        }
         Err(e) => {
             eprintln!("Error creando conversación: {:?}", e);
             Err(ErrorRequest::CreateConversationError)

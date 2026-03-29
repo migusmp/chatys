@@ -35,6 +35,7 @@ pub struct UserSearchData {
     pub name: String,
     pub image: String,
     pub description: String,
+    pub is_online: bool,
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize, Clone)]

@@ -1,6 +1,6 @@
+pub mod conversations;
 pub mod db;
 pub mod messages;
-pub mod conversations;
 pub mod undelivered_messages;
 
 pub mod offset_date_time_serde {
@@ -27,7 +27,9 @@ pub mod offset_date_time_serde {
     {
         let opt = Option::<String>::deserialize(deserializer)?;
         match opt {
-            Some(s) => OffsetDateTime::parse(&s, &Rfc3339).map(Some).map_err(serde::de::Error::custom),
+            Some(s) => OffsetDateTime::parse(&s, &Rfc3339)
+                .map(Some)
+                .map_err(serde::de::Error::custom),
             None => Ok(None),
         }
     }

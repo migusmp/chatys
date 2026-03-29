@@ -110,7 +110,9 @@ pub async fn search_user(
 
     sqlx::query_as::<_, UserSearchData>(
         r#"
-    SELECT * FROM users WHERE username ILIKE $1
+    SELECT id, username, name, image, description, false AS is_online
+    FROM users
+    WHERE username ILIKE $1
 "#,
     )
     .bind(pattern)
@@ -131,7 +133,11 @@ pub async fn update_user_name(username: String, id: i32, pool: &PgPool) -> Resul
           )
     "#;
 
-    let info = sqlx::query(query).bind(&username).bind(id).execute(pool).await?;
+    let info = sqlx::query(query)
+        .bind(&username)
+        .bind(id)
+        .execute(pool)
+        .await?;
 
     if info.rows_affected() > 0 {
         Ok(())
@@ -212,14 +218,23 @@ pub async fn update_user_email(new_email: String, id: i32, pool: &PgPool) -> Res
           )
     "#;
 
-    match sqlx::query(query).bind(&new_email).bind(id).execute(pool).await {
+    match sqlx::query(query)
+        .bind(&new_email)
+        .bind(id)
+        .execute(pool)
+        .await
+    {
         Ok(info) if info.rows_affected() > 0 => Ok(()),
         Ok(_) => Err(AppError::EmailExists),
         Err(_) => Err(AppError::ErrorEmailUpdate),
     }
 }
 
-pub async fn update_name_from_user(new_name: String, id: i32, pool: &PgPool) -> Result<(), AppError> {
+pub async fn update_name_from_user(
+    new_name: String,
+    id: i32,
+    pool: &PgPool,
+) -> Result<(), AppError> {
     match update_name(new_name, id, &pool).await {
         Ok(_) => Ok(()),
         Err(_) => Err(AppError::InternalError),

@@ -1,5 +1,6 @@
 use crate::{
     models::user::{ErrorRequest, Payload},
+    services::ws::notify_user_with_active_friends,
     state::app_state::AppState,
     utils::responses::ApiResponse,
 };
@@ -110,7 +111,12 @@ pub async fn accept_friend_request(
 
     // Enviar notificación de aceptación de solicitud de amistad
     if let Err(e) = app_state
-        .accept_friend_notification(friend_requested_id, payload.name.clone(), payload.id, payload.image)
+        .accept_friend_notification(
+            friend_requested_id,
+            payload.name.clone(),
+            payload.id,
+            payload.image,
+        )
         .await
     {
         eprintln!(
@@ -118,6 +124,10 @@ pub async fn accept_friend_request(
             e
         );
     }
+
+    notify_user_with_active_friends(app_state.as_ref(), payload.id).await;
+    notify_user_with_active_friends(app_state.as_ref(), friend_requested_id).await;
+
     // Responder exitosamente
     Ok(ApiResponse::success("Friend added successfully"))
 }

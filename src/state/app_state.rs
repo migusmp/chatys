@@ -22,6 +22,7 @@ pub struct AppState {
     pub global_broadcast: broadcast::Sender<String>,
     pub connected_users: UserChannels,
     pub friend_notifications: UserChannels,
+    pub online_user_connections: DashMap<i32, usize>,
     pub config: AppConfig,
 }
 
@@ -33,9 +34,39 @@ impl AppState {
             global_broadcast,
             connected_users: DashMap::new(),
             friend_notifications: DashMap::new(),
+            online_user_connections: DashMap::new(),
             config: AppConfig::default(),
             direct_message_channels: DashMap::new(),
         }
+    }
+
+    pub fn mark_user_connected(&self, user_id: i32) -> usize {
+        let mut count = self
+            .online_user_connections
+            .entry(user_id)
+            .and_modify(|existing| *existing += 1)
+            .or_insert(1);
+
+        *count
+    }
+
+    pub fn mark_user_disconnected(&self, user_id: i32) -> usize {
+        if let Some(mut count) = self.online_user_connections.get_mut(&user_id) {
+            if *count > 1 {
+                *count -= 1;
+                return *count;
+            }
+        }
+
+        self.online_user_connections.remove(&user_id);
+        0
+    }
+
+    pub fn is_user_online(&self, user_id: i32) -> bool {
+        self.online_user_connections
+            .get(&user_id)
+            .map(|count| *count > 0)
+            .unwrap_or(false)
     }
 
     // Imprime las claves activas, ahora son pares (conversation_id, user_id)
@@ -127,7 +158,10 @@ impl AppState {
     ) {
         // Notifica al usuario destinatario del nuevo mensaje
         // Verifica si el usuario está conectado
-        let sender = self.connected_users.get(&recipient_id).map(|entry| entry.clone());
+        let sender = self
+            .connected_users
+            .get(&recipient_id)
+            .map(|entry| entry.clone());
         if let Some(sender) = sender {
             let notification = serde_json::json!({
             "type_msg": "NEW_DM_MESSAGE",
@@ -183,7 +217,10 @@ impl AppState {
         .await
         .unwrap_or_default();
 
-        let sender = self.friend_notifications.get(&user_id).map(|entry| entry.clone());
+        let sender = self
+            .friend_notifications
+            .get(&user_id)
+            .map(|entry| entry.clone());
         if let Some(sender) = sender {
             for notif in notifications {
                 if let Ok(json_msg) = serde_json::to_string(&notif) {
@@ -205,7 +242,11 @@ impl AppState {
         };
 
         // Obtener canal para enviar mensajes de chat
-        let tx = match self.connected_users.get(&user_id).map(|entry| entry.clone()) {
+        let tx = match self
+            .connected_users
+            .get(&user_id)
+            .map(|entry| entry.clone())
+        {
             Some(tx) => tx,
             None => {
                 println!("No se encontró canal para usuario {}", user_id);
@@ -308,7 +349,10 @@ impl AppState {
         let json_message = serde_json::to_string(&notification)
             .map_err(|_| "Failed to serialize the notification".to_string())?;
 
-        let sender = self.friend_notifications.get(&friend_id).map(|entry| entry.clone());
+        let sender = self
+            .friend_notifications
+            .get(&friend_id)
+            .map(|entry| entry.clone());
         if let Some(sender) = sender {
             match sender.try_send(json_message.clone()) {
                 Ok(_) => Ok(()),
@@ -356,7 +400,10 @@ impl AppState {
             .map_err(|_| "Failed to serialize the notification".to_string())?;
 
         // 3. Intentar enviar la notificación
-        let sender = self.friend_notifications.get(&friend_id).map(|entry| entry.clone());
+        let sender = self
+            .friend_notifications
+            .get(&friend_id)
+            .map(|entry| entry.clone());
         if let Some(sender) = sender {
             match sender.try_send(json_message.clone()) {
                 Ok(_) => Ok(()),
@@ -437,6 +484,15 @@ impl AppState {
     }
 
     pub async fn on_user_disconnected(&self, user_id: i32) {
+        let remaining_connections = self.mark_user_disconnected(user_id);
+        if remaining_connections > 0 {
+            println!(
+                "Usuario {} sigue online con {} conexión(es) activa(s)",
+                user_id, remaining_connections
+            );
+            return;
+        }
+
         if self.connected_users.remove(&user_id).is_some() {
             println!(
                 "Conexión de usuario {} eliminada de connected_users",

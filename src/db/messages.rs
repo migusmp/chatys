@@ -129,9 +129,9 @@ pub async fn save_message(
     .await?;
 
     sqlx::query("UPDATE conversations SET updated_at = NOW() WHERE id = $1")
-    .bind(conversation_id)
-    .execute(&mut *tx)
-    .await?;
+        .bind(conversation_id)
+        .execute(&mut *tx)
+        .await?;
 
     tx.commit().await?;
 

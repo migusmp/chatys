@@ -84,7 +84,7 @@ pub fn user_router(pool: PgPool) -> Router {
             "/search/{username}",
             get({
                 let pool = pool.clone();
-                move |username| user_search(username, pool)
+                move |username, app_state, payload| user_search(username, app_state, payload, pool)
             })
             .route_layer(axum::middleware::from_fn(auth)),
         )

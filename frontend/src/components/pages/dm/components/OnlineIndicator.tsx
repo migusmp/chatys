@@ -1,10 +1,10 @@
 import { useFriendsContext } from "../../../../context/UserContext";
 
-type Props = { userId: number, isHeader: boolean };
+type Props = { userId: number, isHeader: boolean, isOnline?: boolean };
 
-export function OnlineIndicator({ userId, isHeader }: Props) {
+export function OnlineIndicator({ userId, isHeader, isOnline }: Props) {
     const { checkUserIsOnline } = useFriendsContext();
-    const isOnline = checkUserIsOnline(userId);
+    const onlineStatus = isOnline === true || checkUserIsOnline(userId);
 
     return (
         <span
@@ -15,7 +15,7 @@ export function OnlineIndicator({ userId, isHeader }: Props) {
                 width: "14px",
                 height: "14px",
                 borderRadius: "50%",
-                backgroundColor: isOnline ? "#0f6" : "#888",
+                backgroundColor: onlineStatus ? "#0f6" : "#888",
                 border: "2px solid rgb(0, 0, 0)",
                 transition: !isHeader ? "background-color 0.2s ease-in-out": "none",
             }}

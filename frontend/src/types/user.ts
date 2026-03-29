@@ -21,6 +21,7 @@ export type UserSearchData = {
   name: string;
   image: string;
   description: string;
+  is_online: boolean;
 };
 
 export type LoginUserData = {
