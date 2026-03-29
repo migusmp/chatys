@@ -87,9 +87,11 @@ export const WebSocketProvider = ({
                             return [data as NewDmMessageNotification, ...filtered];
                         });
 
+                        const isOnDmRoute = route === "dm";
                         const isCurrentOpenChat =
-                            (route === "dm" && data.type_msg === "NEW_DM_MESSAGE" && username === data.from_user_username) ||
-                            (data.type_msg === "chat_message" && username === data.sender_username);
+                            isOnDmRoute &&
+                            ((data.type_msg === "NEW_DM_MESSAGE" && username === data.from_user_username) ||
+                                (data.type_msg === "chat_message" && username === data.sender_username));
 
                         if (!isCurrentOpenChat) {
                             setDmNotifications((prev) => [data, ...prev]);

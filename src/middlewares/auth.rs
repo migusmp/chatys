@@ -1,8 +1,8 @@
-use crate::errors::ErrorAuth;
-use crate::utils::{responses::ApiResponse, user_utils::decode_token};
+use crate::errors::AppError;
+use crate::utils::user_utils::decode_token;
 use axum::{
     body::Body,
-    http::{HeaderValue, Request, StatusCode},
+    http::{HeaderValue, Request},
     middleware::Next,
     response::IntoResponse,
 };
@@ -21,28 +21,16 @@ pub async fn auth(mut req: Request<Body>, next: Next) -> impl IntoResponse {
                         req.extensions_mut().insert(payload);
                         return next.run(req).await;
                     }
-                    Err(_e) => {
-                        return (ApiResponse::error(StatusCode::UNAUTHORIZED, "Unauthorized"))
-                            .into_response();
-                    }
+                    Err(e) => return e.into_response(),
                 };
             }
-            Err(e) => match e {
-                ErrorAuth::NoneCookieFound => {
-                    (ApiResponse::error(StatusCode::UNAUTHORIZED, "Autentication cookie not found"))
-                        .into_response()
-                }
-                ErrorAuth::AuthCookieNotFound => {
-                    (ApiResponse::error(StatusCode::UNAUTHORIZED, "None cookies found in request"))
-                        .into_response()
-                }
-            },
+            Err(e) => return e.into_response(),
         };
     }
-    (ApiResponse::error(StatusCode::UNAUTHORIZED, "Unauthorized")).into_response()
+    AppError::Unauthorized.into_response()
 }
 
-async fn get_auth_cookie(cookie_header: &HeaderValue) -> Result<String, ErrorAuth> {
+async fn get_auth_cookie(cookie_header: &HeaderValue) -> Result<String, AppError> {
     if let Ok(cookie_str) = cookie_header.to_str() {
         for cookie in cookie_str.split(';') {
             let cookie = cookie.trim();
@@ -50,7 +38,7 @@ async fn get_auth_cookie(cookie_header: &HeaderValue) -> Result<String, ErrorAut
                 return Ok(auth_token.to_string());
             }
         }
-        return Err(ErrorAuth::AuthCookieNotFound);
+        return Err(AppError::AuthCookieNotFound);
     }
-    Err(ErrorAuth::NoneCookieFound)
+    Err(AppError::NoneCookieFound)
 }

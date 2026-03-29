@@ -22,6 +22,7 @@ use sqlx::{Executor, PgPool};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
+use tokio_util::sync::CancellationToken;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
@@ -41,6 +42,8 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
         .expect("Failed to execute init.sql");
 
     let pool_cleanup = pool.clone();
+    let cleanup_shutdown = CancellationToken::new();
+    let cleanup_shutdown_task = cleanup_shutdown.clone();
 
     // HILO ENCARGADO DE BORRAR LAS IMÁGENES QUE NO PERTENEZCAN A NINGÚN USUARIO
     tokio::spawn(async move {
@@ -49,7 +52,20 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
             if let Err(e) = cleanup_unused_images(pool_cleanup.clone()).await {
                 eprintln!("Error en cleanup de imágenes: {:?}", e);
             }
-            sleep(interval).await;
+
+            tokio::select! {
+                _ = cleanup_shutdown_task.cancelled() => {
+                    break;
+                }
+                _ = sleep(interval) => {}
+            }
+        }
+    });
+
+    let cleanup_shutdown_signal = cleanup_shutdown.clone();
+    tokio::spawn(async move {
+        if tokio::signal::ctrl_c().await.is_ok() {
+            cleanup_shutdown_signal.cancel();
         }
     });
 

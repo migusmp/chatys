@@ -15,8 +15,12 @@ export default function DmRoom() {
     const [conversationData, setConversationData] = useState<FullConversation | null>(null);
 
     useEffect(() => {
+        const controller = new AbortController();
+
         const fetch = async () => {
-            const data = await fetchFullConversationInfo(username ?? "", 25, 0);
+            const data = await fetchFullConversationInfo(username ?? "", 25, 0, {
+                signal: controller.signal,
+            });
             if (data) {
                 setConversationData(data);
             } else {
@@ -24,6 +28,10 @@ export default function DmRoom() {
             }
         };
         fetch();
+
+        return () => {
+            controller.abort();
+        };
     }, [username]);
 
     if (!conversationData) {

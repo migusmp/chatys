@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use axum::{http::StatusCode, response::Response};
+use axum::response::Response;
 use bcrypt::BcryptError;
 use chrono::{Duration, Utc};
 use cookie::{
@@ -10,6 +10,7 @@ use cookie::{
 use jsonwebtoken::{DecodingKey, TokenData, Validation};
 use sqlx::PgPool;
 
+use crate::errors::AppError;
 use crate::models::user::{LoginUser, Payload, RegisterUser, User};
 use crate::utils::jwt::get_jwt_secret;
 
@@ -129,23 +130,13 @@ pub fn append_cookie_to_response(res: &mut Response, cookie: Cookie) {
     }
 }
 
-pub async fn decode_token(auth_token: String) -> Result<Payload, StatusCode> {
+pub async fn decode_token(auth_token: String) -> Result<Payload, AppError> {
     let token_data: TokenData<Payload> = jsonwebtoken::decode(
         &auth_token,
         &DecodingKey::from_secret(get_jwt_secret().as_ref()),
         &Validation::default(),
     )
-    .map_err(|e| {
-        use jsonwebtoken::errors::ErrorKind;
-        match e.kind() {
-            ErrorKind::ExpiredSignature => StatusCode::UNAUTHORIZED,
-            ErrorKind::InvalidToken | ErrorKind::InvalidSignature => StatusCode::UNAUTHORIZED,
-            _ => {
-                eprintln!("Error al decodificar el token: {}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
-        }
-    })?;
+    .map_err(AppError::from)?;
 
     Ok(token_data.claims)
 }

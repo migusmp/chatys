@@ -5,6 +5,7 @@ use sqlx::Error;
 use sqlx::PgPool;
 use std::env;
 
+use crate::errors::AppError;
 use crate::models::user::ProfileData;
 use crate::models::user::UserChatData;
 use crate::models::user::UserData;
@@ -117,30 +118,7 @@ pub async fn search_user(
     .await
 }
 
-pub enum UpdateUserName {
-    UserExists,
-    UserNameUpdated,
-    ConsultError,
-}
-
-pub enum UpdateUserPassword {
-    PasswordUpdated,
-    ErrorPasswordUpdate,
-}
-
-pub enum UpdateUserDescription {
-    DescriptionUpdated,
-    ErrorDescriptionUpdate,
-}
-
-pub enum UpdateUserEmail {
-    EmailUpdated,
-    ErrorEmailUpdate,
-    EmailAlreadyExist,
-    InvalidEmail,
-}
-
-pub async fn update_user_name(username: String, id: i32, pool: &PgPool) -> UpdateUserName {
+pub async fn update_user_name(username: String, id: i32, pool: &PgPool) -> Result<(), AppError> {
     let query = r#"
         UPDATE users
         SET username = $1
@@ -153,10 +131,12 @@ pub async fn update_user_name(username: String, id: i32, pool: &PgPool) -> Updat
           )
     "#;
 
-    match sqlx::query(query).bind(&username).bind(id).execute(pool).await {
-        Ok(info) if info.rows_affected() > 0 => UpdateUserName::UserNameUpdated,
-        Ok(_) => UpdateUserName::UserExists,
-        Err(_) => UpdateUserName::ConsultError,
+    let info = sqlx::query(query).bind(&username).bind(id).execute(pool).await?;
+
+    if info.rows_affected() > 0 {
+        Ok(())
+    } else {
+        Err(AppError::UserAlreadyExists)
     }
 }
 
@@ -192,46 +172,33 @@ pub async fn update_user_description(
     new_description: String,
     id: i32,
     pool: &PgPool,
-) -> UpdateUserDescription {
-    match update_description(new_description, id, pool).await {
-        Ok(_) => UpdateUserDescription::DescriptionUpdated,
-        Err(_) => UpdateUserDescription::ErrorDescriptionUpdate,
-    }
+) -> Result<(), AppError> {
+    update_description(new_description, id, pool)
+        .await
+        .map_err(|_| AppError::InternalError)
 }
 
 // TODO
-pub async fn update_user_pwd(new_pwd: String, id: i32, pool: &PgPool) -> UpdateUserPassword {
-    let pwd = match bcrypt::hash(&new_pwd, 4) {
-        Ok(pwd) => pwd,
-        Err(_) => {
-            return UpdateUserPassword::ErrorPasswordUpdate;
-        }
-    };
+pub async fn update_user_pwd(new_pwd: String, id: i32, pool: &PgPool) -> Result<(), AppError> {
+    let pwd = bcrypt::hash(&new_pwd, 4).map_err(|_| AppError::ErrorPasswordUpdate)?;
     let query = r#"
         UPDATE users
         SET password = $1
         WHERE id = $2
     "#;
-    match sqlx::query(query).bind(pwd).bind(id).execute(&*pool).await {
-        Ok(_) => {
-            return UpdateUserPassword::PasswordUpdated;
-        }
-        Err(_e) => {
-            return UpdateUserPassword::ErrorPasswordUpdate;
-        }
-    }
+
+    sqlx::query(query)
+        .bind(pwd)
+        .bind(id)
+        .execute(pool)
+        .await
+        .map_err(|_| AppError::ErrorPasswordUpdate)?;
+
+    Ok(())
 }
 
-pub async fn update_user_email(new_email: String, id: i32, pool: &PgPool) -> UpdateUserEmail {
-    match check_updated_email(&new_email).await {
-        Ok(_) => {}
-        Err(e) => match e {
-            UpdateUserEmail::InvalidEmail => {
-                return e;
-            }
-            _ => {}
-        },
-    }
+pub async fn update_user_email(new_email: String, id: i32, pool: &PgPool) -> Result<(), AppError> {
+    check_updated_email(&new_email)?;
 
     let query = r#"
         UPDATE users
@@ -246,25 +213,55 @@ pub async fn update_user_email(new_email: String, id: i32, pool: &PgPool) -> Upd
     "#;
 
     match sqlx::query(query).bind(&new_email).bind(id).execute(pool).await {
-        Ok(info) if info.rows_affected() > 0 => UpdateUserEmail::EmailUpdated,
-        Ok(_) => UpdateUserEmail::EmailAlreadyExist,
-        Err(_) => UpdateUserEmail::ErrorEmailUpdate,
+        Ok(info) if info.rows_affected() > 0 => Ok(()),
+        Ok(_) => Err(AppError::EmailExists),
+        Err(_) => Err(AppError::ErrorEmailUpdate),
     }
 }
 
-pub async fn update_name_from_user(new_name: String, id: i32, pool: &PgPool) -> UpdateUserName {
+pub async fn update_name_from_user(new_name: String, id: i32, pool: &PgPool) -> Result<(), AppError> {
     match update_name(new_name, id, &pool).await {
-        Ok(_) => UpdateUserName::UserNameUpdated,
-        Err(_) => UpdateUserName::ConsultError,
+        Ok(_) => Ok(()),
+        Err(_) => Err(AppError::InternalError),
     }
 }
 
-async fn check_updated_email(new_email: &String) -> Result<(), UpdateUserEmail> {
-    if !new_email.contains("@") || !new_email.ends_with(".com") {
-        Err(UpdateUserEmail::InvalidEmail)
-    } else {
-        Ok(())
+fn check_updated_email(new_email: &str) -> Result<(), AppError> {
+    let email = new_email.trim();
+    if email.is_empty() || email.contains(char::is_whitespace) {
+        return Err(AppError::InvalidEmail);
     }
+
+    let mut parts = email.split('@');
+    let local = parts.next();
+    let domain = parts.next();
+
+    if parts.next().is_some() {
+        return Err(AppError::InvalidEmail);
+    }
+
+    let (Some(local), Some(domain)) = (local, domain) else {
+        return Err(AppError::InvalidEmail);
+    };
+
+    if local.is_empty() || domain.is_empty() || !domain.contains('.') {
+        return Err(AppError::InvalidEmail);
+    }
+
+    let segments: Vec<&str> = domain.split('.').collect();
+    if segments.iter().any(|segment| segment.is_empty()) {
+        return Err(AppError::InvalidEmail);
+    }
+
+    let has_valid_tld = segments
+        .last()
+        .is_some_and(|tld| tld.len() >= 2 && tld.chars().all(|c| c.is_ascii_alphabetic()));
+
+    if !has_valid_tld {
+        return Err(AppError::InvalidEmail);
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize)]

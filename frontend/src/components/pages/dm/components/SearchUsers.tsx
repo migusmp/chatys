@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { UserSearchData } from "../../../../types/user";
 import { useTranslation } from "react-i18next";
 
@@ -8,36 +8,54 @@ type Props = {
 
 export default function SearchUsers({ onResults }: Props) {
     const [userSearched, setUserSearched] = useState("");
+    const searchControllerRef = useRef<AbortController | null>(null);
     const { t } = useTranslation();
 
-    async function fetchSearchedUsers(query: string) {
-        if (!query.trim()) {
-            onResults([], false); // búsqueda inactiva
-            return;
-        }
-
-        try {
-            const res = await fetch(`/api/user/search/${query}`, {
-                method: "GET",
-                credentials: "include",
-            });
-            const data: UserSearchData[] = await res.json();
-            onResults(data, true); // búsqueda activa
-        } catch (e) {
-            console.error(e);
-            onResults([], true);
-        }
-    }
-
     useEffect(() => {
+        const fetchSearchedUsers = async (query: string) => {
+            searchControllerRef.current?.abort();
+
+            if (!query.trim()) {
+                onResults([], false);
+                return;
+            }
+
+            const controller = new AbortController();
+            searchControllerRef.current = controller;
+
+            try {
+                const res = await fetch(`/api/user/search/${query}`, {
+                    method: "GET",
+                    credentials: "include",
+                    signal: controller.signal,
+                });
+                const data: UserSearchData[] = await res.json();
+                onResults(data, true);
+            } catch (e) {
+                if (e instanceof DOMException && e.name === "AbortError") {
+                    return;
+                }
+                console.error(e);
+                onResults([], true);
+            } finally {
+                if (searchControllerRef.current === controller) {
+                    searchControllerRef.current = null;
+                }
+            }
+        };
+
         const timeout = setTimeout(() => {
             fetchSearchedUsers(userSearched);
         }, 400);
 
-        return () => clearTimeout(timeout);
-    }, [userSearched]);
+        return () => {
+            clearTimeout(timeout);
+            searchControllerRef.current?.abort();
+        };
+    }, [userSearched, onResults]);
 
     const clearSearch = () => {
+        searchControllerRef.current?.abort();
         setUserSearched("");
         onResults([], false);
     };
@@ -93,4 +111,3 @@ export default function SearchUsers({ onResults }: Props) {
         </section>
     );
 }
-

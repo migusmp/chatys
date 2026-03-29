@@ -2,8 +2,7 @@ use crate::db::conversations::{get_last_message_content, get_user_conversations_
 use crate::db::db::{
     delete_user, get_user_friends, get_user_friends_by_username, get_user_profile_data,
     get_user_profile_data_by_username, search_user, update_name_from_user, update_user_description,
-    update_user_email, update_user_image, update_user_name, update_user_pwd, UpdateUserDescription,
-    UpdateUserEmail, UpdateUserName, UpdateUserPassword,
+    update_user_email, update_user_image, update_user_name, update_user_pwd,
 };
 use crate::models::user::{ErrorRequest, LoginUser, Payload, RegisterUser, UpdateData};
 use crate::services::user::{login, register};
@@ -18,7 +17,41 @@ use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
-const MAX_CONTENT_LENGTH: u64 = 5 * 1024 * 1024; // 10 MB
+const MAX_CONTENT_LENGTH: u64 = 5 * 1024 * 1024; // 5 MB
+const MAX_USERNAME_LENGTH: usize = 50;
+const MAX_EMAIL_LENGTH: usize = 100;
+const MAX_PASSWORD_LENGTH: usize = 128;
+
+fn is_valid_email(email: &str) -> bool {
+    if email.is_empty() || email.contains(char::is_whitespace) {
+        return false;
+    }
+
+    let mut parts = email.split('@');
+    let local = parts.next();
+    let domain = parts.next();
+
+    if parts.next().is_some() {
+        return false;
+    }
+
+    let (Some(local), Some(domain)) = (local, domain) else {
+        return false;
+    };
+
+    if local.is_empty() || domain.is_empty() || !domain.contains('.') {
+        return false;
+    }
+
+    let segments: Vec<&str> = domain.split('.').collect();
+    if segments.iter().any(|segment| segment.is_empty()) {
+        return false;
+    }
+
+    segments
+        .last()
+        .is_some_and(|tld| tld.len() >= 2 && tld.chars().all(|c| c.is_ascii_alphabetic()))
+}
 
 // Ruta de registro de usuarios.
 pub async fn user_register(
@@ -43,12 +76,24 @@ pub async fn user_register(
         return Err(ErrorRequest::UsernameInvalid);
     }
 
-    if !email.contains("@") {
+    if username.len() > MAX_USERNAME_LENGTH {
+        return Err(ErrorRequest::UsernameInvalid);
+    }
+
+    if email.len() > MAX_EMAIL_LENGTH {
+        return Err(ErrorRequest::InvalidEmail);
+    }
+
+    if !is_valid_email(email) {
         return Err(ErrorRequest::InvalidEmail);
     }
 
     if password.len() < 4 {
         return Err(ErrorRequest::ShortPassword);
+    }
+
+    if password.len() > MAX_PASSWORD_LENGTH {
+        return Err(ErrorRequest::BadParameter);
     }
 
     // Llamamos al servicio de registro
@@ -101,56 +146,23 @@ pub async fn user_update(
     pool: PgPool,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     if let Some(username) = update_info.username {
-        match update_user_name(username, payload.id, &pool).await {
-            UpdateUserName::UserNameUpdated => {}
-            UpdateUserName::UserExists => {
-                return Err(ErrorRequest::UserAlreadyExists);
-            }
-            UpdateUserName::ConsultError => {
-                println!("Error en la consulta");
-                return Err(ErrorRequest::InternalError);
-            }
-        }
+        update_user_name(username, payload.id, &pool).await?;
     }
 
     if let Some(pwd) = update_info.password {
-        match update_user_pwd(pwd, payload.id, &pool).await {
-            UpdateUserPassword::PasswordUpdated => {}
-            UpdateUserPassword::ErrorPasswordUpdate => {
-                return Err(ErrorRequest::ErrorPasswordUpdate)
-            }
-        }
+        update_user_pwd(pwd, payload.id, &pool).await?;
     }
 
     if let Some(email) = update_info.email {
-        match update_user_email(email, payload.id, &pool).await {
-            UpdateUserEmail::EmailUpdated => {}
-            UpdateUserEmail::ErrorEmailUpdate => return Err(ErrorRequest::ErrorEmailUpdate),
-            UpdateUserEmail::EmailAlreadyExist => return Err(ErrorRequest::EmailExists),
-            UpdateUserEmail::InvalidEmail => return Err(ErrorRequest::InvalidEmail),
-        }
+        update_user_email(email, payload.id, &pool).await?;
     }
 
     if let Some(name) = update_info.name {
-        match update_name_from_user(name, payload.id, &pool).await {
-            UpdateUserName::UserNameUpdated => {}
-            UpdateUserName::UserExists => {
-                return Err(ErrorRequest::UserAlreadyExists);
-            }
-            UpdateUserName::ConsultError => {
-                println!("Error en la consulta");
-                return Err(ErrorRequest::InternalError);
-            }
-        }
+        update_name_from_user(name, payload.id, &pool).await?;
     }
 
     if let Some(description) = update_info.description {
-        match update_user_description(description, payload.id, &pool).await {
-            UpdateUserDescription::DescriptionUpdated => {}
-            UpdateUserDescription::ErrorDescriptionUpdate => {
-                return Err(ErrorRequest::InternalError)
-            }
-        }
+        update_user_description(description, payload.id, &pool).await?;
     }
 
     Ok(ApiResponse::success("Data updated"))
