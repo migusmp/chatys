@@ -127,70 +127,70 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
 
 
     return (
-        <div className={styles.modalOverlay}>
-            <div className={styles.modalContent}>
-                <form onSubmit={handleSubmit} className={styles.modalForm}>
-                    <div className={styles.profileImageWrapper}>
-                        <img
-                            src={formData.image}
-                            alt="Imagen de perfil"
-                            className={styles.profileImage}
+        <div className={styles.overlay}>
+            <div className={styles.modal}>
+                {/* Header */}
+                <div className={styles.header}>
+                    <h2 className={styles.title}>{t("profile.editProfileModal.title") || "Edit Profile"}</h2>
+                    <button
+                        type="button"
+                        className={styles.closeBtn}
+                        onClick={() => setModal(false)}
+                        aria-label="Close"
+                    >
+                        <i className="bi bi-x-lg" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className={styles.form}>
+                    {/* Avatar */}
+                    <div className={styles.avatarSection}>
+                        <div
+                            className={styles.avatarWrapper}
                             onClick={() => fileInputRef.current?.click()}
-                        />
-                        <input
-                            type="file"
-                            accept="image/*"
-                            ref={fileInputRef}
-                            onChange={handleImageChange}
-                            className={styles.hiddenInput}
-                        />
+                            role="button"
+                            tabIndex={0}
+                            aria-label={t("profile.editProfileModal.changeImgMessage")}
+                        >
+                            {formData.image ? (
+                                <img src={formData.image} alt="Profile" className={styles.avatarImg} />
+                            ) : (
+                                <div className={styles.avatarPlaceholder}>
+                                    {profile?.name?.charAt(0).toUpperCase() || '?'}
+                                </div>
+                            )}
+                            <div className={styles.avatarOverlay}>
+                                <i className="bi bi-camera-fill" />
+                            </div>
+                        </div>
+                        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className={styles.hiddenInput} />
                         <span className={styles.imageHint}>{t("profile.editProfileModal.changeImgMessage")}</span>
                     </div>
 
-                    <label>
-                        {t("profile.editProfileModal.nameLabel")}
-                        <input
-                            type="text"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                        />
-                    </label>
+                    {/* Fields */}
+                    <div className={styles.fields}>
+                        <div className={styles.field}>
+                            <label htmlFor="edit-name" className={styles.label}>{t("profile.editProfileModal.nameLabel")}</label>
+                            <input id="edit-name" type="text" name="name" value={formData.name} onChange={handleChange} className={styles.input} />
+                        </div>
+                        <div className={styles.field}>
+                            <label htmlFor="edit-username" className={styles.label}>{t("profile.editProfileModal.usernameLabel")}</label>
+                            <input id="edit-username" type="text" name="username" value={formData.username} onChange={handleChange} className={styles.input} />
+                        </div>
+                        <div className={styles.field}>
+                            <label htmlFor="edit-description" className={styles.label}>{t("profile.editProfileModal.descriptionLabel")}</label>
+                            <textarea id="edit-description" name="description" value={formData.description} onChange={handleChange} rows={3} className={styles.textarea} />
+                        </div>
+                        <div className={styles.field}>
+                            <label htmlFor="edit-email" className={styles.label}>{t("profile.editProfileModal.emailLabel")}</label>
+                            <input id="edit-email" type="email" name="email" value={formData.email} onChange={handleChange} className={styles.input} />
+                        </div>
+                    </div>
 
-                    <label>
-                        {t("profile.editProfileModal.usernameLabel")}
-                        <input
-                            type="text"
-                            name="username"
-                            value={formData.username}
-                            onChange={handleChange}
-                        />
-                    </label>
-
-                    <label>
-                        {t("profile.editProfileModal.descriptionLabel")}
-                        <textarea
-                            name="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            rows={4}
-                            className={styles.textarea}
-                        />
-                    </label>
-
-                    <label>
-                        {t("profile.editProfileModal.emailLabel")}
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                        />
-                    </label>
-
-                    <div className={styles.modalButtons}>
-                        <button type="submit">{t("profile.editProfileModal.saveBtn")}</button>
-                        <button type="button" onClick={() => setModal(false)}>{t("profile.editProfileModal.dontSaveBtn")}</button>
+                    {/* Buttons */}
+                    <div className={styles.actions}>
+                        <button type="submit" className={styles.saveBtn}>{t("profile.editProfileModal.saveBtn")}</button>
+                        <button type="button" className={styles.cancelBtn} onClick={() => setModal(false)}>{t("profile.editProfileModal.dontSaveBtn")}</button>
                     </div>
                 </form>
             </div>

@@ -1,213 +1,348 @@
-.body {
-    width: 100%;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    /* Añade esto para columnas en móviles */
-}
+/* ================================================================
+   Profile.module.css — Aurora Hero + Glassmorphism layout
+   Design system: bg #000 · accent #00ff66 · glassmorphism surfaces
+   Breakpoints: 375 / 480 / 680
+   ================================================================ */
 
-.userInfoSection {
-    width: 45%;
-    min-height: 100vh;
-    /* background-color: green; */
-    border-left: 1px solid #272727;
-    border-right: 1px solid #272727;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap');
 
-/* <--------------------- STYLES TO BANNER SECTION ------------------------> */
-.header {
-    width: 100%;
-    height: 180px;
-    background-color: #00ff66;
-}
-
-/* <---------------------- STYLES TO USER INFORMATION SECTION -----------------------> */
-.userInfo {
+/* ── Page ──────────────────────────────────────────────────────── */
+.page {
     position: relative;
-    width: 100%;
-    height: 300px;
-    padding: 1rem;
+    min-height: 100dvh;
+    background: #000;
     display: flex;
     flex-direction: column;
-    border-bottom: 1px solid #272727;
+    align-items: center;
+    color: #fff;
 }
 
-.div {
+/* ── Aurora blob (fixed behind hero) ──────────────────────────── */
+.auroraBlob {
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(0, 255, 102, 0.08) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Sticky back row ───────────────────────────────────────────── */
+.backRow {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     width: 100%;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
-.profileImgDiv {
-    position: absolute;
-    top: -4.5rem;
-    width: 150px;
-    height: 150px;
+/* ── Hero wrap ─────────────────────────────────────────────────── */
+.heroWrap {
+    width: 100%;
+    max-width: 680px;
+    padding: 24px 16px 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Hero card (glassmorphism + aurora bg) ─────────────────────── */
+.heroCard {
+    background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 255, 102, 0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0, 255, 102, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 60% at 10% 90%, rgba(0, 200, 80, 0.05) 0%, transparent 50%),
+        rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 255, 102, 0.12);
+    border-radius: 24px;
+    padding: 40px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+}
+
+/* ── Avatar ────────────────────────────────────────────────────── */
+.avatarWrap {
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
-    border: 4px solid #000;
-    background-color: #000;
     overflow: hidden;
+    border: 2px solid #00ff66;
+    box-shadow:
+        0 0 0 4px rgba(0, 255, 102, 0.15),
+        0 0 30px rgba(0, 255, 102, 0.35),
+        0 0 60px rgba(0, 255, 102, 0.12);
+    flex-shrink: 0;
 }
 
-.profileImgDiv img {
+.avatar {
     width: 100%;
     height: 100%;
-    object-fit: cover;    /* adapta la imagen manteniendo proporciones */
-    object-position: center; /* centra la imagen */
+    object-fit: cover;
+    object-position: center;
+    display: block;
 }
 
-.buttonEditProfile {
-    position: absolute;
-    right: 30px;
-    top: 20px;
-    width: 120px;
-    height: 30px;
-    background-color: transparent;
-    border: 2px solid #00ff66;
-    outline: none;
-    border-radius: 24px;
-    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-    font-size: 0.9rem;
-    color: #fff;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.buttonEditProfile:hover {
-    color: #00ff66;
-    background-color: rgba(0, 255, 102, 0.15);
-}
-
-/* ESTILOS DE LA SECCION DE LA INFORMACION DEL PERFIL DEL USUARIO */
-.userDetails {
-    margin-top: 5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    color: #fff;
-    font-size: 0.9rem;
-}
-
-.userDetails span {
-    display: flex;
-    gap: 5px;
-}
-
-.spanName {
-    font-size: 23px;
-    font-weight: bold;
-}
-
-.spanUserName {
-    color: #535353;
-}
-
-.spanDescription {
-    padding-top: 3px;
-    padding-bottom: 3px;
-    color: #fff;
-}
-
-.spanJoined {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-    color: #535353;
-}
-
-.spanFriends {
-    color: #535353;
-}
-
-.spanFriends strong {
-    color: #fff;
-    font-weight: bold;
-}
-
-/* ESTILOS DE LA LISTA DE NAVEGACION EN EL PERFIL DE UN USUARIO */
-.navList {
-    position: absolute;
-    bottom: 0;
-    left: 0;
+.avatarPlaceholder {
     width: 100%;
-    list-style: none;
-    display: flex;
-    justify-content: space-around;
-    gap: 3rem;
-}
-
-.navList li {
-    padding: 0.5rem 1rem;
-    position: relative;
-}
-
-.navList a {
-    font-size: 14px;
-    color: #fff;
+    height: 100%;
+    background-color: #0d1f0d;
+    color: #00ff66;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.5rem;
     font-weight: 700;
-    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+/* ── Identity block ────────────────────────────────────────────── */
+.identity {
     display: flex;
     flex-direction: column;
+    gap: 4px;
+}
+
+.displayName {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    margin: 0;
+    text-shadow: 0 0 30px rgba(0, 255, 102, 0.25);
+}
+
+.handle {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #666;
+}
+
+/* ── Bio ───────────────────────────────────────────────────────── */
+.bio {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9375rem;
+    color: #bbb;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 480px;
+}
+
+/* ── Stats pills row ───────────────────────────────────────────── */
+.statsRow {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.statPill {
+    display: inline-flex;
     align-items: center;
-    transition: color 0.3s ease;
-    cursor: pointer;
+    gap: 6px;
+    padding: 8px 18px;
+    background: rgba(0, 255, 102, 0.06);
+    border: 1px solid rgba(0, 255, 102, 0.18);
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8125rem;
+    color: #aaa;
 }
 
-.navList a:hover {
+.statPill i {
+    font-size: 0.875rem;
     color: #00ff66;
 }
 
-.activeLink {
-    color: #00ff66;
+.statPill strong {
+    color: #fff;
     font-weight: 600;
 }
 
-/* El div verde pequeño debajo, inicialmente oculto */
-.underline {
-    width: 50px;
-    height: 3px;
-    background-color: #00ff66;
+/* ── Edit profile button ───────────────────────────────────────── */
+.editBtn {
+    padding: 10px 28px;
+    min-height: 44px;
+    background: rgba(0, 255, 102, 0.05);
+    border: 1.5px solid #00ff66;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 200ms ease-out, box-shadow 200ms ease-out, color 200ms ease-out;
+    outline: none;
     margin-top: 4px;
-    border-radius: 2px;
-    opacity: 0;
-    transform: scaleX(0);
-    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* Cuando está activo, mostramos el div verde */
-.activeLink .underline {
-    opacity: 1;
-    transform: scaleX(1);
+.editBtn:hover {
+    background: rgba(0, 255, 102, 0.15);
+    box-shadow: 0 0 20px rgba(0, 255, 102, 0.25);
+    color: #fff;
 }
 
+.editBtn:focus-visible {
+    box-shadow: 0 0 0 3px rgba(0, 255, 102, 0.35);
+}
 
+/* ── Tabs wrap ─────────────────────────────────────────────────── */
+.tabsWrap {
+    width: 100%;
+    max-width: 680px;
+    padding: 24px 16px 0;
+    position: relative;
+    z-index: 1;
+}
 
-/* RESPONSIVE DESINGS */
-@media (max-width: 1456px) {
-    .userInfoSection {
-        width: 60%;
+/* ── Tabs nav ──────────────────────────────────────────────────── */
+.tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab {
+    min-height: 40px;
+    padding: 8px 20px;
+    border-radius: 999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #666;
+    text-decoration: none;
+    border: 1.5px solid transparent;
+    background: transparent;
+    transition: color 150ms ease-out, background 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.tab:hover {
+    color: #ccc;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.tab:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 255, 102, 0.35);
+}
+
+.tabActive {
+    background: rgba(0, 255, 102, 0.1);
+    border-color: #00ff66;
+    color: #00ff66;
+    box-shadow: 0 0 14px rgba(0, 255, 102, 0.25);
+}
+
+/* ── Content wrap (Outlet) ─────────────────────────────────────── */
+.contentWrap {
+    width: 100%;
+    max-width: 680px;
+    padding: 0 0 48px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ================================================================
+   MOBILE — ≤480px
+   ================================================================ */
+@media (max-width: 480px) {
+    .heroWrap {
+        padding: 16px 12px 0;
+    }
+
+    .heroCard {
+        border-radius: 16px;
+        padding: 28px 20px 24px;
+        gap: 12px;
+    }
+
+    .avatarWrap {
+        width: 96px;
+        height: 96px;
+    }
+
+    .avatarPlaceholder {
+        font-size: 2rem;
+    }
+
+    .tabsWrap {
+        padding: 16px 12px 0;
+    }
+
+    .contentWrap {
+        padding: 0 0 40px;
     }
 }
 
-@media (max-width: 1142px) {
-    .userInfoSection {
-        width: 70%;
+/* ================================================================
+   SMALL MOBILE — ≤375px: tighten further
+   ================================================================ */
+@media (max-width: 375px) {
+    .heroWrap {
+        padding: 12px 12px 0;
+    }
+
+    .heroCard {
+        border-radius: 16px;
+        padding: 24px 16px 20px;
+        gap: 10px;
+    }
+
+    .avatarWrap {
+        width: 80px;
+        height: 80px;
+    }
+
+    .avatarPlaceholder {
+        font-size: 1.75rem;
+    }
+
+    .statPill {
+        padding: 6px 14px;
+        font-size: 0.75rem;
+    }
+
+    .tab {
+        padding: 7px 14px;
+        font-size: 0.8125rem;
+    }
+
+    .editBtn {
+        padding: 9px 20px;
+        font-size: 0.8125rem;
     }
 }
 
-@media (max-width: 860px) {
-    .userInfoSection {
-        width: 85%;
-    }
-}
-
-@media (max-width: 730px) {
-    .userInfoSection {
-        width: 100%;
-    }
-}
-
-@media (max-width: 500px) {
-    .userInfoSection {
-        width: 100%;
+/* ================================================================
+   REDUCED MOTION
+   ================================================================ */
+@media (prefers-reduced-motion: reduce) {
+    .editBtn,
+    .tab {
+        transition: none;
     }
 }

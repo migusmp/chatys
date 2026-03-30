@@ -59,76 +59,103 @@ export default function Profile() {
         fetchProfile();
     }, [username]);
 
+    const avatarInitial = profile?.name ? profile.name.charAt(0).toUpperCase() : '?';
 
     return (
         <>
+            {modal && (
+                <EditProfileModal
+                    setModal={setModal}
+                    profile={profile}
+                    setProfile={setProfile}
+                />
+            )}
 
-            <div className={styles.body}>
-                {modal && (
-                    <EditProfileModal
-                        setModal={setModal}
-                        profile={profile}
-                        setProfile={setProfile}
-                    />
-                )}
-                <section className={styles.userInfoSection}>
-                    {/* SECTION TO BACK BUTTON */}
+            <div className={styles.page}>
+                {/* Aurora background blob */}
+                <div className={styles.auroraBlob} aria-hidden="true" />
+
+                {/* Sticky back row */}
+                <div className={styles.backRow}>
                     <BackButton name={profile?.name} />
-                    {/* SECTION TO BANNER IMAGE */}
-                    <section className={styles.header}></section>
+                </div>
 
-                    {/* SECTION TO SHOW USER INFORMATION */}
-                    <section className={styles.userInfo}>
-                        <div className={styles.div}>
-                            <div className={styles.profileImgDiv}>
-                                <img src={profile?.image} alt={`${profile?.username}-profile-image`} />
-                            </div>
-                            {username != user?.username ? '' : <button onClick={handleModalChange} className={styles.buttonEditProfile}>{t("profile.editProfile")}</button>}
-
+                {/* Hero card */}
+                <div className={styles.heroWrap}>
+                    <div className={styles.heroCard}>
+                        {/* Avatar */}
+                        <div className={styles.avatarWrap}>
+                            {profile?.image ? (
+                                <img
+                                    className={styles.avatar}
+                                    src={profile.image}
+                                    alt={`${profile.username}-profile-image`}
+                                />
+                            ) : (
+                                <div className={styles.avatarPlaceholder}>{avatarInitial}</div>
+                            )}
                         </div>
 
-                        <div className={styles.userDetails}>
-                            <span className={styles.spanName}>{profile?.name}</span>
-                            <span className={styles.spanUserName}>@{profile?.username}</span>
-                            {profile?.description ? <span className={styles.spanDescription}>{profile?.description}</span> : ''}
-                            <span className={styles.spanJoined}><i className="bi bi-calendar3"></i>{t("profile.joinedIn")} {joinedIn}</span>
-                            <span className={styles.spanFriends}>
+                        {/* Identity */}
+                        <div className={styles.identity}>
+                            <h1 className={styles.displayName}>{profile?.name}</h1>
+                            <span className={styles.handle}>@{profile?.username}</span>
+                        </div>
+
+                        {/* Bio */}
+                        {profile?.description && (
+                            <p className={styles.bio}>{profile.description}</p>
+                        )}
+
+                        {/* Stats pills */}
+                        <div className={styles.statsRow}>
+                            <span className={styles.statPill}>
+                                <i className="bi bi-people" />
                                 <strong>{profile?.friends_count}</strong>
-                                {t("profile.countFriends")}
+                                &nbsp;{t("profile.countFriends")}
+                            </span>
+                            <span className={styles.statPill}>
+                                <i className="bi bi-calendar3" />
+                                {t("profile.joinedIn")} {joinedIn}
                             </span>
                         </div>
 
-                        {/* Navegación con <ul> */}
-                        <ul className={styles.navList}>
-                            <li>
-                                <NavLink
-                                    to="."
-                                    end
-                                    className={({ isActive }) => isActive ? styles.activeLink : styles.inactiveLink}
-                                >
-                                    {t("profile.posts")}
-                                    <div className={styles.underline}></div>
-                                </NavLink>
-                            </li>
-                            <li>
-                                <NavLink
-                                    to="friends"
-                                    className={({ isActive }) => isActive ? styles.activeLink : styles.inactiveLink}
-                                >
-                                    {t("profile.friends")}
-                                    <div className={styles.underline}></div>
-                                </NavLink>
-                            </li>
-                        </ul>
-                    </section>
+                        {/* Edit button */}
+                        {isUserLogued && (
+                            <button onClick={handleModalChange} className={styles.editBtn}>
+                                {t("profile.editProfile")}
+                            </button>
+                        )}
+                    </div>
+                </div>
 
-                    {/* SECTION TO CHANGE page to show */}
-                    <section>
-                        <Outlet />
-                    </section>
+                {/* Tabs */}
+                <div className={styles.tabsWrap}>
+                    <nav className={styles.tabs}>
+                        <NavLink
+                            to="."
+                            end
+                            className={({ isActive }) =>
+                                isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab
+                            }
+                        >
+                            {t("profile.posts")}
+                        </NavLink>
+                        <NavLink
+                            to="friends"
+                            className={({ isActive }) =>
+                                isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab
+                            }
+                        >
+                            {t("profile.friends")}
+                        </NavLink>
+                    </nav>
+                </div>
 
-                </section>
-
+                {/* Content */}
+                <div className={styles.contentWrap}>
+                    <Outlet />
+                </div>
             </div>
         </>
     )
