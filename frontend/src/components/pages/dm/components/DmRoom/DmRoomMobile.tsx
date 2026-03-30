@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import useDmRoom from "../../../../../hooks/useDmRoom";
 import type { FullConversation } from "../../../../../types/user";
 import { OnlineIndicator } from "../OnlineIndicator";
@@ -18,8 +18,61 @@ export default function DmRoomMobile({ conversationData }: Props) {
     loadingMore,
     message,
     otherParticipant,
+    sendDelete,
+    sendEdit,
     setMessage,
   } = useDmRoom(conversationData);
+
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (menuOpenId === null) return;
+    const handleOutside = (e: TouchEvent | MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [menuOpenId]);
+
+  const startLongPress = (id: number) => {
+    longPressTimer.current = setTimeout(() => setMenuOpenId(id), 500);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current !== null) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const startEdit = (id: number, content: string) => {
+    setEditingId(id);
+    setEditValue(content);
+    setMenuOpenId(null);
+  };
+
+  const confirmEdit = () => {
+    if (editingId !== null && editValue.trim()) {
+      sendEdit(editingId, editValue.trim());
+    }
+    setEditingId(null);
+    setEditValue("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValue("");
+  };
 
   if (!otherParticipant) {
     return null;
@@ -51,36 +104,90 @@ export default function DmRoomMobile({ conversationData }: Props) {
       <div ref={containerRef} style={messagesWrapperStyle}>
         {loadingMore && <p style={loadingStyle}>Cargando mensajes...</p>}
 
-        {allMessages.map((msg) => (
-          <article
-            key={msg.id}
-            style={msg.sender_id === currentUserId ? ownBubbleStyle : otherBubbleStyle}
-          >
-            {msg.is_deleted ? (
-              <>
-                <p style={{ ...messageTextStyle, opacity: 0.4, fontStyle: "italic" }}>
-                  Mensaje eliminado
-                </p>
-                <span style={timeStyle}>
-                  {new Date(msg.created_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </>
-            ) : (
-              <>
-                <p style={messageTextStyle}>{msg.content}</p>
-                <span style={timeStyle}>
-                  {new Date(msg.created_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </>
-            )}
-          </article>
-        ))}
+        {allMessages.map((msg) => {
+          const isOwn = msg.sender_id === currentUserId;
+          const isEditing = editingId === msg.id;
+          const time = new Date(msg.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          return (
+            <div key={msg.id} style={{ position: "relative", alignSelf: isOwn ? "flex-end" : "flex-start", maxWidth: "60%" }}>
+              {menuOpenId === msg.id && (
+                <div ref={menuRef} style={{ ...contextMenuStyle, [isOwn ? "right" : "left"]: 0 }}>
+                  <button
+                    style={contextMenuItemStyle}
+                    onTouchStart={(e) => e.currentTarget.style.background = "#222"}
+                    onTouchEnd={(e) => e.currentTarget.style.background = "none"}
+                    onClick={() => startEdit(msg.id, msg.content)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
+                    </svg>
+                    Editar
+                  </button>
+                  <button
+                    style={{ ...contextMenuItemStyle, color: "#ff5555" }}
+                    onTouchStart={(e) => e.currentTarget.style.background = "rgba(255,60,60,0.1)"}
+                    onTouchEnd={(e) => e.currentTarget.style.background = "none"}
+                    onClick={() => { sendDelete(msg.id); setMenuOpenId(null); }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                      <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                    </svg>
+                    Eliminar
+                  </button>
+                </div>
+              )}
+
+              <article
+                style={isOwn ? ownBubbleStyle : otherBubbleStyle}
+                onTouchStart={() => isOwn && !msg.is_deleted ? startLongPress(msg.id) : undefined}
+                onTouchEnd={cancelLongPress}
+                onTouchMove={cancelLongPress}
+              >
+                {msg.is_deleted ? (
+                  <>
+                    <p style={{ ...messageTextStyle, opacity: 0.4, fontStyle: "italic" }}>
+                      Mensaje eliminado
+                    </p>
+                    <span style={timeStyle}>{time}</span>
+                  </>
+                ) : isEditing ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", width: "100%" }}>
+                    <textarea
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); confirmEdit(); }
+                        if (e.key === "Escape") cancelEdit();
+                      }}
+                      style={editTextareaStyle}
+                      rows={2}
+                    />
+                    <div style={{ display: "flex", gap: "0.4rem" }}>
+                      <button style={editSaveButtonStyle} onClick={confirmEdit}>Guardar</button>
+                      <button style={editCancelButtonStyle} onClick={cancelEdit}>Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p style={messageTextStyle}>{msg.content}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", justifyContent: "flex-end" }}>
+                      {msg.edited_at && (
+                        <span style={{ fontSize: "10px", opacity: 0.4 }}>(editado)</span>
+                      )}
+                      <span style={timeStyle}>{time}</span>
+                    </div>
+                  </>
+                )}
+              </article>
+            </div>
+          );
+        })}
 
         <div ref={bottomRef}></div>
       </div>
@@ -122,8 +229,8 @@ export default function DmRoomMobile({ conversationData }: Props) {
           style={micButtonStyle}
           aria-label="Enviar mensaje"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#000" className="bi bi-send" viewBox="0 0 16 16">
-            <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z" />
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#000" className="bi bi-send-fill" viewBox="0 0 16 16">
+            <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z" />
           </svg>
         </button>
       </footer>
@@ -132,7 +239,11 @@ export default function DmRoomMobile({ conversationData }: Props) {
 }
 
 const containerStyle: CSSProperties = {
-  height: "100vh",
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
   display: "flex",
   flexDirection: "column",
   backgroundColor: "#000",
@@ -143,7 +254,8 @@ const headerStyle: CSSProperties = {
   alignItems: "center",
   gap: "0.75rem",
   position: "fixed",
-  width: "100%",
+  left: 0,
+  right: 0,
   backgroundColor: "#000",
   borderBottom: "1px solid #333",
   padding: "0.75rem",
@@ -181,9 +293,12 @@ const statusStyle: CSSProperties = {
 
 const messagesWrapperStyle: CSSProperties = {
   marginTop: "60px",
-  marginBottom: "7.5rem", // deja espacio extra para el footer + nav inferior
+  marginBottom: "7.5rem",
   flex: 1,
+  width: "100%",
+  boxSizing: "border-box",
   overflowY: "auto",
+  overflowX: "hidden",
   padding: "1rem 0.75rem",
   display: "flex",
   flexDirection: "column",
@@ -197,8 +312,6 @@ const loadingStyle: CSSProperties = {
 };
 
 const ownBubbleStyle: CSSProperties = {
-  alignSelf: "flex-end",
-  maxWidth: "60%",
   backgroundColor: "rgba(0, 255, 102, 0.15)",
   color: "#0f6",
   display: "flex",
@@ -210,8 +323,6 @@ const ownBubbleStyle: CSSProperties = {
 };
 
 const otherBubbleStyle: CSSProperties = {
-  alignSelf: "flex-start",
-  maxWidth: "60%",
   display: "flex",
   gap: "0.5rem",
   justifyContent: "center",
@@ -221,6 +332,7 @@ const otherBubbleStyle: CSSProperties = {
   borderRadius: "1rem 1rem 1rem 0",
   padding: "0.6rem",
 };
+
 const messageTextStyle: CSSProperties = {
   margin: 0,
 };
@@ -232,21 +344,81 @@ const timeStyle: CSSProperties = {
   color: "#9b9b9b",
 };
 
+const contextMenuStyle: CSSProperties = {
+  position: "absolute",
+  bottom: "calc(100% + 0.4rem)",
+  background: "#141414",
+  border: "1px solid #2a2a2a",
+  borderRadius: "0.85rem",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+  zIndex: 30,
+  minWidth: "145px",
+  overflow: "hidden",
+};
+
+const contextMenuItemStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.55rem",
+  width: "100%",
+  background: "none",
+  border: "none",
+  color: "#ccc",
+  cursor: "pointer",
+  padding: "0.75rem 1rem",
+  fontSize: "0.9rem",
+  textAlign: "left",
+};
+
+const editTextareaStyle: CSSProperties = {
+  background: "#222",
+  color: "#fff",
+  border: "1px solid #444",
+  borderRadius: "0.4rem",
+  padding: "0.35rem 0.5rem",
+  width: "100%",
+  outline: "none",
+  resize: "none",
+  fontSize: "0.95rem",
+  fontFamily: "inherit",
+};
+
+const editSaveButtonStyle: CSSProperties = {
+  background: "#0f6",
+  color: "#000",
+  border: "none",
+  borderRadius: "0.4rem",
+  padding: "0.25rem 0.6rem",
+  cursor: "pointer",
+  fontSize: "0.8rem",
+  fontWeight: 600,
+};
+
+const editCancelButtonStyle: CSSProperties = {
+  background: "#333",
+  color: "#ddd",
+  border: "none",
+  borderRadius: "0.4rem",
+  padding: "0.25rem 0.6rem",
+  cursor: "pointer",
+  fontSize: "0.8rem",
+};
+
 const inputWrapperStyle: CSSProperties = {
   position: "fixed",
-  bottom: "3.5rem", // separa el input de la barra de navegación inferior fija
-  width: "100%",
+  bottom: "3.5rem",
+  left: 0,
+  right: 0,
   padding: "0.6rem 0.75rem 0.75rem",
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
   gap: "0.5rem",
   zIndex: 20,
 };
 
 const messageInputContainerStyle: CSSProperties = {
   flex: 1,
-  width: "50%",
+  minWidth: 0,
   display: "flex",
   alignItems: "center",
   gap: "0.5rem",
@@ -273,13 +445,14 @@ const micButtonStyle: CSSProperties = {
   cursor: "pointer",
   width: "44px",
   height: "44px",
+  minWidth: "44px",
   borderRadius: "50%",
   backgroundColor: "#0f6",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   boxShadow: "0 0 0 2px rgba(15, 255, 102, 0.2)",
-  opacity: 1,
+  flexShrink: 0,
 };
 
 const inputStyle: CSSProperties = {

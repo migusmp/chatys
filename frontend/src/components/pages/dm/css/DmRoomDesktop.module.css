@@ -59,54 +59,73 @@
 .inputSection {
     display: flex;
     align-items: center;
-    padding: 0.75rem 1rem;
-    border-top: 1px solid #333;
+    padding: 0.6rem 0.75rem 0.75rem;
+    border-top: 1px solid #222;
     background-color: #000;
     width: 100%;
     gap: 0.5rem;
-    padding-bottom: 1.5rem;
+    flex-shrink: 0;
+}
+
+.inputPill {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 9999px;
+    background-color: #121212;
+    border: 1px solid #444;
 }
 
 .messageInput {
     flex: 1;
-    padding: 0.6rem 1rem;
-    border-radius: 9999px;
-    border: 1px solid #444;
-    background-color: #1a1a1a;
+    border: none;
+    background-color: transparent;
     color: #fff;
     outline: none;
     font-size: 1rem;
+    min-width: 0;
 }
 
 .messageInput::placeholder {
     color: #666;
 }
 
-/*rgba(0, 255, 102, 0.15)*/
-.sendButton {
-    padding: 0.6rem 1.2rem;
-    border-radius: 9999px;
+.iconButton {
     border: none;
-    background-color: rgba(0, 255, 102, 0.15);
-    color: #0f6;
-    font-weight: bold;
+    background-color: transparent;
+    padding: 0.2rem;
     cursor: pointer;
-    transition: background-color 0.2s;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sendButton {
+    border: none;
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: #0f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 2px rgba(15, 255, 102, 0.2);
+    flex-shrink: 0;
+    transition: opacity 0.15s;
 }
 
 .sendButton:disabled {
-    background-color: rgba(0, 255, 102, 0.12);
-    /* verde tenue pero visible */
-    color: rgba(0, 255, 102, 0.4);
-    /* texto menos saturado */
+    opacity: 0.4;
     cursor: not-allowed;
-    opacity: 0.8;
-    /* se mantiene visible pero menos viva */
 }
 
 .sendButton:hover:enabled {
-    background-color: rgba(0, 255, 102, 0.349);
-    color: #0f6;
+    opacity: 0.85;
 }
 
 /* ESTILOS PARA LA SECCION DEL CHAT, DONDE SE VEN LOS MENSAJES */
@@ -198,4 +217,75 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* MENÚ CONTEXTUAL DE MENSAJES */
+.menuTrigger {
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.2rem 0.35rem;
+    border-radius: 6px;
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+}
+
+.menuTrigger:hover {
+    opacity: 1;
+    background: #1a1a1a;
+}
+
+.contextMenu {
+    position: absolute;
+    bottom: calc(100% + 0.4rem);
+    right: 0;
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 0.85rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    z-index: 30;
+    min-width: 145px;
+    overflow: hidden;
+    animation: menuFadeIn 0.12s ease;
+}
+
+@keyframes menuFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.contextMenuItem {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    text-align: left;
+    transition: background 0.12s;
+}
+
+.contextMenuItem:hover {
+    background: #222;
+    color: #fff;
+}
+
+.contextMenuItemDanger {
+    color: #ff5555;
+}
+
+.contextMenuItemDanger:hover {
+    background: rgba(255, 60, 60, 0.1);
+    color: #ff5555;
 }
