@@ -8,7 +8,7 @@ use crate::{
     models::user::UserFriendRequest,
     services::ws::notify_user_with_active_friends,
     state::{
-        chat_message::ChatMessage,
+        chat_message::{ChatMessage, DmEvent},
         types::{
             AppConfig, DirectMessageChannels, FriendNotification, FriendNotificationRow,
             UserChannels,
@@ -94,7 +94,7 @@ impl AppState {
         &self,
         conversation_id: i32,
         user_id: i32,
-    ) -> mpsc::Receiver<ChatMessage> {
+    ) -> mpsc::Receiver<DmEvent> {
         let (tx, rx) = mpsc::channel(100);
         self.direct_message_channels
             .insert((conversation_id, user_id), tx);
@@ -110,7 +110,14 @@ impl AppState {
     }
 
     // Envía mensaje a todos los usuarios conectados en la conversación
-    pub async fn send_direct_message(&self, message: ChatMessage) {
+    pub async fn send_direct_message(&self, event: DmEvent) {
+        // Extraer conversation_id, from_user y to_user según el tipo de evento
+        let (event_conversation_id, from_user, to_user) = match &event {
+            DmEvent::ChatMessage(msg) => (msg.conversation_id, msg.from_user, msg.to_user),
+            DmEvent::MessageEdited { conversation_id, .. } => (*conversation_id, -1, -1),
+            DmEvent::MessageDeleted { conversation_id, .. } => (*conversation_id, -1, -1),
+        };
+
         // Filtra canales que coincidan con la conversación y usuario destinatario
         let mut delivered = false;
         let mut dead_channels: Vec<(i32, i32)> = Vec::new();
@@ -119,13 +126,18 @@ impl AppState {
             let (conv_id, user_id) = *entry.key();
             let sender = entry.value();
 
-            // Enviar solo si el canal corresponde a la conversación y al usuario destinatario o emisor
-            if conv_id == message.conversation_id
-                && (user_id == message.to_user || user_id == message.from_user)
-            {
-                if sender.send(message.clone()).await.is_err() {
+            // Para chat_message: enviar solo al destinatario y emisor
+            // Para edit/delete: enviar a todos en la conversación
+            let should_send = conv_id == event_conversation_id
+                && match &event {
+                    DmEvent::ChatMessage(_) => user_id == to_user || user_id == from_user,
+                    _ => true,
+                };
+
+            if should_send {
+                if sender.send(event.clone()).await.is_err() {
                     println!(
-                        "❌ Error enviando mensaje a user {} en conv {} (canal roto)",
+                        "❌ Error enviando evento a user {} en conv {} (canal roto)",
                         user_id, conv_id
                     );
                     dead_channels.push((conv_id, user_id));
@@ -141,8 +153,8 @@ impl AppState {
 
         if !delivered {
             println!(
-                "📭 No se entregó mensaje en conv {} de {} a {}",
-                message.conversation_id, message.from_user, message.to_user
+                "📭 No se entregó evento en conv {}",
+                event_conversation_id,
             );
         }
     }

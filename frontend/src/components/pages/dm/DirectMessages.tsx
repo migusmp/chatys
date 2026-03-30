@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import useIsMobile from "../../../hooks/useIsMobile";
 import useFetch from "../../../hooks/useFetch";
@@ -16,10 +16,15 @@ export default function DirectMessages() {
 
     const [dms, setDms] = useState<Conversations[]>([]);
 
+    const newLastMessageRef = useRef(newLastMessage);
+    useEffect(() => {
+        newLastMessageRef.current = newLastMessage;
+    });
+
     useEffect(() => {
         const fetch = async () => {
             const data = await fetchUserDms();
-            setDms(data ?? []);
+            setDms(mergeDmsWithRealtimeMessages(data ?? [], newLastMessageRef.current));
         };
         fetch();
     }, []);

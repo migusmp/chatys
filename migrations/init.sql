@@ -47,6 +47,9 @@ CREATE TABLE IF NOT EXISTS messages (
     read_by JSONB DEFAULT '[]' -- contiene un array de user_ids que leyeron el mensaje
 );
 
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+
 CREATE TABLE IF NOT EXISTS conversation_participants (
     conversation_id INT NOT NULL,
     user_id INT NOT NULL,

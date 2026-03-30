@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import {
     useFriendsContext,
     useNotificationsContext,
@@ -19,6 +19,8 @@ type UseDmRoomReturn = {
     loadingMore: boolean;
     message: string;
     otherParticipant: Participants | undefined;
+    sendDelete: (messageId: number) => void;
+    sendEdit: (messageId: number, newContent: string) => void;
     setMessage: Dispatch<SetStateAction<string>>;
 };
 
@@ -41,6 +43,7 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
     const containerRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const firstLoadRef = useRef(true);
+    const wsRef = useRef<WebSocket | null>(null);
 
     const otherParticipant = conversationData.conversation.participants.find(
         (participant) => participant.id !== user?.id,
@@ -151,10 +154,36 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         const protocol = location.protocol === "https:" ? "wss" : "ws";
         const ws = new WebSocket(`${protocol}://${location.host}/ws/${conversationData.conversation.id}`);
 
+        wsRef.current = ws;
+
         ws.onmessage = (event) => {
             const raw = JSON.parse(event.data);
+
+            if (raw.type_msg === "MESSAGE_EDITED") {
+                setAllMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === raw.message_id
+                            ? { ...msg, content: raw.content, edited_at: raw.edited_at }
+                            : msg,
+                    ),
+                );
+                return;
+            }
+
+            if (raw.type_msg === "MESSAGE_DELETED") {
+                setAllMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === raw.message_id
+                            ? { ...msg, is_deleted: true, content: "" }
+                            : msg,
+                    ),
+                );
+                return;
+            }
+
+            // existing chat_message handling
             const data: ChatMessage = {
-                id: crypto.randomUUID(),
+                id: raw.message_id,
                 content: raw.content,
                 sender_id: raw.from_user,
                 created_at: new Date().toISOString(),
@@ -174,6 +203,7 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         setSocket(ws);
 
         return () => {
+            wsRef.current = null;
             ws.onopen = null;
             ws.onmessage = null;
             ws.onclose = null;
@@ -215,6 +245,29 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     };
 
+    const sendEdit = useCallback((messageId: number, newContent: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(
+                JSON.stringify({
+                    action: "edit",
+                    message_id: messageId,
+                    content: newContent,
+                }),
+            );
+        }
+    }, []);
+
+    const sendDelete = useCallback((messageId: number) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(
+                JSON.stringify({
+                    action: "delete",
+                    message_id: messageId,
+                }),
+            );
+        }
+    }, []);
+
     return {
         allMessages,
         bottomRef,
@@ -226,6 +279,8 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         loadingMore,
         message,
         otherParticipant,
+        sendDelete,
+        sendEdit,
         setMessage,
     };
 }

@@ -16,14 +16,19 @@ use crate::{
     db::{
         db::get_user_chat_data,
         messages::{
-            get_or_create_direct_conversation, get_other_participant_in_conversation, save_message,
+            delete_message, get_or_create_direct_conversation,
+            get_other_participant_in_conversation, save_message, update_message,
         },
         undelivered_messages::{
             clear_undelivered_messages, delete_undelivered_message, set_undelivered_message,
         },
     },
     models::user::Payload,
-    state::{app_state::AppState, chat_message::ChatMessage, types::IncomingMessage},
+    state::{
+        app_state::AppState,
+        chat_message::{ChatMessage, DmEvent},
+        types::IncomingMessage,
+    },
 };
 
 // MÉTODO PARA REGISTRAR CHATS INDIVIDUALES
@@ -67,7 +72,8 @@ async fn handle_socket(
     // Ponemos user_from_data en un Arc para compartirlo eficientemente
     let user_from_data = Arc::new(user_from_data);
 
-    let mut rx = app_state.register_user_channel(conversation_id, from_user_id);
+    let mut rx: tokio::sync::mpsc::Receiver<DmEvent> =
+        app_state.register_user_channel(conversation_id, from_user_id);
     println!(
         "✅ Usuario {} registrado en canal de conversación {}",
         from_user_id, conversation_id
@@ -120,82 +126,159 @@ async fn handle_socket(
             match msg_result {
                 Ok(Message::Text(text)) => {
                     println!("📥 Mensaje recibido de usuario {}: {}", from_user_id, text);
-                    match serde_json::from_str::<IncomingMessage>(&text) {
-                        Ok(incoming) => {
-                            let to_user_id = match get_other_participant_in_conversation(
-                                conversation_id,
-                                from_user_id,
-                                &pool,
-                            )
-                            .await
-                            {
-                                Ok(id) => id,
-                                Err(e) => {
-                                    eprintln!("Error obteniendo participante destino: {}", e);
-                                    return;
+
+                    // Try to parse as a ClientWsMessage (with "action" field)
+                    let parsed: serde_json::Value = match serde_json::from_str(&text) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            eprintln!("Error parseando mensaje JSON: {}", e);
+                            continue;
+                        }
+                    };
+
+                    let action = parsed.get("action").and_then(|v| v.as_str()).unwrap_or("send");
+
+                    match action {
+                        "edit" => {
+                            let message_id = match parsed.get("message_id").and_then(|v| v.as_i64()) {
+                                Some(id) => id as i32,
+                                None => {
+                                    eprintln!("edit: falta message_id");
+                                    continue;
                                 }
                             };
-
-                            let conv_id = match get_or_create_direct_conversation(
-                                from_user_id,
-                                to_user_id,
-                                &pool,
-                            )
-                            .await
-                            {
-                                Ok(id) => id,
-                                Err(e) => {
-                                    eprintln!("Error obteniendo o creando conversación: {}", e);
+                            let new_content = match parsed.get("content").and_then(|v| v.as_str()) {
+                                Some(c) => c.to_string(),
+                                None => {
+                                    eprintln!("edit: falta content");
                                     continue;
                                 }
                             };
 
-                            let msg = ChatMessage {
-                                conversation_id: conv_id,
-                                from_user: from_user_id,
-                                to_user: to_user_id,
-                                content: incoming.content.clone(),
-                                from_username: user_from_data_clone.username.to_string(),
-                                from_username_image: user_from_data_clone.image.to_string(),
-                            };
-
-                            let saved_message_id =
-                                match save_message(conv_id, from_user_id, &incoming.content, &pool)
-                                    .await
-                                {
-                                    Ok(id) => id,
-                                    Err(e) => {
-                                        eprintln!("Error guardando mensaje: {}", e);
-                                        continue;
-                                    }
-                                };
-
-                            app_state_clone.send_direct_message(msg.clone()).await;
-
-                            app_state_clone
-                                .notify_user_new_message(
-                                    to_user_id,
-                                    conv_id,
-                                    from_user_id,
-                                    incoming.content,
-                                    &user_from_data_clone.username,
-                                    &user_from_data_clone.image,
-                                )
-                                .await;
-
-                            if let Err(e) = set_undelivered_message(
-                                conversation_id,
-                                saved_message_id,
-                                to_user_id,
-                                &pool,
-                            )
-                            .await
-                            {
-                                eprintln!("Error guardando mensaje no entregado: {}", e);
+                            match update_message(&pool, message_id, from_user_id, &new_content).await {
+                                Ok(Some(edited_at)) => {
+                                    let event = DmEvent::MessageEdited {
+                                        message_id,
+                                        conversation_id,
+                                        content: new_content,
+                                        edited_at,
+                                    };
+                                    app_state_clone.send_direct_message(event).await;
+                                }
+                                Ok(None) => {
+                                    eprintln!("edit: mensaje {} no encontrado o no autorizado", message_id);
+                                }
+                                Err(e) => {
+                                    eprintln!("edit: error en DB: {}", e);
+                                }
                             }
                         }
-                        Err(e) => {
-                            eprintln!("Error deserializando mensaje JSON: {}", e);
+                        "delete" => {
+                            let message_id = match parsed.get("message_id").and_then(|v| v.as_i64()) {
+                                Some(id) => id as i32,
+                                None => {
+                                    eprintln!("delete: falta message_id");
+                                    continue;
+                                }
+                            };
+
+                            match delete_message(&pool, message_id, from_user_id).await {
+                                Ok(true) => {
+                                    let event = DmEvent::MessageDeleted {
+                                        message_id,
+                                        conversation_id,
+                                    };
+                                    app_state_clone.send_direct_message(event).await;
+                                }
+                                Ok(false) => {
+                                    eprintln!("delete: mensaje {} no encontrado o no autorizado", message_id);
+                                }
+                                Err(e) => {
+                                    eprintln!("delete: error en DB: {}", e);
+                                }
+                            }
+                        }
+                        _ => {
+                            // Default: treat as "send" — use IncomingMessage
+                            match serde_json::from_str::<IncomingMessage>(&text) {
+                                Ok(incoming) => {
+                                    let to_user_id = match get_other_participant_in_conversation(
+                                        conversation_id,
+                                        from_user_id,
+                                        &pool,
+                                    )
+                                    .await
+                                    {
+                                        Ok(id) => id,
+                                        Err(e) => {
+                                            eprintln!("Error obteniendo participante destino: {}", e);
+                                            return;
+                                        }
+                                    };
+
+                                    let conv_id = match get_or_create_direct_conversation(
+                                        from_user_id,
+                                        to_user_id,
+                                        &pool,
+                                    )
+                                    .await
+                                    {
+                                        Ok(id) => id,
+                                        Err(e) => {
+                                            eprintln!("Error obteniendo o creando conversación: {}", e);
+                                            continue;
+                                        }
+                                    };
+
+                                    let saved_message_id =
+                                        match save_message(conv_id, from_user_id, &incoming.content, &pool)
+                                            .await
+                                        {
+                                            Ok(id) => id,
+                                            Err(e) => {
+                                                eprintln!("Error guardando mensaje: {}", e);
+                                                continue;
+                                            }
+                                        };
+
+                                    let msg = ChatMessage {
+                                        conversation_id: conv_id,
+                                        from_user: from_user_id,
+                                        to_user: to_user_id,
+                                        content: incoming.content.clone(),
+                                        from_username: user_from_data_clone.username.to_string(),
+                                        from_username_image: user_from_data_clone.image.to_string(),
+                                        message_id: saved_message_id,
+                                    };
+
+                                    app_state_clone.send_direct_message(DmEvent::ChatMessage(msg)).await;
+
+                                    app_state_clone
+                                        .notify_user_new_message(
+                                            to_user_id,
+                                            conv_id,
+                                            from_user_id,
+                                            incoming.content,
+                                            &user_from_data_clone.username,
+                                            &user_from_data_clone.image,
+                                        )
+                                        .await;
+
+                                    if let Err(e) = set_undelivered_message(
+                                        conversation_id,
+                                        saved_message_id,
+                                        to_user_id,
+                                        &pool,
+                                    )
+                                    .await
+                                    {
+                                        eprintln!("Error guardando mensaje no entregado: {}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("Error deserializando mensaje JSON: {}", e);
+                                }
+                            }
                         }
                     }
                 }

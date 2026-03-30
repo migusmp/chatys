@@ -4,12 +4,12 @@ use sqlx::FromRow;
 use dashmap::DashMap;
 use time::OffsetDateTime;
 
-use crate::state::chat_message::ChatMessage;
+use crate::state::chat_message::DmEvent;
 
 use crate::db::offset_date_time_serde;
 
 // TYPES FOR APPSTATE
-pub type DirectMessageChannels = DashMap<(i32, i32), tokio::sync::mpsc::Sender<ChatMessage>>;
+pub type DirectMessageChannels = DashMap<(i32, i32), tokio::sync::mpsc::Sender<DmEvent>>;
 pub type UserChannels = DashMap<i32, tokio::sync::mpsc::Sender<String>>;
 
 #[derive(Deserialize)]

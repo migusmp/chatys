@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import useDmRoom from "../../../../../hooks/useDmRoom";
 import type { FullConversation } from "../../../../../types/user";
@@ -20,8 +21,13 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         loadingMore,
         message,
         otherParticipant,
+        sendDelete,
+        sendEdit,
         setMessage,
     } = useDmRoom(conversationData);
+
+    const [hoveredId, setHoveredId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     if (!otherParticipant) {
         return null;
@@ -63,17 +69,110 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                         minute: "2-digit",
                     });
 
+                    const isOwn = msg.sender_id === currentUserId;
+
                     return (
                         <div
                             key={msg.id}
+                            onMouseEnter={() => setHoveredId(msg.id)}
+                            onMouseLeave={() => setHoveredId(null)}
                             className={`${styles.messageBubble} ${
-                                msg.sender_id === currentUserId
-                                    ? styles.ownMessage
-                                    : styles.otherMessage
+                                isOwn ? styles.ownMessage : styles.otherMessage
                             }`}
+                            style={{ position: "relative" }}
                         >
+                            {hoveredId === msg.id && !msg.is_deleted && isOwn && (
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        top: -28,
+                                        right: 0,
+                                        display: "flex",
+                                        gap: 4,
+                                        background: "#1a1a1a",
+                                        border: "1px solid #333",
+                                        borderRadius: 6,
+                                        padding: "2px 6px",
+                                        zIndex: 10,
+                                    }}
+                                >
+                                    <button
+                                        onClick={() => setEditingId(msg.id)}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            color: "#aaa",
+                                            cursor: "pointer",
+                                            fontSize: 12,
+                                            padding: "2px 4px",
+                                        }}
+                                        title="Editar"
+                                    >
+                                        ✏️
+                                    </button>
+                                    <button
+                                        onClick={() => sendDelete(msg.id)}
+                                        style={{
+                                            background: "none",
+                                            border: "none",
+                                            color: "#ff4444",
+                                            cursor: "pointer",
+                                            fontSize: 12,
+                                            padding: "2px 4px",
+                                        }}
+                                        title="Eliminar"
+                                    >
+                                        🗑️
+                                    </button>
+                                </div>
+                            )}
+
                             <div className={styles.messageRow}>
-                                <span className={styles.messageText}>{msg.content}</span>
+                                {msg.is_deleted ? (
+                                    <span
+                                        style={{
+                                            opacity: 0.4,
+                                            fontStyle: "italic",
+                                        }}
+                                    >
+                                        Mensaje eliminado
+                                    </span>
+                                ) : editingId === msg.id ? (
+                                    <input
+                                        autoFocus
+                                        defaultValue={msg.content}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                                                sendEdit(msg.id, e.currentTarget.value.trim());
+                                                setEditingId(null);
+                                            }
+                                            if (e.key === "Escape") setEditingId(null);
+                                        }}
+                                        style={{
+                                            background: "#222",
+                                            color: "#fff",
+                                            border: "1px solid #444",
+                                            borderRadius: 4,
+                                            padding: "2px 6px",
+                                            width: "100%",
+                                        }}
+                                    />
+                                ) : (
+                                    <>
+                                        <span className={styles.messageText}>{msg.content}</span>
+                                        {msg.edited_at && (
+                                            <span
+                                                style={{
+                                                    fontSize: "10px",
+                                                    opacity: 0.4,
+                                                    marginLeft: 4,
+                                                }}
+                                            >
+                                                (editado)
+                                            </span>
+                                        )}
+                                    </>
+                                )}
                                 <span className={styles.messageTime}>{time}</span>
                             </div>
                         </div>

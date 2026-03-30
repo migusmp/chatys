@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS messages (
     content         text NOT NULL,
     created_at      timestamp with time zone DEFAULT now(),
     read_by         jsonb DEFAULT '[]'::jsonb,
+    edited_at       timestamp with time zone,
+    is_deleted      boolean DEFAULT false,
     CONSTRAINT messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
     CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
 );

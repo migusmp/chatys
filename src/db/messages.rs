@@ -24,6 +24,9 @@ pub struct Message {
     #[serde(with = "offset_date_time_serde")]
     pub created_at: Option<OffsetDateTime>,
     pub read_by: serde_json::Value,
+    #[serde(with = "offset_date_time_serde")]
+    pub edited_at: Option<OffsetDateTime>,
+    pub is_deleted: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -185,7 +188,7 @@ pub async fn get_messages(
 ) -> Result<Vec<Message>, sqlx::Error> {
     let messages = sqlx::query_as::<_, Message>(
         r#"
-        SELECT id, conversation_id, sender_id, content, created_at, read_by
+        SELECT id, conversation_id, sender_id, content, created_at, read_by, edited_at, is_deleted
         FROM messages
         WHERE conversation_id = $1
         ORDER BY created_at DESC
@@ -199,6 +202,59 @@ pub async fn get_messages(
     .await?;
 
     Ok(messages)
+}
+
+pub async fn update_message(
+    pool: &PgPool,
+    message_id: i32,
+    user_id: i32,
+    new_content: &str,
+) -> Result<Option<String>, sqlx::Error> {
+    let result: Option<_> = sqlx::query_unchecked!(
+        "UPDATE messages SET content = $1, edited_at = NOW() WHERE id = $2 AND sender_id = $3 RETURNING edited_at",
+        new_content,
+        message_id,
+        user_id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(result.map(|r| {
+        r.edited_at
+            .map(|t: OffsetDateTime| {
+                t.format(&time::format_description::well_known::Rfc3339)
+                    .unwrap_or_default()
+            })
+            .unwrap_or_default()
+    }))
+}
+
+pub async fn delete_message(
+    pool: &PgPool,
+    message_id: i32,
+    user_id: i32,
+) -> Result<bool, sqlx::Error> {
+    let result: Option<_> = sqlx::query_unchecked!(
+        "UPDATE messages SET is_deleted = true, content = '' WHERE id = $1 AND sender_id = $2 RETURNING id",
+        message_id,
+        user_id
+    )
+    .fetch_optional(pool)
+    .await?;
+    Ok(result.is_some())
+}
+
+pub async fn get_message_conversation(
+    pool: &PgPool,
+    message_id: i32,
+) -> Result<Option<i32>, sqlx::Error> {
+    let result: Option<_> = sqlx::query_unchecked!(
+        "SELECT conversation_id FROM messages WHERE id = $1",
+        message_id
+    )
+    .fetch_optional(pool)
+    .await?;
+    Ok(result.map(|r| r.conversation_id))
 }
 
 pub async fn get_conversation_details(

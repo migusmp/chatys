@@ -70,5 +70,7 @@ export type FullConversation = {
         sender_id: number,
         created_at: string,
         read_by: number[],
+        edited_at?: string | null,
+        is_deleted?: boolean,
     }[],
 }
