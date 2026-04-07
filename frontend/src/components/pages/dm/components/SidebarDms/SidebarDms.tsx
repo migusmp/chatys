@@ -14,11 +14,10 @@ export default function SidebarDms({ dms, isMobile, setDms }: Props) {
         return <SidebarMobile dms={dms} />;
     }
 
-    // En desktop: sidebar + chat (Outlet)
     return (
         <div style={{ display: "flex", height: "100vh" }}>
-            <SidebarDesktop dms={dms} setDms={setDms}/>
-            <div style={{ flex: 1, padding: "2rem", backgroundColor: "#111", color: "#fff" }}>
+            <SidebarDesktop dms={dms} setDms={setDms} />
+            <div style={{ flex: 1, overflow: "hidden", backgroundColor: "#111" }}>
                 <Outlet />
             </div>
         </div>

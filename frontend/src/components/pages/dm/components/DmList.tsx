@@ -5,6 +5,13 @@ import { useNotificationsContext } from "../../../../context/UserContext";
 import SidebarDmsMobile from "./SidebarDms/SidebarDmsMobile";
 import useIsMobile from "../../../../hooks/useIsMobile";
 import { mergeDmsWithRealtimeMessages } from "./SidebarDms/realtimeDmList";
+import styles from "../css/DmList.module.css";
+
+const FEATURE_CARDS = [
+    { icon: "💬", label: "Mensajes directos" },
+    { icon: "👥", label: "Chats grupales" },
+    { icon: "🔍", label: "Buscar usuarios" },
+];
 
 export default function DmList() {
     const [dms, setDms] = useState<Conversations[]>([]);
@@ -32,23 +39,63 @@ export default function DmList() {
 
     if (!isMobile) {
         return (
-            <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100vh",
-                backgroundColor: "#000",
-                color: "#fff",
-                gap: "12px",
-                userSelect: "none",
-            }}>
-                <div style={{ fontSize: "64px", opacity: 1, color: "#00ff66" }}>💬</div>
-                <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 600, opacity: 0.7 }}>
-                    Tus mensajes
-                </h2>
-                <p style={{ margin: 0, fontSize: "14px", opacity: 0.4, textAlign: "center" }}>
-                    Seleccioná una conversación o buscá un usuario para empezar a chatear.
+            <div className={styles.emptyState}>
+                {/* Hero icon con anillo de pulso */}
+                <div className={styles.heroArea}>
+                    <div className={styles.pulseRing}></div>
+                    <svg
+                        className={styles.heroIcon}
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                            stroke="#00ff66"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                        <circle cx="8.5" cy="11" r="1" fill="#00ff66" />
+                        <circle cx="12" cy="11" r="1" fill="#00ff66" />
+                        <circle cx="15.5" cy="11" r="1" fill="#00ff66" />
+                    </svg>
+                </div>
+
+                {/* Título y subtítulo */}
+                <div className={styles.textBlock}>
+                    <h2 className={styles.title}>Tus conversaciones</h2>
+                    <p className={styles.subtitle}>
+                        Seleccioná un chat o buscá a alguien para empezar
+                    </p>
+
+                    {/* Word-cycling loader — mantenido del diseño original */}
+                    <div className={styles.loader}>
+                        <p>cargando</p>
+                        <div className={styles.words}>
+                            <span className={styles.word}>mensajes</span>
+                            <span className={styles.word}>chats</span>
+                            <span className={styles.word}>amigos</span>
+                            <span className={styles.word}>archivos</span>
+                            <span className={styles.word}>mensajes</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Feature cards */}
+                <div className={styles.cardsRow}>
+                    {FEATURE_CARDS.map((card) => (
+                        <div key={card.label} className={styles.featureCard}>
+                            <span className={styles.cardIcon}>{card.icon}</span>
+                            <span className={styles.cardLabel}>{card.label}</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Hint animado */}
+                <p className={styles.hint}>
+                    <span className={styles.hintArrow}>←</span> Seleccioná una conversación
                 </p>
             </div>
         );

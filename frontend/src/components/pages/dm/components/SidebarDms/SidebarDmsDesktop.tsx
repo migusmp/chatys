@@ -9,11 +9,32 @@ import {
 import SearchUsers from "../SearchUsers";
 import { useTranslation } from "react-i18next";
 import { mergeDmsWithRealtimeMessages } from "./realtimeDmList";
+import styles from "../../css/SidebarDms.module.css";
 
 type Props = {
     dms: Conversations[];
     setDms: React.Dispatch<React.SetStateAction<Conversations[]>>;
 };
+
+function formatTimestamp(isoString: string): string {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return "";
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    if (diffDays === 1) {
+        return "ayer";
+    }
+    if (diffDays < 7) {
+        return date.toLocaleDateString([], { weekday: "short" });
+    }
+    return date.toLocaleDateString([], { day: "2-digit", month: "2-digit" });
+}
 
 export default function SidebarDmsDesktop({ dms }: Props) {
     const navigate = useNavigate();
@@ -25,18 +46,17 @@ export default function SidebarDmsDesktop({ dms }: Props) {
     const { t } = useTranslation();
 
     const [, route, currentUsername] = location.pathname.split("/");
-    console.log(route)
 
     const dmsWithUpdatedMessages = mergeDmsWithRealtimeMessages(dms, newLastMessage);
 
     const handleClickDm = async (userOther: UserSearchData | Participants) => {
-        // Si tiene conversation_id numérico ya existe
+        // If it has a numeric conversation_id the conversation already exists
         if ("conversation_id" in userOther && typeof userOther.conversation_id === "number") {
             navigate(`/dm/${userOther.username}`);
             return;
         }
 
-        // Si no, es un UserSearchData, crear la conversación
+        // Otherwise it's a UserSearchData — create the conversation first
         try {
             const res = await fetch(`/api/chat/create-dm/${userOther.id}`, {
                 method: "POST",
@@ -50,8 +70,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
         }
     };
 
-
-    // Fusionar resultados de búsqueda con los DMs
+    // Merge search results with existing DMs
     const combinedList = searchResults.length > 0
         ? searchResults.map(u => {
             const existingDm = dmsWithUpdatedMessages.find(dm => dm.participants[0].id === u.id);
@@ -65,7 +84,6 @@ export default function SidebarDmsDesktop({ dms }: Props) {
         })
         : dmsWithUpdatedMessages;
 
-    // Ordenar por updated_at
     const sortedDms = [...combinedList].sort(
         (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
@@ -78,23 +96,16 @@ export default function SidebarDmsDesktop({ dms }: Props) {
     const searchPresenceById = new Map(searchResults.map((result) => [result.id, result.is_online]));
 
     return (
-        <div
-            style={{
-                width: "300px",
-                backgroundColor: "#000",
-                height: "100vh",
-                overflowY: "auto",
-                borderRight: "1px solid #272727",
-            }}
-        >
+        <div className={`${styles.sidebar} ${styles.sidebarDesktop}`}>
             <SearchUsers onResults={handleSearchResults} />
+
             {searching && searchResults.length === 0 && (
-                <div style={{ color: "#999", padding: "1rem", textAlign: "center" }}>
+                <div className={styles.emptyHint}>
                     {t("directMessages.desktopSidebarDm.userSearchNotFoundTxt")}
                 </div>
             )}
 
-            <ul style={{ display: "flex", flexDirection: "column", listStyle: "none", padding: 0, margin: 0, gap: "0.2rem", marginTop: "1rem" }}>
+            <ul className={styles.list}>
                 {sortedDms.map((dm) => {
                     const userOther = dm.participants[0];
                     const isLastMessageFromCurrentUser = dm.last_message_user_id === user?.id;
@@ -102,47 +113,24 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                         ? (isLastMessageFromCurrentUser ? `Tú: ${dm.last_message}` : dm.last_message)
                         : "";
 
-                    const [, route, username] = location.pathname.split("/");
-                    console.log("ROUTE:", route, username);
-                    // LOG para ver qué mensajes hay en dmNotifications
-                    console.log("🔔 DM NOTIFICATIONS:", dmNotifications);
-                    console.log("🔔 Filtrando para conversation_id:", dm.conversation_id);
-
                     const unreadCount = dmNotifications.filter(
                         n => Number(n.conversation_id) === dm.conversation_id
                     ).length;
+
+                    const isSelected = route === "dm" && currentUsername === userOther.username;
+                    const timestamp = formatTimestamp(dm.updated_at);
 
                     return (
                         <li
                             key={dm.conversation_id}
                             onClick={() => handleClickDm(userOther)}
-                            style={{
-                                display: "flex",
-                                width: "90%",
-                                height: "55px",
-                                borderRadius: "8px",
-                                margin: "0 auto",
-                                alignItems: "center",
-                                padding: "0.5rem",
-                                cursor: "pointer",
-                                transition: "background 0.2s",
-                                position: "relative",
-                                backgroundColor:
-                                    route === "dm" && currentUsername === userOther.username
-                                        ? "rgba(0, 255, 102, 0.15)"
-                                        : "transparent"
-                            }}
+                            className={`${styles.item} ${isSelected ? styles.itemActive : ""}`}
                         >
-                            <div style={{ position: "relative", marginRight: "1rem" }}>
+                            <div className={styles.avatarWrapper}>
                                 <img
                                     src={`/media/user/${userOther.image}`}
                                     alt={userOther.username}
-                                    style={{
-                                        width: "37px",
-                                        height: "37px",
-                                        borderRadius: "50%",
-                                        objectFit: "cover",
-                                    }}
+                                    className={styles.avatar}
                                 />
                                 <OnlineIndicator
                                     userId={userOther.id}
@@ -150,39 +138,23 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                                     isOnline={searchPresenceById.get(userOther.id)}
                                 />
                             </div>
-                            <div style={{ flex: 1, overflow: "hidden" }}>
-                                <div style={{ fontWeight: "bold", color: "#fff" }}>{userOther.username}</div>
-                                <div
-                                    style={{
-                                        fontSize: "0.85rem",
-                                        color: "#ccc",
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                    }}
-                                >
-                                    {lastMessageText || ""}
+
+                            <div className={styles.content}>
+                                <div className={styles.topRow}>
+                                    <span className={styles.username}>{userOther.username}</span>
+                                    {timestamp && (
+                                        <span className={styles.timestamp}>{timestamp}</span>
+                                    )}
+                                </div>
+                                <div className={lastMessageText ? styles.preview : `${styles.preview} ${styles.previewEmpty}`}>
+                                    {lastMessageText || "Sin mensajes"}
                                 </div>
                             </div>
 
                             {unreadCount > 0 && (
-                                <div
-                                    style={{
-                                        backgroundColor: "red",
-                                        color: "white",
-                                        borderRadius: "50%",
-                                        width: "20px",
-                                        height: "20px",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontSize: "0.75rem",
-                                        fontWeight: "bold",
-                                        marginLeft: "8px"
-                                    }}
-                                >
+                                <span className={styles.badge}>
                                     {unreadCount > 9 ? "9+" : unreadCount}
-                                </div>
+                                </span>
                             )}
                         </li>
                     );

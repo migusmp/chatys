@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, type MutableRefObject } from "react";
 import type { UserSearchData } from "../../../../types/user";
 import { useTranslation } from "react-i18next";
 import { useWebSocket } from "../../../../context/WebSocketContext";
+import styles from "../css/SidebarDms.module.css";
 
 type Props = {
     onResults: (results: UserSearchData[], searching: boolean) => void;
@@ -88,49 +89,19 @@ export default function SearchUsers({ onResults }: Props) {
     };
 
     return (
-        <section
-            style={{
-                width: "100%",
-                height: "60px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                borderBottom: "1px solid #333",
-                position: "relative",
-            }}
-        >
+        <section className={styles.searchSection}>
             <input
                 type="text"
-                placeholder={t('dmRoomSearchUserPlaceholder')}
+                placeholder={t("dmRoomSearchUserPlaceholder")}
                 value={userSearched}
                 onChange={(e) => setUserSearched(e.target.value)}
-                style={{
-                    width: "85%",
-                    padding: "7px",
-                    paddingLeft: "12px",
-                    paddingRight: "30px",
-                    outline: "none",
-                    fontSize: "1rem",
-                    borderRadius: "24px",
-                    border: "1px solid #333",
-                    backgroundColor: "#111",
-                    color: "#fff",
-                }}
+                className={styles.searchInput}
             />
             {userSearched && (
                 <button
                     onClick={clearSearch}
-                    style={{
-                        position: "absolute",
-                        right: "12%",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "transparent",
-                        border: "none",
-                        color: "#999",
-                        fontSize: "1.1rem",
-                        cursor: "pointer",
-                    }}
+                    className={styles.searchClearBtn}
+                    aria-label="Limpiar búsqueda"
                 >
                     ✕
                 </button>
