@@ -116,6 +116,8 @@ impl AppState {
             DmEvent::ChatMessage(msg) => (msg.conversation_id, msg.from_user, msg.to_user),
             DmEvent::MessageEdited { conversation_id, .. } => (*conversation_id, -1, -1),
             DmEvent::MessageDeleted { conversation_id, .. } => (*conversation_id, -1, -1),
+            // MessageRead se difunde a todos los participantes de la conversación
+            DmEvent::MessageRead { conversation_id, .. } => (*conversation_id, -1, -1),
         };
 
         // Filtra canales que coincidan con la conversación y usuario destinatario
@@ -127,7 +129,7 @@ impl AppState {
             let sender = entry.value();
 
             // Para chat_message: enviar solo al destinatario y emisor
-            // Para edit/delete: enviar a todos en la conversación
+            // Para edit/delete/read: enviar a todos en la conversación
             let should_send = conv_id == event_conversation_id
                 && match &event {
                     DmEvent::ChatMessage(_) => user_id == to_user || user_id == from_user,

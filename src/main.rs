@@ -9,6 +9,7 @@ pub mod services;
 pub mod state;
 pub mod utils;
 
+use crate::db::chat::ensure_room_conversation;
 use crate::middlewares::auth::auth;
 use crate::models::user::Payload;
 use crate::services::ws::{handle_socket_connection_for_direct_chat, handle_ws_connection};
@@ -69,8 +70,32 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
         }
     });
 
+    // Seed the Global room record in the DB (idempotent — ON CONFLICT DO NOTHING).
+    // We insert without a created_by owner since Global is a system room.
+    sqlx::query(
+        r#"
+        INSERT INTO rooms (name, description)
+        VALUES ('Global', 'Sala principal')
+        ON CONFLICT (name) DO NOTHING
+        "#,
+    )
+    .execute(&pool)
+    .await
+    .expect("Failed to seed Global room");
+
+    // Ensure the Global room has a linked conversation for message persistence.
+    let global_conversation_id = ensure_room_conversation("Global", &pool)
+        .await
+        .expect("Failed to ensure conversation for Global room");
+
     let mut chat_state_init = ChatState::default();
-    chat_state_init.create_room(String::from("Global"));
+    // Seed the Global room in memory with its DB conversation_id
+    chat_state_init.create_room_with_conversation(
+        String::from("Global"),
+        Some(String::from("Sala principal")),
+        None,
+        global_conversation_id,
+    );
 
     let chat_state = Arc::new(RwLock::new(chat_state_init));
     let app_state = Arc::new(AppState::new(pool.clone()));
@@ -113,6 +138,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
         .nest_service("/static", ServeDir::new("public"))
         .nest_service("/assets", ServeDir::new("static/assets"))
         .nest_service("/media/user", ServeDir::new("uploads/user"))
+        .nest_service("/media/rooms", ServeDir::new("uploads/rooms"))
         .fallback(spa_fallback)
         .layer(TraceLayer::new_for_http())
         .layer(Extension(pool_for_router))

@@ -1,13 +1,25 @@
+use crate::db::messages::{insert_room_message, mark_message_read};
 use crate::models::user::Payload;
 use crate::{db::db::get_user_chat_data, models::chat::ChatState};
 use axum::extract::ws::{Message, WebSocket};
 
 use futures::{SinkExt, StreamExt};
+use serde::Deserialize;
 use serde_json::json;
 use sqlx::PgPool;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
+
+/// Actions the client sends to the server over the room WebSocket.
+#[derive(Deserialize)]
+#[serde(tag = "action", rename_all = "snake_case")]
+enum RoomClientAction {
+    /// Send a new message to the room.
+    Message { content: String },
+    /// Acknowledge that the authenticated user has read a message.
+    MarkRead { message_id: i32 },
+}
 
 pub async fn handle_socket_for_active_rooms(
     socket: axum::extract::ws::WebSocket,
@@ -22,35 +34,24 @@ pub async fn handle_socket_for_active_rooms(
                 _ = interval.tick() => {
                     let state = state.read().await;
                     let active_rooms = state.active_rooms();
-                    let mut enriched_rooms = Vec::new();
+                    let rooms_length = active_rooms.len();
 
-                    for room_name in &active_rooms {
-                    let users_in_room = state.rooms.get(room_name)
+                    // Total users across all rooms
+                    let total_active_users: usize = state.rooms.values()
                         .map(|room| room.user_count.load(Ordering::SeqCst))
-                        .unwrap_or(0);
+                        .sum();
 
-                    enriched_rooms.push(json!({
-                        "name": room_name,
-                        "users": users_in_room,
-                    }));
-                }
+                    let data = json!({
+                        "rooms_active": active_rooms,
+                        "rooms_length": rooms_length,
+                        "users_active": total_active_users,
+                    });
 
-                // Suma total de usuarios activos en todas las salas
-                let total_active_users: usize = state.rooms.values()
-                    .map(|room| room.user_count.load(Ordering::SeqCst))
-                    .sum();
-
-                let data = json!({
-                    "rooms_active": enriched_rooms,
-                    "rooms_length": active_rooms.len(),
-                    "users_active": total_active_users,
-                });
-
-                if let Ok(msg) = serde_json::to_string(&data) {
-                    if sender.send(Message::Text(msg.into())).await.is_err() {
-                        eprintln!("Error enviando estadísticas de salas activas");
+                    if let Ok(msg) = serde_json::to_string(&data) {
+                        if sender.send(Message::Text(msg.into())).await.is_err() {
+                            eprintln!("Error enviando estadísticas de salas activas");
+                        }
                     }
-                }
             },
 
             msg = receiver.next() => {
@@ -156,7 +157,7 @@ pub async fn handle_socket(
     socket: WebSocket,
     room_id: String,
     state: Arc<RwLock<ChatState>>,
-    user: Payload, // Aquí asumo que Payload tiene campos .id y .username
+    user: Payload,
     pool: PgPool,
 ) {
     let (mut sender_ws, mut receiver_ws) = socket.split();
@@ -231,21 +232,86 @@ pub async fn handle_socket(
     while let Some(Ok(msg)) = receiver_ws.next().await {
         match msg {
             Message::Text(text) => {
-                let json_msg = Message::Text(
-                    json!({
-                        "userId": user.id,
-                        "user": chat_user.username,
-                        "message": text.to_string(),
-                        "image": chat_user.image,
-                    })
-                    .to_string()
-                    .into(),
-                );
+                let action: RoomClientAction = match serde_json::from_str(&text) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        eprintln!("Acción de sala inválida de {}: {} — {}", user.username, text, e);
+                        continue;
+                    }
+                };
 
-                // Broadcast a todos los usuarios de la sala
-                let state_guard = state.read().await;
-                if let Some(room) = state_guard.rooms.get(&room_id) {
-                    let _ = room.broadcaster.send(json_msg);
+                match action {
+                    RoomClientAction::Message { content } => {
+                        let trimmed = content.trim().to_string();
+                        if trimmed.is_empty() {
+                            continue;
+                        }
+
+                        // Attempt to persist to DB; fall back gracefully if no conversation_id
+                        let message_id: Option<i32> = {
+                            let conv_id = {
+                                let state_guard = state.read().await;
+                                state_guard.get_room_conversation_id(&room_id)
+                            };
+
+                            if let Some(conversation_id) = conv_id {
+                                match insert_room_message(&pool, conversation_id, user.id, &trimmed).await {
+                                    Ok(id) => Some(id),
+                                    Err(e) => {
+                                        eprintln!("Error persistiendo mensaje de sala: {}", e);
+                                        None
+                                    }
+                                }
+                            } else {
+                                None
+                            }
+                        };
+
+                        let broadcast_payload = json!({
+                            "userId": user.id,
+                            "user": chat_user.username,
+                            "message": trimmed,
+                            "image": chat_user.image,
+                            "id": message_id,
+                        });
+
+                        let json_msg = Message::Text(broadcast_payload.to_string().into());
+
+                        let state_guard = state.read().await;
+                        if let Some(room) = state_guard.rooms.get(&room_id) {
+                            let _ = room.broadcaster.send(json_msg);
+                        }
+                    }
+
+                    RoomClientAction::MarkRead { message_id } => {
+                        match mark_message_read(&pool, message_id, user.id).await {
+                            Ok(Some(_)) => {
+                                // Broadcast the read receipt to the whole room so
+                                // message senders can update their "read by" indicator
+                                let receipt = Message::Text(
+                                    json!({
+                                        "type_msg": "READ_RECEIPT",
+                                        "message_id": message_id,
+                                        "reader_id": user.id,
+                                        "reader_username": chat_user.username,
+                                    })
+                                    .to_string()
+                                    .into(),
+                                );
+
+                                let state_guard = state.read().await;
+                                if let Some(room) = state_guard.rooms.get(&room_id) {
+                                    let _ = room.broadcaster.send(receipt);
+                                }
+                            }
+                            Ok(None) => {
+                                // Already marked as read or message not found — no action needed
+                            }
+                            Err(e) => {
+                                eprintln!("Error marcando mensaje {} como leído: {}", message_id, e);
+                            }
+                        }
+                    }
                 }
             }
             Message::Binary(_) => {

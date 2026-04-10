@@ -67,7 +67,7 @@ export default function DmList() {
                 <div className={styles.textBlock}>
                     <h2 className={styles.title}>Tus conversaciones</h2>
                     <p className={styles.subtitle}>
-                        Seleccioná un chat o buscá a alguien para empezar
+                        Selecciona un chat o busca a alguien para empezar
                     </p>
 
                     {/* Word-cycling loader — mantenido del diseño original */}

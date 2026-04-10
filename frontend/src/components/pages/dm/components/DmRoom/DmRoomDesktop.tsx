@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import useDmRoom from "../../../../../hooks/useDmRoom";
 import type { FullConversation } from "../../../../../types/user";
 import { OnlineIndicator } from "../OnlineIndicator";
+import { ReadReceipt } from "./ReadReceipt";
 import styles from "../../css/DmRoomDesktop.module.css";
 
 type Props = {
@@ -83,6 +84,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     });
 
                     const isOwn = msg.sender_id === currentUserId;
+                    const isRead = isOwn && (msg.read_by?.includes(otherParticipant.id) ?? false);
 
                     return (
                         <div
@@ -184,6 +186,9 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                                     </>
                                 )}
                                 <span className={styles.messageTime}>{time}</span>
+                                {isOwn && !msg.is_deleted && (
+                                    <ReadReceipt isRead={isRead} />
+                                )}
                             </div>
                         </div>
                     );

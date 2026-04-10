@@ -141,6 +141,66 @@ pub async fn save_message(
     Ok(result)
 }
 
+/// Persists a room message and bumps the conversation's updated_at.
+/// Returns the new message ID so it can be included in the broadcast payload.
+pub async fn insert_room_message(
+    pool: &PgPool,
+    conversation_id: i32,
+    sender_id: i32,
+    content: &str,
+) -> Result<i32, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+
+    let message_id = sqlx::query_scalar::<_, i32>(
+        r#"
+        INSERT INTO messages (conversation_id, sender_id, content, created_at)
+        VALUES ($1, $2, $3, NOW())
+        RETURNING id
+        "#,
+    )
+    .bind(conversation_id)
+    .bind(sender_id)
+    .bind(content)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    sqlx::query("UPDATE conversations SET updated_at = NOW() WHERE id = $1")
+        .bind(conversation_id)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(message_id)
+}
+
+/// Marks a single message as read by a user.
+///
+/// Uses JSONB containment to skip the update when the user has already read it,
+/// preventing duplicate entries. Returns the updated read_by array, or None if
+/// the message does not exist or was already marked as read.
+pub async fn mark_message_read(
+    pool: &PgPool,
+    message_id: i32,
+    reader_id: i32,
+) -> Result<Option<serde_json::Value>, sqlx::Error> {
+    let result = sqlx::query_unchecked!(
+        r#"
+        UPDATE messages
+        SET read_by = read_by || to_jsonb($2::int)
+        WHERE id = $1
+          AND NOT read_by @> to_jsonb($2::int)
+        RETURNING read_by
+        "#,
+        message_id,
+        reader_id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(result.map(|r| r.read_by))
+}
+
 pub async fn update_updated_at_from_conversation(
     conversation_id: i32,
     pool: &PgPool,
@@ -263,7 +323,7 @@ pub async fn get_conversation_details(
 ) -> Result<ConversationDetails, sqlx::Error> {
     let rows = sqlx::query!(
         r#"
-        SELECT 
+        SELECT
             c.id AS conversation_id,
             c.created_at,
             c.updated_at,
@@ -306,4 +366,29 @@ pub async fn get_conversation_details(
         is_group,
         participants,
     })
+}
+
+// Marca como leídos todos los mensajes de una conversación que no hayan sido
+// leídos aún por el lector, y devuelve los IDs de los mensajes actualizados.
+pub async fn mark_conversation_read(
+    pool: &PgPool,
+    conversation_id: i32,
+    reader_id: i32,
+) -> Result<Vec<i32>, sqlx::Error> {
+    let rows = sqlx::query_unchecked!(
+        r#"
+        UPDATE messages
+        SET read_by = read_by || to_jsonb($2::int)
+        WHERE conversation_id = $1
+          AND sender_id != $2
+          AND NOT read_by @> to_jsonb($2::int)
+        RETURNING id
+        "#,
+        conversation_id,
+        reader_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows.iter().map(|r| r.id).collect())
 }

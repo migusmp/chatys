@@ -81,6 +81,15 @@ CREATE TABLE IF NOT EXISTS undelivered_messages (
     CONSTRAINT undelivered_messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS rooms (
+    id             SERIAL PRIMARY KEY,
+    name           VARCHAR(100) NOT NULL UNIQUE,
+    description    TEXT,
+    image          VARCHAR(255),
+    created_by     INT REFERENCES users(id) ON DELETE SET NULL,
+    created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_conv_participants_user_id ON conversation_participants(user_id);
@@ -88,3 +97,13 @@ CREATE INDEX IF NOT EXISTS idx_undelivered_recipient ON undelivered_messages(rec
 CREATE INDEX IF NOT EXISTS idx_friends_friend_id ON friends(friend_id);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_user_status ON friend_requests(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_sender ON friend_requests(sender_id);
+
+-- Phase 3: read receipt performance index
+CREATE INDEX IF NOT EXISTS idx_messages_read_by ON messages USING GIN (read_by);
+
+-- Phase 3: group chat support columns on conversation_participants
+ALTER TABLE conversation_participants ADD COLUMN IF NOT EXISTS joined_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE conversation_participants ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'member';
+
+-- Phase 4: link rooms to their conversation for message persistence
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS conversation_id INT REFERENCES conversations(id) ON DELETE SET NULL;

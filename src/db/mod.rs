@@ -1,3 +1,4 @@
+pub mod chat;
 pub mod conversations;
 pub mod db;
 pub mod messages;

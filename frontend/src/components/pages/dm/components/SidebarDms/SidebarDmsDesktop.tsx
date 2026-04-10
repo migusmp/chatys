@@ -113,11 +113,15 @@ export default function SidebarDmsDesktop({ dms }: Props) {
                         ? (isLastMessageFromCurrentUser ? `Tú: ${dm.last_message}` : dm.last_message)
                         : "";
 
+                    const isSelected = route === "dm" && currentUsername === userOther.username;
+
                     const unreadCount = dmNotifications.filter(
-                        n => Number(n.conversation_id) === dm.conversation_id
+                        n =>
+                            (n.type_msg === "NEW_DM_MESSAGE" || n.type_msg === "chat_message") &&
+                            n.conversation_id === dm.conversation_id &&
+                            !isSelected
                     ).length;
 
-                    const isSelected = route === "dm" && currentUsername === userOther.username;
                     const timestamp = formatTimestamp(dm.updated_at);
 
                     return (

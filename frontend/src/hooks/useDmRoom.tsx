@@ -156,8 +156,24 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
 
         wsRef.current = ws;
 
+        ws.onopen = () => {
+            // Marcar como leídos todos los mensajes al abrir la conversación
+            ws.send(JSON.stringify({ action: "mark_read" }));
+        };
+
         ws.onmessage = (event) => {
             const raw = JSON.parse(event.data);
+
+            if (raw.type_msg === "MESSAGE_READ") {
+                setAllMessages((prev) =>
+                    prev.map((msg) =>
+                        (raw.message_ids as number[]).includes(msg.id)
+                            ? { ...msg, read_by: [...(msg.read_by ?? []), raw.reader_id as number] }
+                            : msg,
+                    ),
+                );
+                return;
+            }
 
             if (raw.type_msg === "MESSAGE_EDITED") {
                 setAllMessages((prev) =>
@@ -194,6 +210,11 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
                 container && container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
             setAllMessages((prev) => [...prev, data]);
+
+            // El usuario está viendo la conversación: marcar el nuevo mensaje como leído
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ action: "mark_read" }));
+            }
 
             if (isAtBottom) {
                 setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);

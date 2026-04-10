@@ -17,7 +17,8 @@ use crate::{
         db::get_user_chat_data,
         messages::{
             delete_message, get_or_create_direct_conversation,
-            get_other_participant_in_conversation, save_message, update_message,
+            get_other_participant_in_conversation, mark_conversation_read, save_message,
+            update_message,
         },
         undelivered_messages::{
             clear_undelivered_messages, delete_undelivered_message, set_undelivered_message,
@@ -86,6 +87,26 @@ async fn handle_socket(
         );
     }
 
+    // Al conectarse, marcar como leídos todos los mensajes del otro participante
+    // y notificar al otro si está conectado para que actualice sus checkmarks.
+    match mark_conversation_read(&pool, conversation_id, from_user_id).await {
+        Ok(read_ids) if !read_ids.is_empty() => {
+            let event = DmEvent::MessageRead {
+                message_ids: read_ids,
+                conversation_id,
+                reader_id: from_user_id,
+            };
+            app_state.send_direct_message(event).await;
+        }
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!(
+                "❌ Error al marcar mensajes como leídos para usuario {} en conversación {}: {}",
+                from_user_id, conversation_id, e
+            );
+        }
+    }
+
     let (mut sender, mut receiver) = socket.split();
 
     let mut write_task = {
@@ -139,6 +160,22 @@ async fn handle_socket(
                     let action = parsed.get("action").and_then(|v| v.as_str()).unwrap_or("send");
 
                     match action {
+                        "mark_read" => {
+                            match mark_conversation_read(&pool, conversation_id, from_user_id).await {
+                                Ok(read_ids) if !read_ids.is_empty() => {
+                                    let event = DmEvent::MessageRead {
+                                        message_ids: read_ids,
+                                        conversation_id,
+                                        reader_id: from_user_id,
+                                    };
+                                    app_state_clone.send_direct_message(event).await;
+                                }
+                                Ok(_) => {}
+                                Err(e) => {
+                                    eprintln!("mark_read: error en DB: {}", e);
+                                }
+                            }
+                        }
                         "edit" => {
                             let message_id = match parsed.get("message_id").and_then(|v| v.as_i64()) {
                                 Some(id) => id as i32,

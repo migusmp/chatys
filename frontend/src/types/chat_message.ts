@@ -5,4 +5,5 @@ export type ChatMessage = {
     created_at: string;
     edited_at?: string | null;
     is_deleted?: boolean;
+    read_by?: number[];
 };

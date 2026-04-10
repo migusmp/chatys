@@ -28,4 +28,10 @@ pub enum DmEvent {
         message_id: i32,
         conversation_id: i32,
     },
+    #[serde(rename = "MESSAGE_READ")]
+    MessageRead {
+        message_ids: Vec<i32>,
+        conversation_id: i32,
+        reader_id: i32,
+    },
 }

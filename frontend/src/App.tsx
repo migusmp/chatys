@@ -40,7 +40,10 @@ function App() {
                     <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                         <Route path="/" element={<Home />} />
                         <Route path="/friends" element={<Friends />} />
+
+                        {/* /chats sin sala → NoRoomSelected; /chats/:roomName → sala activa */}
                         <Route path="/chats" element={<Chats />} />
+                        <Route path="/chats/:roomName" element={<Chats />} />
 
                         <Route path="/dm" element={<DirectMessages />}>
                             <Route index element={<DmList />} />

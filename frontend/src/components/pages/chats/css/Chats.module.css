@@ -1,0 +1,26 @@
+/* ============================================
+   Chats.module.css — top-level layout
+   Design system: #000 bg, #0f6 accent, #888 muted
+   ============================================ */
+
+.layout {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    background-color: #000;
+}
+
+/* Mobile: full-width panel toggles */
+.mobileOnly {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobileOnly {
+        display: flex;
+    }
+    .desktopOnly {
+        display: none;
+    }
+}

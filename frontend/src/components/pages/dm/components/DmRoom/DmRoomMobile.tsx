@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import useDmRoom from "../../../../../hooks/useDmRoom";
 import type { FullConversation } from "../../../../../types/user";
 import { OnlineIndicator } from "../OnlineIndicator";
+import { ReadReceipt } from "./ReadReceipt";
 
 type Props = {
   conversationData: FullConversation;
@@ -107,6 +108,7 @@ export default function DmRoomMobile({ conversationData }: Props) {
         {allMessages.map((msg) => {
           const isOwn = msg.sender_id === currentUserId;
           const isEditing = editingId === msg.id;
+          const isRead = isOwn && (msg.read_by?.includes(otherParticipant.id) ?? false);
           const time = new Date(msg.created_at).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -181,6 +183,7 @@ export default function DmRoomMobile({ conversationData }: Props) {
                         <span style={{ fontSize: "10px", opacity: 0.4 }}>(editado)</span>
                       )}
                       <span style={timeStyle}>{time}</span>
+                      {isOwn && <ReadReceipt isRead={isRead} />}
                     </div>
                   </>
                 )}
