@@ -150,7 +150,7 @@ export default function DmRoomMobile({ conversationData }: Props) {
   return (
     <section style={containerStyle}>
       <header style={headerStyle}>
-        <BackButtonMobile />
+        <BackButtonMobile link="/dm" />
 
         <div style={headerInfoStyle}>
           <div style={avatarWrapperStyle}>

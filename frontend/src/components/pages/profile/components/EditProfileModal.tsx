@@ -131,7 +131,7 @@ export default function EditProfileModal({ setModal, profile, setProfile }: Prop
             <div className={styles.modal}>
                 {/* Header */}
                 <div className={styles.header}>
-                    <h2 className={styles.title}>{t("profile.editProfileModal.title") || "Edit Profile"}</h2>
+                    <h2 className={styles.title}>{t("profile.editProfile") || "Edit Profile"}</h2>
                     <button
                         type="button"
                         className={styles.closeBtn}

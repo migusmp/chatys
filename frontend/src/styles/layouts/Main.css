@@ -55,6 +55,8 @@ body.mobile-with-header main {
 
 .layout__logo {
     width: 80px;
+    max-width: 60%;
+    object-fit: contain;
 }
 
 .layout__user-avatar {
