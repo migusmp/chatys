@@ -37,7 +37,7 @@
     z-index: 10;
     width: 100%;
     padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.85);
+    background: transparent;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }

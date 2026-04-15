@@ -17,7 +17,7 @@ export default function Layout() {
         if (path.startsWith("/dm/")) return false;
 
         // Excluir también /profile y /settings completamente
-        const excludedPaths = ["/profile", "/settings"];
+        const excludedPaths = ["/settings"];
         return !excludedPaths.some(p => path.startsWith(p));
     };
 

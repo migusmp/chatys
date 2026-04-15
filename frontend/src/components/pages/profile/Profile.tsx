@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import type { ProfileData } from '../../../types/user';
 import { useUserProfileContext } from '../../../context/UserContext';
 import i18n from '../../../i18n';
-import BackButton from './components/BackButton';
 import EditProfileModal from './components/EditProfileModal';
 
 export default function Profile() {
@@ -74,11 +73,6 @@ export default function Profile() {
             <div className={styles.page}>
                 {/* Aurora background blob */}
                 <div className={styles.auroraBlob} aria-hidden="true" />
-
-                {/* Sticky back row */}
-                <div className={styles.backRow}>
-                    <BackButton name={profile?.name} />
-                </div>
 
                 {/* Hero card */}
                 <div className={styles.heroWrap}>
