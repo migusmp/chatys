@@ -4,6 +4,7 @@ const MESSAGE_PREVIEW_TRUNCATED_LENGTH = 57;
 
 export function truncateMessage(text: string): string {
     if (!text) return "Envió una imagen 🖼️";
+    if (text.startsWith("/media/messages/")) return "Envió una imagen 🖼️";
     return text.length > MESSAGE_PREVIEW_MAX_LENGTH
         ? text.slice(0, MESSAGE_PREVIEW_TRUNCATED_LENGTH) + "..."
         : text;

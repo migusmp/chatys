@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO undelivered_messages (message_id, recipient_id, conversation_id) VALUES ($1, $2, $3)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f445e6b86d004232e7809c4e3bafaec6aabd5df84c8fa6117e7596637442d75c"
+}

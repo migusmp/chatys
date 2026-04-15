@@ -121,3 +121,7 @@ CREATE TABLE IF NOT EXISTS message_reactions (
     UNIQUE(message_id, user_id, emoji)
 );
 CREATE INDEX IF NOT EXISTS idx_reactions_message_id ON message_reactions(message_id);
+
+-- Phase 7: message replies (quote-reply)
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id INT REFERENCES messages(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_messages_reply_to_id ON messages(reply_to_id);

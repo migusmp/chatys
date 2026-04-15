@@ -15,6 +15,8 @@ pub type UserChannels = DashMap<i32, tokio::sync::mpsc::Sender<String>>;
 #[derive(Deserialize)]
 pub struct IncomingMessage {
     pub content: String,
+    /// ID of the message being replied to, if this is a reply.
+    pub reply_to_id: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize)]

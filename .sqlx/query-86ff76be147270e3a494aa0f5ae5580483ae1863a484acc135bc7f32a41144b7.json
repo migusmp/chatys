@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE messages\n        SET read_by = read_by || to_jsonb($2::int)\n        WHERE conversation_id = $1\n          AND sender_id != $2\n          AND NOT read_by @> to_jsonb($2::int)\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "86ff76be147270e3a494aa0f5ae5580483ae1863a484acc135bc7f32a41144b7"
+}

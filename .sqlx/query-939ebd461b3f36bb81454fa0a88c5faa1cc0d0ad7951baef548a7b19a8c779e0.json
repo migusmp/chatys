@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT cp.conversation_id\n        FROM conversation_participants cp\n        JOIN conversations c ON c.id = cp.conversation_id\n        WHERE (cp.user_id = $1 OR cp.user_id = $2) AND c.is_group = false\n        GROUP BY cp.conversation_id\n        HAVING COUNT(DISTINCT cp.user_id) = 2\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "conversation_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "939ebd461b3f36bb81454fa0a88c5faa1cc0d0ad7951baef548a7b19a8c779e0"
+}

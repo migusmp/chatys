@@ -33,6 +33,10 @@ pub fn chat_router(
             get(get_conversation_messages_by_username),
         )
         .route(
+            "/conversation/{username}/search",
+            get(search_messages_handler),
+        )
+        .route(
             "/room/{room_name}/messages",
             get(get_room_message_history),
         )
@@ -44,6 +48,7 @@ pub fn chat_router(
             "/messages/{message_id}/reactions",
             post(toggle_reaction_handler),
         )
+        .route("/messages/upload", post(upload_message_image_handler))
         .layer(from_fn(auth))
         .layer(Extension(pool))
         .layer(Extension(state))

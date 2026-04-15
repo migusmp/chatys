@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT DISTINCT cp2.user_id\n        FROM conversation_participants cp1\n        JOIN conversation_participants cp2\n          ON cp1.conversation_id = cp2.conversation_id\n        JOIN conversations c\n          ON c.id = cp1.conversation_id\n        WHERE cp1.user_id = $1\n          AND cp2.user_id != $1\n          AND c.is_group = false\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3d1695988bc5bb46a09a58578b3cef46b8397c1e9742728a060aaa0ae2e1eee9"
+}

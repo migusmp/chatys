@@ -2,6 +2,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::chat::ReactionCount;
 
+/// Minimal preview of a replied-to message, sent inline with the chat_message event
+/// so the receiver can render the quote block without a separate fetch.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReplyPreview {
+    pub id: i32,
+    pub content: String,
+    pub sender_username: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
     pub conversation_id: i32,
@@ -11,6 +20,13 @@ pub struct ChatMessage {
     pub from_username: String,
     pub from_username_image: String,
     pub message_id: i32,
+    /// Present when the message is a reply to another message.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reply_to_id: Option<i32>,
+    /// Inline preview of the replied-to message for immediate rendering.
+    /// Populated by the WS handler after saving the message.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reply_to: Option<ReplyPreview>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

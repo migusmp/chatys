@@ -5,7 +5,7 @@ import {
     useUserProfileContext,
 } from "../context/UserContext";
 import type { NewDmMessageNotification } from "../interfaces/notifications";
-import type { ChatMessage, ReactionCount } from "../types/chat_message";
+import type { ChatMessage, MessagePreview, ReactionCount } from "../types/chat_message";
 import type { FullConversation, Participants } from "../types/user";
 
 type UseDmRoomReturn = {
@@ -19,10 +19,13 @@ type UseDmRoomReturn = {
     loadingMore: boolean;
     message: string;
     otherParticipant: Participants | undefined;
+    replyingTo: ChatMessage | null;
     sendDelete: (messageId: number) => void;
     sendEdit: (messageId: number, newContent: string) => void;
+    sendImageMessage: (url: string) => void;
     sendTyping: () => void;
     setMessage: Dispatch<SetStateAction<string>>;
+    setReplyingTo: Dispatch<SetStateAction<ChatMessage | null>>;
     toggleReaction: (messageId: number, emoji: string) => Promise<void>;
     typingUser: string | null;
 };
@@ -46,6 +49,8 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
     const [loadingMore, setLoadingMore] = useState(false);
     // Username of the participant currently typing, or null if nobody is.
     const [typingUser, setTypingUser] = useState<string | null>(null);
+    // The message the user is currently replying to, or null if not replying.
+    const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -135,6 +140,8 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         setOffset(conversationData.messages.length);
         setHasMore(true);
         firstLoadRef.current = true;
+        // Clear any active reply when switching conversations
+        setReplyingTo(null);
 
         setDmNotifications((prev) =>
             prev.filter(
@@ -234,6 +241,10 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
                 content: raw.content,
                 sender_id: raw.from_user,
                 created_at: new Date().toISOString(),
+                reply_to_id: (raw.reply_to_id as number | undefined) ?? null,
+                reply_to: raw.reply_to
+                    ? (raw.reply_to as MessagePreview)
+                    : null,
             };
 
             const container = containerRef.current;
@@ -279,7 +290,11 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
             return;
         }
 
-        socket.send(JSON.stringify({ content: message }));
+        const payload: Record<string, unknown> = { content: message };
+        if (replyingTo) {
+            payload.reply_to_id = replyingTo.id;
+        }
+        socket.send(JSON.stringify(payload));
 
         const newMessage: NewDmMessageNotification = {
             type_msg: "NEW_DM_MESSAGE",
@@ -300,6 +315,7 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
             return [newMessage, ...filtered];
         });
 
+        setReplyingTo(null);
         setMessage("");
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     };
@@ -324,6 +340,13 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
                     message_id: messageId,
                 }),
             );
+        }
+    }, []);
+
+    const sendImageMessage = useCallback((url: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ content: url }));
+            setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
         }
     }, []);
 
@@ -363,10 +386,13 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         loadingMore,
         message,
         otherParticipant,
+        replyingTo,
         sendDelete,
         sendEdit,
+        sendImageMessage,
         sendTyping,
         setMessage,
+        setReplyingTo,
         toggleReaction,
         typingUser,
     };

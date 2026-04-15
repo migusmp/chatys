@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT c.id as conversation_id\n        FROM conversations c\n        WHERE c.is_group = false\n        AND (\n            SELECT array_agg(user_id ORDER BY user_id)\n            FROM conversation_participants cp\n            WHERE cp.conversation_id = c.id\n        ) = ARRAY[LEAST($1::int, $2::int), GREATEST($1::int, $2::int)]::int[]\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "conversation_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b8e78d480ec449dae66b2b33a0f32725c72a7637784da5f3ed5fbc814af8f330"
+}

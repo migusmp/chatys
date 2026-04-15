@@ -190,4 +190,19 @@ impl ChatState {
             .map(|room| room.persist_messages)
             .unwrap_or(true)
     }
+
+    /// Returns the broadcaster for the room whose `conversation_id` matches the given value.
+    ///
+    /// Used by the reaction-toggle handler to push `REACTION_UPDATE` events to group-room
+    /// participants without needing to know the room name at call-site.
+    /// Returns `None` if no room is linked to that conversation.
+    pub fn get_broadcaster_by_conversation_id(
+        &self,
+        conversation_id: i32,
+    ) -> Option<broadcast::Sender<Message>> {
+        self.rooms
+            .values()
+            .find(|room| room.conversation_id == Some(conversation_id))
+            .map(|room| room.broadcaster.clone())
+    }
 }

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM undelivered_messages WHERE recipient_id = $1 AND conversation_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "83c7a5437c5e84096ac00a7513246aa0a37dc731cd42901badce501841c6f51b"
+}

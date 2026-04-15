@@ -1,0 +1,55 @@
+.picker {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    width: 300px;
+    max-height: 320px;
+    overflow-y: auto;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 10px;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    scrollbar-width: thin;
+    scrollbar-color: #333 transparent;
+}
+
+.category {
+    margin-bottom: 10px;
+}
+
+.categoryLabel {
+    display: block;
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    padding: 0 2px;
+}
+
+.grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.emojiBtn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+    line-height: 1;
+}
+
+.emojiBtn:hover {
+    background: #2a2a2a;
+}

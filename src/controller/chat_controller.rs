@@ -5,7 +5,8 @@ use crate::db::chat::{
 use crate::db::conversations::create_conversation;
 use crate::db::db::find_user_by_username;
 use crate::db::messages::{
-    find_conversation_id, get_conversation_details, get_messages, FullConversationResponse,
+    find_conversation_id, get_conversation_details, get_messages, search_messages,
+    FullConversationResponse,
 };
 use crate::models::chat::ChatState;
 use crate::models::user::{ErrorRequest, Payload};
@@ -23,6 +24,7 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use axum::extract::ws::Message;
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -528,13 +530,17 @@ pub struct ToggleReactionResponse {
 /// - If the reaction doesn't exist, it's added and `added: true` is returned.
 /// - If it already exists, it's removed and `added: false` is returned.
 ///
-/// After toggling, the updated reaction state is broadcast to all active participants
-/// of the message's conversation via DM channels (REACTION_UPDATE event).
+/// After toggling, the updated reaction state is broadcast to all active participants:
+/// - DM conversations: via AppState's direct_message_channels (mpsc).
+/// - Group rooms: via ChatState's room broadcaster (broadcast::Sender<Message>).
+///
+/// Both paths are fire-and-forget — a failed broadcast never invalidates the HTTP response.
 pub async fn toggle_reaction_handler(
     Path(message_id): Path<i64>,
     Extension(payload): Extension<Payload>,
     Extension(pool): Extension<PgPool>,
     Extension(app_state): Extension<Arc<AppState>>,
+    Extension(chat_state): Extension<Arc<RwLock<ChatState>>>,
     Json(body): Json<ToggleReactionBody>,
 ) -> Result<impl IntoResponse, ErrorRequest> {
     // Validate emoji
@@ -543,9 +549,12 @@ pub async fn toggle_reaction_handler(
         return Err(ErrorRequest::BadParameter);
     }
 
-    // Verify the message exists and get its conversation_id for broadcasting.
-    let conversation_id: Option<i32> = sqlx::query_scalar(
-        "SELECT conversation_id FROM messages WHERE id = $1",
+    // Verify the message exists and fetch its conversation_id + group flag in one query.
+    let row: Option<(i32, bool)> = sqlx::query_as(
+        "SELECT m.conversation_id, c.is_group \
+         FROM messages m \
+         JOIN conversations c ON c.id = m.conversation_id \
+         WHERE m.id = $1",
     )
     .bind(message_id)
     .fetch_optional(&pool)
@@ -555,8 +564,8 @@ pub async fn toggle_reaction_handler(
         ErrorRequest::InternalError
     })?;
 
-    let conversation_id = match conversation_id {
-        Some(id) => id,
+    let (conversation_id, is_group) = match row {
+        Some(r) => r,
         None => return Err(ErrorRequest::MessageNotFound),
     };
 
@@ -582,8 +591,55 @@ pub async fn toggle_reaction_handler(
         .cloned()
         .unwrap_or_default();
 
-    // Broadcast REACTION_UPDATE to connected participants (fire-and-forget)
-    {
+    if is_group {
+        // Group room: broadcast via the room's broadcast::Sender<Message>.
+        // reacted_by_me is omitted (false) in the broadcast payload — the HTTP response
+        // already carries the correct value for the user who triggered the toggle.
+        // Other clients can rely on the reactions list to re-derive their own flag locally.
+        let broadcaster = {
+            let state_guard = chat_state.read().await;
+            state_guard.get_broadcaster_by_conversation_id(conversation_id)
+        };
+
+        if let Some(broadcaster) = broadcaster {
+            // Fetch reactions without a user_id so reacted_by_me is uniformly false for broadcast
+            let broadcast_reactions_map =
+                match get_reactions_for_messages(&pool, &[message_id], None).await {
+                    Ok(m) => m,
+                    Err(e) => {
+                        eprintln!(
+                            "toggle_reaction: error fetching broadcast reactions for message {}: {}",
+                            message_id, e
+                        );
+                        // Non-fatal: skip room broadcast rather than fail the HTTP response
+                        return Ok(Json(ToggleReactionResponse { message_id, added, reactions }));
+                    }
+                };
+
+            let broadcast_reactions = broadcast_reactions_map
+                .get(&message_id)
+                .cloned()
+                .unwrap_or_default();
+
+            let payload_json = serde_json::json!({
+                "type_msg": "REACTION_UPDATE",
+                "message_id": message_id,
+                "conversation_id": conversation_id,
+                "reactions": broadcast_reactions,
+            });
+
+            if let Ok(text) = serde_json::to_string(&payload_json) {
+                // Error is expected when there are no active subscribers — safe to ignore.
+                let _ = broadcaster.send(Message::Text(text.into()));
+            }
+        } else {
+            eprintln!(
+                "toggle_reaction: no active room broadcaster for conversation {} (room may be empty)",
+                conversation_id
+            );
+        }
+    } else {
+        // DM conversation: notify via AppState's mpsc channels (fire-and-forget).
         let pool_clone = pool.clone();
         let app_state_clone = app_state.clone();
         tokio::spawn(async move {
@@ -598,4 +654,181 @@ pub async fn toggle_reaction_handler(
         added,
         reactions,
     }))
+}
+
+// ─── Message Image Upload ─────────────────────────────────────────────────────
+
+// ─── Allowed MIME types for message image uploads ────────────────────────────
+// SVG is explicitly excluded: it can embed JavaScript and cause XSS.
+const ALLOWED_IMAGE_MIME_TYPES: &[(&str, &str)] = &[
+    ("image/jpeg", "jpg"),
+    ("image/png",  "png"),
+    ("image/gif",  "gif"),
+    ("image/webp", "webp"),
+];
+
+fn allowed_image_ext(mime: &str) -> Option<&'static str> {
+    ALLOWED_IMAGE_MIME_TYPES
+        .iter()
+        .find(|(m, _)| *m == mime)
+        .map(|(_, ext)| *ext)
+}
+
+/// `POST /api/chat/messages/upload`
+///
+/// Accepts a multipart form with a single `image` field.
+/// Saves the file under `uploads/messages/` and returns its public URL.
+/// Allowed formats: JPEG, PNG, GIF, WebP (SVG and other formats are rejected).
+/// Max file size: 5 MB. Both the declared MIME type and the actual magic bytes
+/// must match an allowed type — the two checks together prevent polyglot files
+/// and content-type spoofing.
+pub async fn upload_message_image_handler(
+    Extension(_payload): Extension<Payload>,
+    headers: HeaderMap,
+    mut multipart: Multipart,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    if let Some(content_length) = headers.get("content-length") {
+        let length = content_length
+            .to_str()
+            .unwrap_or("0")
+            .parse::<u64>()
+            .unwrap_or(0);
+        if length > MAX_CONTENT_LENGTH {
+            return Err(ErrorRequest::FileTooLarge);
+        }
+    }
+
+    while let Some(mut field) = multipart.next_field().await.map_err(|e| {
+        eprintln!("upload_message_image: multipart error: {:?}", e);
+        ErrorRequest::InternalError
+    })? {
+        if field.name().unwrap_or("") != "image" {
+            while field.chunk().await.map_err(|_| ErrorRequest::InternalError)?.is_some() {}
+            continue;
+        }
+
+        // Check declared MIME type against whitelist (fast pre-filter).
+        let declared_mime = field
+            .content_type()
+            .unwrap_or("application/octet-stream")
+            .to_string();
+
+        if allowed_image_ext(&declared_mime).is_none() {
+            return Err(ErrorRequest::InvalidImageFormat);
+        }
+
+        let first_chunk = field.chunk().await.map_err(|e| {
+            eprintln!("upload_message_image: chunk error: {:?}", e);
+            ErrorRequest::InternalError
+        })?;
+
+        let Some(first_chunk) = first_chunk else {
+            return Err(ErrorRequest::InvalidImageFormat);
+        };
+
+        // Verify actual content via magic bytes — blocks polyglot/spoofed files.
+        let actual_mime = match infer::get(&first_chunk) {
+            Some(kind) => kind.mime_type().to_string(),
+            None => return Err(ErrorRequest::InvalidImageFormat),
+        };
+
+        let ext = match allowed_image_ext(&actual_mime) {
+            Some(e) => e,
+            None => return Err(ErrorRequest::InvalidImageFormat),
+        };
+
+        let filename = format!("{}.{}", Uuid::new_v4(), ext);
+        let path = format!("./uploads/messages/{}", filename);
+
+        fs::create_dir_all("./uploads/messages").await.map_err(|e| {
+            eprintln!("upload_message_image: mkdir error: {:?}", e);
+            ErrorRequest::InternalError
+        })?;
+
+        let mut file = fs::File::create(&path).await.map_err(|e| {
+            eprintln!("upload_message_image: create file error: {:?}", e);
+            ErrorRequest::InternalError
+        })?;
+
+        let mut total_size = first_chunk.len() as u64;
+        file.write_all(&first_chunk).await.map_err(|_| ErrorRequest::InternalError)?;
+
+        while let Some(chunk) = field.chunk().await.map_err(|_| ErrorRequest::InternalError)? {
+            total_size += chunk.len() as u64;
+            if total_size > MAX_CONTENT_LENGTH {
+                let _ = fs::remove_file(&path).await;
+                return Err(ErrorRequest::FileTooLarge);
+            }
+            file.write_all(&chunk).await.map_err(|_| ErrorRequest::InternalError)?;
+        }
+
+        return Ok(ApiResponse::success_with_data(
+            "Image uploaded",
+            Some(serde_json::json!({ "url": format!("/media/messages/{}", filename) })),
+        ));
+    }
+
+    Err(ErrorRequest::BadParameter)
+}
+
+// ─── Message Search ───────────────────────────────────────────────────────────
+
+/// Maximum number of search results returned per query.
+const MAX_SEARCH_RESULTS: i64 = 30;
+
+/// Query parameters for the message search endpoint.
+#[derive(Deserialize)]
+pub struct SearchParams {
+    /// The search term. Must be between 1 and 200 characters after trimming.
+    pub q: String,
+}
+
+/// `GET /api/chat/conversation/:username/search?q=:query`
+///
+/// Returns up to 30 non-deleted messages from the DM conversation between the
+/// authenticated user and `:username` whose `content` matches the query
+/// (case-insensitive substring match). Results are ordered newest-first.
+///
+/// Errors:
+/// - `BadParameter`  — query is empty or exceeds 200 chars after trimming.
+/// - `UserNotFound`  — the target username does not exist.
+/// - `InternalError` — DB failure (conversation not found counts as this).
+pub async fn search_messages_handler(
+    Path(username): Path<String>,
+    Query(params): Query<SearchParams>,
+    Extension(payload): Extension<Payload>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<impl IntoResponse, ErrorRequest> {
+    const MAX_QUERY_LEN: usize = 200;
+
+    let q = params.q.trim().to_string();
+    if q.is_empty() || q.len() > MAX_QUERY_LEN {
+        return Err(ErrorRequest::BadParameter);
+    }
+
+    let to_user_id = match find_user_by_username(username, &pool).await {
+        Ok(id) => id,
+        Err(_) => return Err(ErrorRequest::UserNotFound),
+    };
+
+    let conversation_id = match find_conversation_id(payload.id, to_user_id, &pool).await {
+        Ok(id) => id,
+        Err(e) => {
+            eprintln!("search_messages: error finding conversation: {}", e);
+            return Err(ErrorRequest::InternalError);
+        }
+    };
+
+    let messages = match search_messages(&pool, conversation_id, &q, MAX_SEARCH_RESULTS).await {
+        Ok(msgs) => msgs,
+        Err(e) => {
+            eprintln!("search_messages: DB error for conversation {}: {}", conversation_id, e);
+            return Err(ErrorRequest::InternalError);
+        }
+    };
+
+    Ok(ApiResponse::success_with_data(
+        "Messages found",
+        Some(messages),
+    ))
 }

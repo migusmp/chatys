@@ -16,7 +16,7 @@ use crate::{
     db::{
         db::get_user_chat_data,
         messages::{
-            delete_message, get_or_create_direct_conversation,
+            delete_message, get_message_preview, get_or_create_direct_conversation,
             get_other_participant_in_conversation, mark_conversation_read, save_message,
             update_message,
         },
@@ -27,7 +27,7 @@ use crate::{
     models::user::Payload,
     state::{
         app_state::AppState,
-        chat_message::{ChatMessage, DmEvent},
+        chat_message::{ChatMessage, DmEvent, ReplyPreview},
         types::IncomingMessage,
     },
 };
@@ -277,7 +277,7 @@ async fn handle_socket(
                                     };
 
                                     let saved_message_id =
-                                        match save_message(conv_id, from_user_id, &incoming.content, &pool)
+                                        match save_message(conv_id, from_user_id, &incoming.content, incoming.reply_to_id, &pool)
                                             .await
                                         {
                                             Ok(id) => id,
@@ -287,6 +287,25 @@ async fn handle_socket(
                                             }
                                         };
 
+                                    // If this is a reply, fetch a preview of the original message
+                                    // so the receiver can render the quote block immediately.
+                                    let reply_to_preview = if let Some(rid) = incoming.reply_to_id {
+                                        match get_message_preview(&pool, rid).await {
+                                            Ok(Some(preview)) => Some(ReplyPreview {
+                                                id: preview.id,
+                                                content: preview.content,
+                                                sender_username: preview.sender_username,
+                                            }),
+                                            Ok(None) => None,
+                                            Err(e) => {
+                                                eprintln!("Error obteniendo preview del mensaje {}: {}", rid, e);
+                                                None
+                                            }
+                                        }
+                                    } else {
+                                        None
+                                    };
+
                                     let msg = ChatMessage {
                                         conversation_id: conv_id,
                                         from_user: from_user_id,
@@ -295,6 +314,8 @@ async fn handle_socket(
                                         from_username: user_from_data_clone.username.to_string(),
                                         from_username_image: user_from_data_clone.image.to_string(),
                                         message_id: saved_message_id,
+                                        reply_to_id: incoming.reply_to_id,
+                                        reply_to: reply_to_preview,
                                     };
 
                                     app_state_clone.send_direct_message(DmEvent::ChatMessage(msg)).await;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import EmojiPicker from "../../../../EmojiPicker";
 import MessageReactions from "../../../../MessageReactions";
 import useDmRoom from "../../../../../hooks/useDmRoom";
 import type { FullConversation } from "../../../../../types/user";
@@ -23,10 +24,13 @@ export default function DmRoomMobile({ conversationData }: Props) {
     loadingMore,
     message,
     otherParticipant,
+    replyingTo,
     sendDelete,
     sendEdit,
+    sendImageMessage,
     sendTyping,
     setMessage,
+    setReplyingTo,
     toggleReaction,
     typingUser,
   } = useDmRoom(conversationData);
@@ -34,7 +38,10 @@ export default function DmRoomMobile({ conversationData }: Props) {
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const emojiPickerRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks the last time we sent a typing event so we debounce outgoing signals
   const lastTypingSentRef = useRef(0);
@@ -82,6 +89,46 @@ export default function DmRoomMobile({ conversationData }: Props) {
   const cancelEdit = () => {
     setEditingId(null);
     setEditValue("");
+  };
+
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handleOutside = (e: TouchEvent | MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutside);
+    document.addEventListener("touchstart", handleOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+    };
+  }, [showEmojiPicker]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    const formData = new FormData();
+    formData.append("image", file);
+    try {
+      const res = await fetch("/api/chat/messages/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      sendImageMessage(data.data.url as string);
+    } catch (err) {
+      console.error("[DmRoomMobile] image upload failed:", err);
+    }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessage((prev) => prev + emoji);
+    setShowEmojiPicker(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,38 +185,66 @@ export default function DmRoomMobile({ conversationData }: Props) {
             <div key={msg.id} style={{ position: "relative", alignSelf: isOwn ? "flex-end" : "flex-start", maxWidth: "60%" }}>
               {menuOpenId === msg.id && (
                 <div ref={menuRef} style={{ ...contextMenuStyle, [isOwn ? "right" : "left"]: 0 }}>
+                  {/* Reply — available for all non-deleted messages */}
                   <button
                     style={contextMenuItemStyle}
                     onTouchStart={(e) => e.currentTarget.style.background = "#222"}
                     onTouchEnd={(e) => e.currentTarget.style.background = "none"}
-                    onClick={() => startEdit(msg.id, msg.content)}
+                    onClick={() => {
+                      setReplyingTo(msg);
+                      setMenuOpenId(null);
+                    }}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
+                      <path d="M6.598 5.013a.144.144 0 0 1 .202.134V6.3a.5.5 0 0 0 .5.5c.667 0 2.013.005 3.3.822.984.624 1.99 1.76 2.595 3.876-1.02-.983-2.185-1.516-3.205-1.799a8.7 8.7 0 0 0-1.445-.252 7 7 0 0 0-.5-.01h-.126l-.003.001a.5.5 0 0 0-.5.5v1.152c0 .12-.07.226-.18.283L6.598 12.9A.144.144 0 0 1 6.4 12.77V5.23a.144.144 0 0 1 .198-.217" />
+                      <path d="M5 0a.5.5 0 0 1 .5.5v15a.5.5 0 0 1-1 0V.5A.5.5 0 0 1 5 0" />
                     </svg>
-                    Editar
+                    Responder
                   </button>
-                  <button
-                    style={{ ...contextMenuItemStyle, color: "#ff5555" }}
-                    onTouchStart={(e) => e.currentTarget.style.background = "rgba(255,60,60,0.1)"}
-                    onTouchEnd={(e) => e.currentTarget.style.background = "none"}
-                    onClick={() => { sendDelete(msg.id); setMenuOpenId(null); }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
-                      <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
-                    </svg>
-                    Eliminar
-                  </button>
+                  {isOwn && !msg.is_deleted && (
+                    <>
+                      <button
+                        style={contextMenuItemStyle}
+                        onTouchStart={(e) => e.currentTarget.style.background = "#222"}
+                        onTouchEnd={(e) => e.currentTarget.style.background = "none"}
+                        onClick={() => startEdit(msg.id, msg.content)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
+                        </svg>
+                        Editar
+                      </button>
+                      <button
+                        style={{ ...contextMenuItemStyle, color: "#ff5555" }}
+                        onTouchStart={(e) => e.currentTarget.style.background = "rgba(255,60,60,0.1)"}
+                        onTouchEnd={(e) => e.currentTarget.style.background = "none"}
+                        onClick={() => { sendDelete(msg.id); setMenuOpenId(null); }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                          <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                        </svg>
+                        Eliminar
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 
               <article
                 style={isOwn ? ownBubbleStyle : otherBubbleStyle}
-                onTouchStart={() => isOwn && !msg.is_deleted ? startLongPress(msg.id) : undefined}
+                onTouchStart={() => !msg.is_deleted ? startLongPress(msg.id) : undefined}
                 onTouchEnd={cancelLongPress}
                 onTouchMove={cancelLongPress}
               >
+                {/* Quoted block — shown above message text when this is a reply */}
+                {msg.reply_to && !msg.is_deleted && (
+                  <div style={quotedMessageStyle}>
+                    <p style={quotedAuthorStyle}>{msg.reply_to.sender_username}</p>
+                    <p style={quotedContentStyle}>{msg.reply_to.content}</p>
+                  </div>
+                )}
+
                 {msg.is_deleted ? (
                   <>
                     <p style={{ ...messageTextStyle, opacity: 0.4, fontStyle: "italic" }}>
@@ -197,7 +272,28 @@ export default function DmRoomMobile({ conversationData }: Props) {
                   </div>
                 ) : (
                   <>
-                    <p style={messageTextStyle}>{msg.content}</p>
+                    {msg.content.startsWith("/media/messages/") ? (
+                      <div style={imageWrapperStyle}>
+                        <img
+                          src={msg.content}
+                          alt="imagen"
+                          style={messageImageStyle}
+                          loading="lazy"
+                        />
+                        <a
+                          href={msg.content}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={downloadBtnMobileStyle}
+                          aria-label="Descargar imagen"
+                        >
+                          ⬇
+                        </a>
+                      </div>
+                    ) : (
+                      <p style={messageTextStyle}>{msg.content}</p>
+                    )}
                     <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", justifyContent: "flex-end" }}>
                       {msg.edited_at && (
                         <span style={{ fontSize: "10px", opacity: 0.4 }}>(editado)</span>
@@ -228,14 +324,43 @@ export default function DmRoomMobile({ conversationData }: Props) {
         {typingUser && (
           <p style={typingIndicatorStyle}>{typingUser} está escribiendo…</p>
         )}
-        <div style={inputRowStyle}>
-          <div style={messageInputContainerStyle}>
-            <button type="button" style={iconButtonStyle} aria-label="Emoji">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#0f6" className="bi bi-emoji-sunglasses" viewBox="0 0 16 16">
-                <path d="M4.968 9.75a.5.5 0 1 0-.866.5A4.5 4.5 0 0 0 8 12.5a4.5 4.5 0 0 0 3.898-2.25.5.5 0 1 0-.866-.5A3.5 3.5 0 0 1 8 11.5a3.5 3.5 0 0 1-3.032-1.75M7 5.116V5a1 1 0 0 0-1-1H3.28a1 1 0 0 0-.97 1.243l.311 1.242A2 2 0 0 0 4.561 8H5a2 2 0 0 0 1.994-1.839A3 3 0 0 1 8 6c.393 0 .74.064 1.006.161A2 2 0 0 0 11 8h.438a2 2 0 0 0 1.94-1.515l.311-1.242A1 1 0 0 0 12.72 4H10a1 1 0 0 0-1 1v.116A4.2 4.2 0 0 0 8 5c-.35 0-.69.04-1 .116" />
-                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-1 0A7 7 0 1 0 1 8a7 7 0 0 0 14 0" />
-              </svg>
+
+        {/* Reply preview bar — shown when the user has selected a message to reply to */}
+        {replyingTo && (
+          <div style={replyPreviewBarStyle}>
+            <span style={replyPreviewTextStyle}>
+              <span style={replyPreviewAuthorStyle}>
+                {replyingTo.sender_id === currentUserId ? "Tú" : otherParticipant.username}
+              </span>
+              {replyingTo.content}
+            </span>
+            <button
+              type="button"
+              style={replyPreviewCancelBtnStyle}
+              aria-label="Cancelar respuesta"
+              onClick={() => setReplyingTo(null)}
+            >
+              ✕
             </button>
+          </div>
+        )}
+
+        <div style={inputRowStyle}>
+          <div style={{ ...messageInputContainerStyle, position: "relative" }}>
+            <div ref={emojiPickerRef} style={{ position: "relative" }}>
+              {showEmojiPicker && <EmojiPicker onSelect={handleEmojiSelect} />}
+              <button
+                type="button"
+                style={iconButtonStyle}
+                aria-label="Emoji"
+                onClick={() => setShowEmojiPicker((prev) => !prev)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#0f6" viewBox="0 0 16 16">
+                  <path d="M4.968 9.75a.5.5 0 1 0-.866.5A4.5 4.5 0 0 0 8 12.5a4.5 4.5 0 0 0 3.898-2.25.5.5 0 1 0-.866-.5A3.5 3.5 0 0 1 8 11.5a3.5 3.5 0 0 1-3.032-1.75M7 5.116V5a1 1 0 0 0-1-1H3.28a1 1 0 0 0-.97 1.243l.311 1.242A2 2 0 0 0 4.561 8H5a2 2 0 0 0 1.994-1.839A3 3 0 0 1 8 6c.393 0 .74.064 1.006.161A2 2 0 0 0 11 8h.438a2 2 0 0 0 1.94-1.515l.311-1.242A1 1 0 0 0 12.72 4H10a1 1 0 0 0-1 1v.116A4.2 4.2 0 0 0 8 5c-.35 0-.69.04-1 .116" />
+                  <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-1 0A7 7 0 1 0 1 8a7 7 0 0 0 14 0" />
+                </svg>
+              </button>
+            </div>
 
             <input
               value={message}
@@ -245,8 +370,20 @@ export default function DmRoomMobile({ conversationData }: Props) {
               style={inputStyle}
             />
 
-            <button type="button" style={iconButtonStyle} aria-label="Adjuntar">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0f6" className="bi bi-paperclip" viewBox="0 0 16 16">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleImageUpload}
+            />
+            <button
+              type="button"
+              style={iconButtonStyle}
+              aria-label="Adjuntar"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#0f6" viewBox="0 0 16 16">
                 <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z" />
               </svg>
             </button>
@@ -352,22 +489,83 @@ const ownBubbleStyle: CSSProperties = {
   backgroundColor: "rgba(0, 255, 102, 0.15)",
   color: "#0f6",
   display: "flex",
-  gap: "0.5rem",
-  justifyContent: "center",
-  alignItems: "center",
+  flexDirection: "column",
+  gap: "0.25rem",
   borderRadius: "1rem 1rem 0 1rem",
   padding: "0.6rem",
 };
 
 const otherBubbleStyle: CSSProperties = {
   display: "flex",
-  gap: "0.5rem",
-  justifyContent: "center",
-  alignItems: "center",
+  flexDirection: "column",
+  gap: "0.25rem",
   backgroundColor: "#222",
   color: "#ddd",
   borderRadius: "1rem 1rem 1rem 0",
   padding: "0.6rem",
+};
+
+// Quoted block styles (inline for mobile)
+const quotedMessageStyle: CSSProperties = {
+  borderLeft: "3px solid #0f6",
+  paddingLeft: "0.4rem",
+  marginBottom: "0.25rem",
+  borderRadius: "0 4px 4px 0",
+  backgroundColor: "rgba(0, 255, 102, 0.06)",
+  overflow: "hidden",
+};
+
+const quotedAuthorStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "0.75rem",
+  fontWeight: 600,
+  color: "#0f6",
+};
+
+const quotedContentStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "0.78rem",
+  color: "#666",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+// Reply preview bar styles (inline for mobile)
+const replyPreviewBarStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  padding: "0.35rem 0.75rem",
+  backgroundColor: "#0a0a0a",
+  borderTop: "1px solid #1e1e1e",
+  borderLeft: "3px solid #0f6",
+};
+
+const replyPreviewTextStyle: CSSProperties = {
+  flex: 1,
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+  fontSize: "0.8rem",
+  color: "#888",
+};
+
+const replyPreviewAuthorStyle: CSSProperties = {
+  fontWeight: 600,
+  color: "#0f6",
+  marginRight: "0.3rem",
+};
+
+const replyPreviewCancelBtnStyle: CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "#555",
+  cursor: "pointer",
+  fontSize: "1rem",
+  lineHeight: 1,
+  padding: "0.15rem 0.3rem",
+  flexShrink: 0,
 };
 
 const messageTextStyle: CSSProperties = {
@@ -514,4 +712,32 @@ const inputStyle: CSSProperties = {
   outline: "none",
   fontSize: "1rem",
   minWidth: "0",
+};
+
+const messageImageStyle: CSSProperties = {
+  maxWidth: "200px",
+  maxHeight: "260px",
+  borderRadius: "8px",
+  display: "block",
+  objectFit: "contain",
+};
+
+// Wrapper for image + download button
+const imageWrapperStyle: CSSProperties = {
+  position: "relative",
+  display: "inline-block",
+};
+
+// Download button always visible on mobile (no hover on touch devices)
+const downloadBtnMobileStyle: CSSProperties = {
+  position: "absolute",
+  bottom: "6px",
+  right: "6px",
+  background: "rgba(0, 0, 0, 0.6)",
+  color: "#fff",
+  borderRadius: "6px",
+  padding: "2px 7px",
+  fontSize: "0.85rem",
+  textDecoration: "none",
+  lineHeight: "1.6",
 };
