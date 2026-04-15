@@ -1,5 +1,7 @@
+use crate::db::chat::upsert_room_participant;
 use crate::db::messages::{insert_room_message, mark_message_read};
 use crate::models::user::Payload;
+use crate::state::app_state::AppState;
 use crate::{db::db::get_user_chat_data, models::chat::ChatState};
 use axum::extract::ws::{Message, WebSocket};
 
@@ -19,6 +21,8 @@ enum RoomClientAction {
     Message { content: String },
     /// Acknowledge that the authenticated user has read a message.
     MarkRead { message_id: i32 },
+    /// Notify the room that this user is currently typing.
+    Typing,
 }
 
 pub async fn handle_socket_for_active_rooms(
@@ -159,6 +163,7 @@ pub async fn handle_socket(
     state: Arc<RwLock<ChatState>>,
     user: Payload,
     pool: PgPool,
+    app_state: Arc<AppState>,
 ) {
     let (mut sender_ws, mut receiver_ws) = socket.split();
 
@@ -189,6 +194,24 @@ pub async fn handle_socket(
         let mut state_guard = state.write().await;
         state_guard.join_room(&room_id)
     };
+
+    // Track participant in conversation_participants if room has persistence enabled.
+    // Fires-and-forgets on error — a failed participant insert should never kick a user out.
+    {
+        let conv_id = {
+            let state_guard = state.read().await;
+            state_guard.get_room_conversation_id(&room_id)
+        };
+
+        if let Some(conversation_id) = conv_id {
+            if let Err(e) = upsert_room_participant(&pool, conversation_id, user.id).await {
+                eprintln!(
+                    "Error registrando participante {} en sala {}: {}",
+                    user.id, room_id, e
+                );
+            }
+        }
+    }
 
     // Enviar mensaje de "usuario unido" a la sala
     {
@@ -248,7 +271,7 @@ pub async fn handle_socket(
                         }
 
                         // Attempt to persist to DB; fall back gracefully if no conversation_id
-                        let message_id: Option<i32> = {
+                        let (message_id, conv_id_for_notify): (Option<i32>, Option<i32>) = {
                             let conv_id = {
                                 let state_guard = state.read().await;
                                 state_guard.get_room_conversation_id(&room_id)
@@ -256,16 +279,35 @@ pub async fn handle_socket(
 
                             if let Some(conversation_id) = conv_id {
                                 match insert_room_message(&pool, conversation_id, user.id, &trimmed).await {
-                                    Ok(id) => Some(id),
+                                    Ok(id) => (Some(id), Some(conversation_id)),
                                     Err(e) => {
                                         eprintln!("Error persistiendo mensaje de sala: {}", e);
-                                        None
+                                        (None, None)
                                     }
                                 }
                             } else {
-                                None
+                                (None, None)
                             }
                         };
+
+                        // Notify offline participants via global WS
+                        if let (Some(msg_id), Some(conversation_id)) = (message_id, conv_id_for_notify) {
+                            let app_state_clone = app_state.clone();
+                            let pool_clone = pool.clone();
+                            let room_id_clone = room_id.clone();
+                            let sender_id = user.id;
+                            tokio::spawn(async move {
+                                app_state_clone
+                                    .notify_room_participants(
+                                        &pool_clone,
+                                        &room_id_clone,
+                                        conversation_id,
+                                        msg_id,
+                                        sender_id,
+                                    )
+                                    .await;
+                            });
+                        }
 
                         let broadcast_payload = json!({
                             "userId": user.id,
@@ -310,6 +352,24 @@ pub async fn handle_socket(
                             Err(e) => {
                                 eprintln!("Error marcando mensaje {} como leído: {}", message_id, e);
                             }
+                        }
+                    }
+
+                    RoomClientAction::Typing => {
+                        // Broadcast typing event to all room participants — no DB persistence.
+                        let typing_msg = Message::Text(
+                            json!({
+                                "type_msg": "TYPING",
+                                "userId": user.id,
+                                "user": chat_user.username,
+                            })
+                            .to_string()
+                            .into(),
+                        );
+
+                        let state_guard = state.read().await;
+                        if let Some(room) = state_guard.rooms.get(&room_id) {
+                            let _ = room.broadcaster.send(typing_msg);
                         }
                     }
                 }

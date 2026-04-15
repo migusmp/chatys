@@ -23,6 +23,7 @@ pub enum AppError {
     OnlyOneFileAllowed,
     FileTooLarge,
     UserNotFound,
+    MessageNotFound,
     CreateConversationError,
     AuthCookieNotFound,
     NoneCookieFound,
@@ -129,6 +130,9 @@ impl IntoResponse for AppError {
                 "The uploaded file is too large. Maximum allowed size is 5 MB",
             ),
             AppError::UserNotFound => (StatusCode::NOT_FOUND, "USER_NOT_FOUND", "User not found"),
+            AppError::MessageNotFound => {
+                (StatusCode::NOT_FOUND, "MESSAGE_NOT_FOUND", "Message not found")
+            }
             AppError::CreateConversationError => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "CREATE_CONVERSATION_ERROR",

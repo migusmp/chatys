@@ -235,6 +235,15 @@ async fn handle_socket(
                                 }
                             }
                         }
+                        "typing" => {
+                            // Fire-and-forget: broadcast to the other participant, no DB persistence.
+                            let event = DmEvent::TypingStart {
+                                conversation_id,
+                                user_id: from_user_id,
+                                username: user_from_data_clone.username.to_string(),
+                            };
+                            app_state_clone.send_direct_message(event).await;
+                        }
                         _ => {
                             // Default: treat as "send" — use IncomingMessage
                             match serde_json::from_str::<IncomingMessage>(&text) {

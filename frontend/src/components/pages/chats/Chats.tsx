@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useUserProfileContext } from "../../../context/UserContext";
+import { useNotificationsContext, useUserProfileContext } from "../../../context/UserContext";
 import { useRoomSocket } from "../../../hooks/useRoomSocket";
 import useIsMobile from "../../../hooks/useIsMobile";
+import MessageReactions from "../../MessageReactions";
 import styles from "./css/Chats.module.css";
 import roomListStyles from "./css/RoomList.module.css";
 import chatStyles from "./css/ChatRoom.module.css";
@@ -36,13 +37,22 @@ const WS_PROTOCOL = location.protocol === "https:" ? "wss" : "ws";
 const MAX_ROOM_NAME_LENGTH = 40;
 const MAX_DESCRIPTION_LENGTH = 200;
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+// Minimum gap (ms) between outgoing typing events sent to the server.
+const TYPING_DEBOUNCE_MS = 2000;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatTime(isoOrFallback?: string): string {
-    const date = isoOrFallback ? new Date(isoOrFallback) : new Date();
+function formatTime(isoString?: string): string {
+    const date = isoString ? new Date(isoString) : new Date();
     if (isNaN(date.getTime())) return "";
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatTypingLabel(users: string[]): string {
+    if (users.length === 0) return "";
+    if (users.length === 1) return `${users[0]} está escribiendo…`;
+    if (users.length === 2) return `${users[0]} y ${users[1]} están escribiendo…`;
+    return "Varias personas están escribiendo…";
 }
 
 // ─── CreateRoomModal ──────────────────────────────────────────────────────────
@@ -258,6 +268,7 @@ type RoomListProps = {
 function RoomList({ rooms, activeRoom, totalUsers, onSelectRoom, onCreateRoom, isMobile }: RoomListProps) {
     const [filter, setFilter] = useState("");
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const { roomNotifications, clearRoomNotifications } = useNotificationsContext();
 
     const filteredRooms = filter.trim()
         ? rooms.filter((r) => r.name.toLowerCase().includes(filter.toLowerCase()))
@@ -273,6 +284,11 @@ function RoomList({ rooms, activeRoom, totalUsers, onSelectRoom, onCreateRoom, i
     const handleCreated = (name: string) => {
         setShowCreateModal(false);
         onCreateRoom(name);
+    };
+
+    const handleSelectRoom = (name: string) => {
+        clearRoomNotifications(name);
+        onSelectRoom(name);
     };
 
     return (
@@ -317,13 +333,15 @@ function RoomList({ rooms, activeRoom, totalUsers, onSelectRoom, onCreateRoom, i
                         {sortedRooms.map((room) => {
                             const isGlobal = room.name === GLOBAL_ROOM;
                             const isActive = room.name === activeRoom;
+                            const unreadCount = roomNotifications[room.name] ?? 0;
+
                             return (
                                 <li
                                     key={room.name}
                                     role="option"
                                     aria-selected={isActive}
                                     className={`${roomListStyles.item} ${isActive ? roomListStyles.itemActive : ""}`}
-                                    onClick={() => onSelectRoom(room.name)}
+                                    onClick={() => handleSelectRoom(room.name)}
                                 >
                                     <div className={roomListStyles.roomIcon}>
                                         {room.image ? (
@@ -344,9 +362,16 @@ function RoomList({ rooms, activeRoom, totalUsers, onSelectRoom, onCreateRoom, i
                                                     : "Sala pública"}
                                         </span>
                                     </div>
-                                    <span className={roomListStyles.usersBadge}>
-                                        {room.users} {room.users === 1 ? "usuario" : "usuarios"}
-                                    </span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                                        <span className={roomListStyles.usersBadge}>
+                                            {room.users} {room.users === 1 ? "usuario" : "usuarios"}
+                                        </span>
+                                        {unreadCount > 0 && (
+                                            <span className={roomListStyles.unreadBadge}>
+                                                {unreadCount > 9 ? "9+" : unreadCount}
+                                            </span>
+                                        )}
+                                    </div>
                                 </li>
                             );
                         })}
@@ -374,17 +399,61 @@ type ChatRoomProps = {
 };
 
 function ChatRoom({ roomId, userCount, currentUserId, onBack }: ChatRoomProps) {
-    const { messages, connected, sendMessage } = useRoomSocket(roomId, currentUserId);
+    const {
+        messages,
+        connected,
+        isLoadingHistory,
+        hasMore,
+        typingUsers,
+        sendMessage,
+        sendTyping,
+        loadMore,
+        toggleReaction,
+    } = useRoomSocket(roomId, currentUserId);
     const [inputValue, setInputValue] = useState("");
     const chatAreaRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    // Tracks the last time we sent a typing event so we debounce at TYPING_DEBOUNCE_MS
+    const lastTypingSentRef = useRef(0);
+    // Track which message is being hovered so we can show the reaction trigger
+    const [hoveredMsgIndex, setHoveredMsgIndex] = useState<string | number | null>(null);
 
-    // Auto-scroll to bottom on new messages
+    // Auto-scroll to bottom only when new messages arrive at the end (not on loadMore prepend)
+    const prevMessageCountRef = useRef(0);
     useEffect(() => {
         const el = chatAreaRef.current;
         if (!el) return;
-        el.scrollTop = el.scrollHeight;
+
+        const newCount = messages.length;
+        const prevCount = prevMessageCountRef.current;
+
+        // Only auto-scroll when messages were appended (live WS), not prepended (load more)
+        if (newCount > prevCount) {
+            const addedAtEnd = newCount - prevCount === 1 || prevCount === 0;
+            if (addedAtEnd) {
+                el.scrollTop = el.scrollHeight;
+            }
+        }
+
+        prevMessageCountRef.current = newCount;
     }, [messages]);
+
+    const handleLoadMore = async () => {
+        const el = chatAreaRef.current;
+        if (!el) return;
+
+        // Save scroll position relative to bottom so the viewport stays stable after prepend
+        const scrollBottom = el.scrollHeight - el.scrollTop;
+
+        await loadMore();
+
+        // Restore position after React flushes the state update
+        requestAnimationFrame(() => {
+            if (el) {
+                el.scrollTop = el.scrollHeight - scrollBottom;
+            }
+        });
+    };
 
     const handleSend = () => {
         const trimmed = inputValue.trim();
@@ -394,12 +463,27 @@ function ChatRoom({ roomId, userCount, currentUserId, onBack }: ChatRoomProps) {
         inputRef.current?.focus();
     };
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputValue(e.target.value);
+
+        if (!connected) return;
+
+        // Send at most one typing event every TYPING_DEBOUNCE_MS to avoid flooding
+        const now = Date.now();
+        if (now - lastTypingSentRef.current >= TYPING_DEBOUNCE_MS) {
+            lastTypingSentRef.current = now;
+            sendTyping();
+        }
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             handleSend();
         }
     };
+
+    const typingLabel = formatTypingLabel(typingUsers);
 
     return (
         <div className={chatStyles.container}>
@@ -429,7 +513,29 @@ function ChatRoom({ roomId, userCount, currentUserId, onBack }: ChatRoomProps) {
 
             {/* Messages */}
             <div className={chatStyles.chatArea} ref={chatAreaRef}>
-                {messages.length === 0 && (
+                {/* History loading skeleton */}
+                {isLoadingHistory && (
+                    <div className={chatStyles.historyLoading}>
+                        <span className={chatStyles.historyLoadingDot} />
+                        <span className={chatStyles.historyLoadingDot} />
+                        <span className={chatStyles.historyLoadingDot} />
+                    </div>
+                )}
+
+                {/* Load more button — pinned at top of message list */}
+                {!isLoadingHistory && hasMore && (
+                    <div className={chatStyles.loadMoreWrapper}>
+                        <button
+                            type="button"
+                            className={chatStyles.loadMoreBtn}
+                            onClick={handleLoadMore}
+                        >
+                            Cargar mensajes anteriores
+                        </button>
+                    </div>
+                )}
+
+                {messages.length === 0 && !isLoadingHistory && (
                     <div className={chatStyles.emptyChatState}>
                         <span className={chatStyles.emptyChatIcon}>💬</span>
                         <span>Sin mensajes aún. ¡Sé el primero en escribir!</span>
@@ -446,13 +552,18 @@ function ChatRoom({ roomId, userCount, currentUserId, onBack }: ChatRoomProps) {
                     }
 
                     const isOwn = msg.userId !== undefined && msg.userId === currentUserId;
+                    // Use DB id when available, fallback to array index for live messages without id
+                    const msgKey = msg.id ?? index;
+                    const isHovered = hoveredMsgIndex === msgKey;
 
                     return (
                         <div
-                            key={index}
+                            key={msgKey}
                             className={`${chatStyles.messageGroup} ${
                                 isOwn ? chatStyles.messageGroupOwn : chatStyles.messageGroupOther
                             }`}
+                            onMouseEnter={() => setHoveredMsgIndex(msgKey)}
+                            onMouseLeave={() => setHoveredMsgIndex(null)}
                         >
                             {!isOwn && (
                                 <span className={chatStyles.messageSender}>{msg.user}</span>
@@ -468,9 +579,21 @@ function ChatRoom({ roomId, userCount, currentUserId, onBack }: ChatRoomProps) {
                                         !isOwn ? chatStyles.bubbleTimestampOther : ""
                                     }`}
                                 >
-                                    {formatTime()}
+                                    {formatTime(msg.createdAt)}
                                 </span>
                             </div>
+
+                            {/* Reactions — only for persisted messages that have an id */}
+                            {msg.id !== undefined && (
+                                <MessageReactions
+                                    messageId={msg.id}
+                                    reactions={msg.reactions ?? []}
+                                    currentUserId={currentUserId}
+                                    onToggle={toggleReaction}
+                                    visible={isHovered}
+                                />
+                            )}
+
                             {/* Read receipt indicator — only shown for own persisted messages */}
                             {isOwn && msg.id !== undefined && msg.readBy.length > 0 && (
                                 <div
@@ -485,29 +608,34 @@ function ChatRoom({ roomId, userCount, currentUserId, onBack }: ChatRoomProps) {
                 })}
             </div>
 
-            {/* Input bar */}
-            <div className={chatStyles.inputBar}>
-                <div className={chatStyles.inputPill}>
-                    <input
-                        ref={inputRef}
-                        className={chatStyles.textInput}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={connected ? `Mensaje en #${roomId}…` : "Reconectando…"}
-                        disabled={!connected}
-                        maxLength={2000}
-                    />
+            {/* Input area: typing indicator + input bar */}
+            <div className={chatStyles.inputArea}>
+                {typingLabel && (
+                    <div className={chatStyles.typingIndicator}>{typingLabel}</div>
+                )}
+                <div className={chatStyles.inputBar}>
+                    <div className={chatStyles.inputPill}>
+                        <input
+                            ref={inputRef}
+                            className={chatStyles.textInput}
+                            value={inputValue}
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
+                            placeholder={connected ? `Mensaje en #${roomId}…` : "Reconectando…"}
+                            disabled={!connected}
+                            maxLength={2000}
+                        />
+                    </div>
+                    <button
+                        className={chatStyles.sendBtn}
+                        onClick={handleSend}
+                        disabled={!connected || !inputValue.trim()}
+                        aria-label="Enviar mensaje"
+                        type="button"
+                    >
+                        ↑
+                    </button>
                 </div>
-                <button
-                    className={chatStyles.sendBtn}
-                    onClick={handleSend}
-                    disabled={!connected || !inputValue.trim()}
-                    aria-label="Enviar mensaje"
-                    type="button"
-                >
-                    ↑
-                </button>
             </div>
         </div>
     );
@@ -531,6 +659,7 @@ function NoRoomSelected() {
 
 export default function Chats() {
     const { user } = useUserProfileContext();
+    const { clearRoomNotifications } = useNotificationsContext();
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
@@ -549,6 +678,13 @@ export default function Chats() {
     // Sync mobileView when URL changes (e.g. browser back)
     useEffect(() => {
         setMobileView(activeRoom ? "chat" : "list");
+    }, [activeRoom]);
+
+    // Clear notifications when the active room changes (e.g. direct URL navigation)
+    useEffect(() => {
+        if (activeRoom) {
+            clearRoomNotifications(activeRoom);
+        }
     }, [activeRoom]);
 
     // Active rooms WebSocket

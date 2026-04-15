@@ -7,7 +7,7 @@ use std::{
 };
 
 use axum::extract::ws::Message;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 
 const BROADCAST_CAPACITY: usize = 100;
@@ -26,6 +26,9 @@ pub struct Room {
     /// Conversation ID linked to this room for message persistence.
     /// None for rooms that haven't been initialised with DB persistence yet.
     pub conversation_id: Option<i32>,
+    /// Whether messages in this room are persisted to the DB.
+    /// When false, messages are broadcast-only — no history, no notifications.
+    pub persist_messages: bool,
 }
 
 /// Snapshot of a room sent over the active-rooms WebSocket.
@@ -35,6 +38,25 @@ pub struct RoomInfo {
     pub description: Option<String>,
     pub image: Option<String>,
     pub users: usize,
+    pub persist_messages: bool,
+}
+
+/// A single emoji reaction aggregated for a message.
+/// Carries the count of users who used this emoji, the list of their usernames,
+/// and a flag indicating whether the requesting user is among them.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReactionCount {
+    pub emoji: String,
+    pub count: i64,
+    pub users: Vec<String>,
+    pub reacted_by_me: bool,
+}
+
+/// The full reaction state for one message, ready to send over the wire.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReactionResponse {
+    pub message_id: i64,
+    pub reactions: Vec<ReactionCount>,
 }
 
 impl ChatState {
@@ -46,6 +68,7 @@ impl ChatState {
         room_id: String,
         description: Option<String>,
         image: Option<String>,
+        persist_messages: bool,
     ) {
         if self.rooms.contains_key(&room_id) {
             return;
@@ -59,6 +82,7 @@ impl ChatState {
                 description,
                 image,
                 conversation_id: None,
+                persist_messages,
             },
         );
     }
@@ -70,6 +94,7 @@ impl ChatState {
         description: Option<String>,
         image: Option<String>,
         conversation_id: i32,
+        persist_messages: bool,
     ) {
         if self.rooms.contains_key(&room_id) {
             // Room already exists — just set the conversation_id if missing
@@ -89,6 +114,7 @@ impl ChatState {
                 description,
                 image,
                 conversation_id: Some(conversation_id),
+                persist_messages,
             },
         );
     }
@@ -103,6 +129,9 @@ impl ChatState {
                 description: None,
                 image: None,
                 conversation_id: None,
+                // Default to true — safe fallback matching DB DEFAULT.
+                // The real value will be loaded from DB on the first message send.
+                persist_messages: true,
             }
         });
 
@@ -135,6 +164,7 @@ impl ChatState {
                 description: room.description.clone(),
                 image: room.image.clone(),
                 users: room.user_count.load(Ordering::SeqCst),
+                persist_messages: room.persist_messages,
             })
             .collect()
     }
@@ -151,5 +181,13 @@ impl ChatState {
         self.rooms
             .get(room_id)
             .and_then(|room| room.conversation_id)
+    }
+
+    /// Returns whether a room persists messages. Defaults to true if room not found.
+    pub fn get_room_persist_messages(&self, room_id: &str) -> bool {
+        self.rooms
+            .get(room_id)
+            .map(|room| room.persist_messages)
+            .unwrap_or(true)
     }
 }

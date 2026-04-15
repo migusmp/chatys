@@ -1,3 +1,10 @@
+export type ReactionCount = {
+    emoji: string;
+    count: number;
+    users: string[];
+    reacted_by_me: boolean;
+};
+
 export type ChatMessage = {
     id: number;
     sender_id: number;
@@ -6,4 +13,5 @@ export type ChatMessage = {
     edited_at?: string | null;
     is_deleted?: boolean;
     read_by?: number[];
+    reactions?: ReactionCount[];
 };

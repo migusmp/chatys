@@ -7,6 +7,7 @@ import type { UserProfile } from "../types/user";
 import useUser from "../hooks/useUser";
 import Loader from "../components/Loader";
 import useDynamicTitle from "../hooks/useDynamicTitle";
+import { requestNotificationPermission } from "../utils/notifications";
 
 interface UserProfileContextType {
     user: UserProfile | null;
@@ -29,6 +30,9 @@ interface NotificationsContextType {
     newLastMessage: DmNotification[];
     dmNotifications: DmNotification[];
     setDmNotifications: React.Dispatch<React.SetStateAction<DmNotification[]>>;
+    roomNotifications: Record<string, number>;
+    setRoomNotifications: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+    clearRoomNotifications: (roomName: string) => void;
 }
 
 type UserContextType = UserProfileContextType & FriendsContextType & NotificationsContextType;
@@ -79,6 +83,7 @@ export function UserProvider({ children }: Props) {
     const [activeFriends, setActiveFriends] = useState<number[]>([]);
     const [newLastMessage, setNewLastMessage] = useState<DmNotification[]>([]);
     const [dmNotifications, setDmNotifications] = useState<DmNotification[]>([]);
+    const [roomNotifications, setRoomNotifications] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
 
     const { profile } = useUser();
@@ -108,6 +113,14 @@ export function UserProvider({ children }: Props) {
         return activeFriends.includes(userId);
     };
 
+    const clearRoomNotifications = (roomName: string) => {
+        setRoomNotifications((prev) => {
+            const next = { ...prev };
+            delete next[roomName];
+            return next;
+        });
+    };
+
     const fetchProfile = async () => {
         const userData = await profile();
         if (userData) {
@@ -117,9 +130,41 @@ export function UserProvider({ children }: Props) {
         setLoading(false);
     };
 
+    const fetchRoomUnreadCounts = async () => {
+        try {
+            const res = await fetch("/api/chat/room/unread-counts", {
+                credentials: "include",
+            });
+            if (!res.ok) return;
+
+            const data: Array<{ room_name: string; count: number }> = await res.json();
+            const counts: Record<string, number> = {};
+            for (const item of data) {
+                counts[item.room_name] = item.count;
+            }
+            setRoomNotifications(counts);
+        } catch {
+            // Non-critical: silently ignore errors loading initial unread counts
+        }
+    };
+
     useEffect(() => {
         fetchProfile();
     }, []);
+
+    useEffect(() => {
+        if (!loading) {
+            fetchRoomUnreadCounts();
+        }
+    }, [loading]);
+
+    // Request browser notification permission once user is authenticated.
+    // Only fires if permission is still "default" — never re-asks denied users.
+    useEffect(() => {
+        if (user) {
+            requestNotificationPermission();
+        }
+    }, [user]);
 
     const refreshUser = async () => {
         setLoading(true);
@@ -143,6 +188,9 @@ export function UserProvider({ children }: Props) {
                         newLastMessage,
                         dmNotifications,
                         setDmNotifications,
+                        roomNotifications,
+                        setRoomNotifications,
+                        clearRoomNotifications,
                     }}
                 >
                     {children}

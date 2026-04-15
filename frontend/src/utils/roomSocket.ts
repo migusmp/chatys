@@ -145,6 +145,14 @@ export function sendRoomMarkRead(roomId: string, messageId: number): void {
 }
 
 /**
+ * Notifies the room that the current user is typing.
+ * Fire-and-forget — no persistence, no ack.
+ */
+export function sendRoomTyping(roomId: string): void {
+    sendRoomAction(roomId, { action: "typing" });
+}
+
+/**
  * Disconnects from a room and cleans up all associated state.
  */
 export function disconnectFromRoom(roomId: string): void {

@@ -5,7 +5,7 @@ import {
     useUserProfileContext,
 } from "../context/UserContext";
 import type { NewDmMessageNotification } from "../interfaces/notifications";
-import type { ChatMessage } from "../types/chat_message";
+import type { ChatMessage, ReactionCount } from "../types/chat_message";
 import type { FullConversation, Participants } from "../types/user";
 
 type UseDmRoomReturn = {
@@ -21,10 +21,15 @@ type UseDmRoomReturn = {
     otherParticipant: Participants | undefined;
     sendDelete: (messageId: number) => void;
     sendEdit: (messageId: number, newContent: string) => void;
+    sendTyping: () => void;
     setMessage: Dispatch<SetStateAction<string>>;
+    toggleReaction: (messageId: number, emoji: string) => Promise<void>;
+    typingUser: string | null;
 };
 
 const MESSAGES_LIMIT = 10;
+// Auto-clear the typing indicator after this many ms with no new typing event.
+const TYPING_TIMEOUT_MS = 3000;
 
 export default function useDmRoom(conversationData: FullConversation): UseDmRoomReturn {
     const { user } = useUserProfileContext();
@@ -39,11 +44,15 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
     const [offset, setOffset] = useState(allMessages.length);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    // Username of the participant currently typing, or null if nobody is.
+    const [typingUser, setTypingUser] = useState<string | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const firstLoadRef = useRef(true);
     const wsRef = useRef<WebSocket | null>(null);
+    // Timeout handle to auto-clear the typing indicator after TYPING_TIMEOUT_MS
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const otherParticipant = conversationData.conversation.participants.find(
         (participant) => participant.id !== user?.id,
@@ -164,6 +173,17 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         ws.onmessage = (event) => {
             const raw = JSON.parse(event.data);
 
+            if (raw.type_msg === "TYPING_START") {
+                // Reset the auto-clear timer every time we receive a fresh typing event
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                setTypingUser(raw.username as string);
+                typingTimeoutRef.current = setTimeout(() => {
+                    setTypingUser(null);
+                    typingTimeoutRef.current = null;
+                }, TYPING_TIMEOUT_MS);
+                return;
+            }
+
             if (raw.type_msg === "MESSAGE_READ") {
                 setAllMessages((prev) =>
                     prev.map((msg) =>
@@ -197,6 +217,17 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
                 return;
             }
 
+            if (raw.type_msg === "REACTION_UPDATE") {
+                setAllMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === (raw.message_id as number)
+                            ? { ...msg, reactions: raw.reactions as ReactionCount[] }
+                            : msg,
+                    ),
+                );
+                return;
+            }
+
             // existing chat_message handling
             const data: ChatMessage = {
                 id: raw.message_id,
@@ -224,6 +255,13 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         setSocket(ws);
 
         return () => {
+            // Clean up typing timeout when unmounting or switching conversations
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = null;
+            }
+            setTypingUser(null);
+
             wsRef.current = null;
             ws.onopen = null;
             ws.onmessage = null;
@@ -289,6 +327,31 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         }
     }, []);
 
+    const sendTyping = useCallback(() => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ action: "typing" }));
+        }
+    }, []);
+
+    /// Calls the REST endpoint to toggle a reaction.
+    /// The server will broadcast REACTION_UPDATE to all participants,
+    /// so the UI update happens via the WS handler above.
+    const toggleReaction = useCallback(async (messageId: number, emoji: string) => {
+        try {
+            const res = await fetch(`/api/chat/messages/${messageId}/reactions`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ emoji }),
+            });
+            if (!res.ok) {
+                console.error("[useDmRoom] toggleReaction failed:", res.status);
+            }
+        } catch (err) {
+            console.error("[useDmRoom] toggleReaction network error:", err);
+        }
+    }, []);
+
     return {
         allMessages,
         bottomRef,
@@ -302,6 +365,9 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
         otherParticipant,
         sendDelete,
         sendEdit,
+        sendTyping,
         setMessage,
+        toggleReaction,
+        typingUser,
     };
 }

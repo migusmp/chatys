@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::models::chat::ReactionCount;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
     pub conversation_id: i32,
@@ -33,5 +35,30 @@ pub enum DmEvent {
         message_ids: Vec<i32>,
         conversation_id: i32,
         reader_id: i32,
+    },
+    #[serde(rename = "NEW_ROOM_MESSAGE")]
+    NewRoomMessage {
+        room_name: String,
+        conversation_id: i32,
+        message_id: i32,
+        sender_id: i32,
+    },
+    #[serde(rename = "TYPING_START")]
+    TypingStart {
+        conversation_id: i32,
+        user_id: i32,
+        username: String,
+    },
+    #[serde(rename = "TYPING_STOP")]
+    TypingStop {
+        conversation_id: i32,
+        user_id: i32,
+    },
+    /// Sent to all active participants of a conversation when a reaction changes.
+    #[serde(rename = "REACTION_UPDATE")]
+    ReactionUpdate {
+        message_id: i64,
+        conversation_id: i32,
+        reactions: Vec<ReactionCount>,
     },
 }

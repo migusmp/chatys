@@ -47,7 +47,7 @@ export default function SidebarDmsMobile({ dms }: Props) {
     return (
         <div className={`${styles.sidebar} ${styles.sidebarMobile}`}>
             <ul className={styles.list}>
-                {sortedDms.map((dm) => {
+                {sortedDms.filter((dm) => dm.participants[0] != null).map((dm) => {
                     const userOther = dm.participants[0];
                     const isLastMessageFromCurrentUser = dm.last_message_user_id === user?.id;
                     const lastMessageText = dm.last_message

@@ -7,8 +7,13 @@ use tokio::sync::RwLock;
 use crate::controller::chat_controller::*;
 use crate::middlewares::auth::auth;
 use crate::models::chat::ChatState;
+use crate::state::app_state::AppState;
 
-pub fn chat_router(state: Arc<RwLock<ChatState>>, pool: PgPool) -> Router {
+pub fn chat_router(
+    state: Arc<RwLock<ChatState>>,
+    pool: PgPool,
+    app_state: Arc<AppState>,
+) -> Router {
     Router::new()
         .route("/create", post(create_chat))
         .route("/create-dm/{user2_id}", post(create_new_conversation))
@@ -27,7 +32,20 @@ pub fn chat_router(state: Arc<RwLock<ChatState>>, pool: PgPool) -> Router {
             "/conversation/{username}",
             get(get_conversation_messages_by_username),
         )
+        .route(
+            "/room/{room_name}/messages",
+            get(get_room_message_history),
+        )
+        .route(
+            "/room/unread-counts",
+            get(get_room_unread_counts_handler),
+        )
+        .route(
+            "/messages/{message_id}/reactions",
+            post(toggle_reaction_handler),
+        )
         .layer(from_fn(auth))
         .layer(Extension(pool))
         .layer(Extension(state))
+        .layer(Extension(app_state))
 }

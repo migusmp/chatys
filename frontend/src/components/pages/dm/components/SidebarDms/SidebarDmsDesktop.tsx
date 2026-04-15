@@ -73,7 +73,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
     // Merge search results with existing DMs
     const combinedList = searchResults.length > 0
         ? searchResults.map(u => {
-            const existingDm = dmsWithUpdatedMessages.find(dm => dm.participants[0].id === u.id);
+            const existingDm = dmsWithUpdatedMessages.find(dm => dm.participants[0]?.id === u.id);
             return existingDm || {
                 conversation_id: `temp-${u.id}`,
                 participants: [u],
@@ -106,7 +106,7 @@ export default function SidebarDmsDesktop({ dms }: Props) {
             )}
 
             <ul className={styles.list}>
-                {sortedDms.map((dm) => {
+                {sortedDms.filter((dm) => dm.participants[0] != null).map((dm) => {
                     const userOther = dm.participants[0];
                     const isLastMessageFromCurrentUser = dm.last_message_user_id === user?.id;
                     const lastMessageText = dm.last_message

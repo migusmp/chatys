@@ -95,11 +95,13 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
         Some(String::from("Sala principal")),
         None,
         global_conversation_id,
+        true, // persist_messages = true for Global
     );
 
     let chat_state = Arc::new(RwLock::new(chat_state_init));
     let app_state = Arc::new(AppState::new(pool.clone()));
     let app_state_cloned = app_state.clone();
+    let app_state_for_router = app_state.clone();
     let pool_for_chats = pool.clone();
     let pool_for_router = pool.clone();
 
@@ -132,7 +134,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
         .layer(axum::middleware::from_fn(auth));
 
     let router = Router::new()
-        .nest("/api", main_router(chat_state, pool_for_chats))
+        .nest("/api", main_router(chat_state, pool_for_chats, app_state_for_router))
         .merge(ws_router)
         .route("/", get(index_handler))
         .nest_service("/static", ServeDir::new("public"))

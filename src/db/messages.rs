@@ -2,7 +2,10 @@ use serde::Serialize;
 use sqlx::PgPool;
 use time::OffsetDateTime;
 
-use crate::{db::offset_date_time_serde, models::user::UserSummary};
+use crate::{
+    db::{chat::get_reactions_for_messages, offset_date_time_serde},
+    models::{chat::ReactionCount, user::UserSummary},
+};
 
 #[derive(sqlx::FromRow)]
 struct ConversationId {
@@ -27,6 +30,9 @@ pub struct Message {
     #[serde(with = "offset_date_time_serde")]
     pub edited_at: Option<OffsetDateTime>,
     pub is_deleted: Option<bool>,
+    #[sqlx(skip)]
+    #[serde(default)]
+    pub reactions: Vec<ReactionCount>,
 }
 
 #[derive(Serialize)]
@@ -198,7 +204,7 @@ pub async fn mark_message_read(
     .fetch_optional(pool)
     .await?;
 
-    Ok(result.map(|r| r.read_by))
+    Ok(result.map(|r| r.read_by).flatten())
 }
 
 pub async fn update_updated_at_from_conversation(
@@ -246,7 +252,7 @@ pub async fn get_messages(
     offset: u32,
     pool: &PgPool,
 ) -> Result<Vec<Message>, sqlx::Error> {
-    let messages = sqlx::query_as::<_, Message>(
+    let mut messages = sqlx::query_as::<_, Message>(
         r#"
         SELECT id, conversation_id, sender_id, content, created_at, read_by, edited_at, is_deleted
         FROM messages
@@ -260,6 +266,16 @@ pub async fn get_messages(
     .bind(offset as i64)
     .fetch_all(pool)
     .await?;
+
+    let message_ids: Vec<i64> = messages.iter().map(|m| m.id as i64).collect();
+    if !message_ids.is_empty() {
+        let reactions_map = get_reactions_for_messages(pool, &message_ids, None).await?;
+        for msg in &mut messages {
+            if let Some(reactions) = reactions_map.get(&(msg.id as i64)) {
+                msg.reactions = reactions.clone();
+            }
+        }
+    }
 
     Ok(messages)
 }

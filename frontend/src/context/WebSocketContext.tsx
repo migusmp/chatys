@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useFriendsContext, useNotificationsContext } from "./UserContext";
 import type { NewDmMessageNotification } from "../interfaces/notifications";
+import { showNotification, truncateMessage } from "../utils/notifications";
 
 const WebSocketContext = createContext<WebSocket | null>(null);
 
@@ -17,7 +18,7 @@ export const WebSocketProvider = ({
     const shouldReconnectRef = useRef(true);
     const [ws, setWs] = useState<WebSocket | null>(null);
     const { setActiveFriends } = useFriendsContext();
-    const { setNotifications, setNewLastMessage, setDmNotifications } =
+    const { setNotifications, setNewLastMessage, setDmNotifications, setRoomNotifications } =
         useNotificationsContext();
 
     useEffect(() => {
@@ -95,6 +96,42 @@ export const WebSocketProvider = ({
 
                         if (!isCurrentOpenChat) {
                             setDmNotifications((prev) => [data, ...prev]);
+
+                            const sender: string =
+                                data.type_msg === "NEW_DM_MESSAGE"
+                                    ? data.from_user_username
+                                    : data.sender_username;
+                            const preview = truncateMessage(data.content ?? "");
+
+                            showNotification(
+                                `Nuevo mensaje de ${sender}`,
+                                preview,
+                                () => { window.location.href = `/dm/${sender}`; }
+                            );
+                        }
+
+                        return;
+                    }
+
+                    if (data?.type_msg === "NEW_ROOM_MESSAGE") {
+                        const path = window.location.pathname;
+                        const pathParts = path.split("/");
+                        const route = pathParts[1];
+                        const currentRoom = pathParts[2] ? decodeURIComponent(pathParts[2]) : null;
+
+                        // Don't increment if the user is already viewing this room
+                        const isCurrentRoom = route === "chats" && currentRoom === data.room_name;
+                        if (!isCurrentRoom) {
+                            setRoomNotifications((prev) => ({
+                                ...prev,
+                                [data.room_name]: (prev[data.room_name] ?? 0) + 1,
+                            }));
+
+                            showNotification(
+                                `#${data.room_name}`,
+                                "Nuevo mensaje en la sala",
+                                () => { window.location.href = `/chats/${encodeURIComponent(data.room_name)}`; }
+                            );
                         }
 
                         return;
@@ -128,7 +165,7 @@ export const WebSocketProvider = ({
                 socket.close();
             }
         };
-    }, [protocol, setActiveFriends, setDmNotifications, setNewLastMessage, setNotifications]);
+    }, [protocol, setActiveFriends, setDmNotifications, setNewLastMessage, setNotifications, setRoomNotifications]);
 
     return (
         <WebSocketContext.Provider value={ws}>{children}</WebSocketContext.Provider>

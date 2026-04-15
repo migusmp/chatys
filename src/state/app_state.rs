@@ -4,11 +4,12 @@ use time::PrimitiveDateTime;
 use tokio::sync::{broadcast, mpsc};
 
 use crate::{
+    db::chat::get_reactions_for_messages,
     db::undelivered_messages::get_undelivered_messages,
     models::user::UserFriendRequest,
     services::ws::notify_user_with_active_friends,
     state::{
-        chat_message::{ChatMessage, DmEvent},
+        chat_message::DmEvent,
         types::{
             AppConfig, DirectMessageChannels, FriendNotification, FriendNotificationRow,
             UserChannels,
@@ -41,7 +42,7 @@ impl AppState {
     }
 
     pub fn mark_user_connected(&self, user_id: i32) -> usize {
-        let mut count = self
+        let count = self
             .online_user_connections
             .entry(user_id)
             .and_modify(|existing| *existing += 1)
@@ -111,13 +112,23 @@ impl AppState {
 
     // Envía mensaje a todos los usuarios conectados en la conversación
     pub async fn send_direct_message(&self, event: DmEvent) {
-        // Extraer conversation_id, from_user y to_user según el tipo de evento
+        // Extraer conversation_id, from_user y to_user según el tipo de evento.
+        // from_user = -1 significa "difundir a todos los participantes".
+        // Typing events use the typing user's id as from_user to exclude
+        // them from receiving their own indicator.
         let (event_conversation_id, from_user, to_user) = match &event {
             DmEvent::ChatMessage(msg) => (msg.conversation_id, msg.from_user, msg.to_user),
             DmEvent::MessageEdited { conversation_id, .. } => (*conversation_id, -1, -1),
             DmEvent::MessageDeleted { conversation_id, .. } => (*conversation_id, -1, -1),
             // MessageRead se difunde a todos los participantes de la conversación
             DmEvent::MessageRead { conversation_id, .. } => (*conversation_id, -1, -1),
+            // NewRoomMessage never routes through direct_message_channels
+            DmEvent::NewRoomMessage { .. } => return,
+            // Typing events: broadcast to all participants except the typing user
+            DmEvent::TypingStart { conversation_id, user_id, .. } => (*conversation_id, *user_id, -1),
+            DmEvent::TypingStop { conversation_id, user_id } => (*conversation_id, *user_id, -1),
+            // ReactionUpdate: broadcast to all participants
+            DmEvent::ReactionUpdate { conversation_id, .. } => (*conversation_id, -1, -1),
         };
 
         // Filtra canales que coincidan con la conversación y usuario destinatario
@@ -128,11 +139,15 @@ impl AppState {
             let (conv_id, user_id) = *entry.key();
             let sender = entry.value();
 
-            // Para chat_message: enviar solo al destinatario y emisor
-            // Para edit/delete/read: enviar a todos en la conversación
             let should_send = conv_id == event_conversation_id
                 && match &event {
+                    // chat_message: only to recipient and sender
                     DmEvent::ChatMessage(_) => user_id == to_user || user_id == from_user,
+                    // typing events: all participants except the typing user
+                    DmEvent::TypingStart { .. } | DmEvent::TypingStop { .. } => {
+                        user_id != from_user
+                    }
+                    // edit/delete/read/reaction: broadcast to all participants
                     _ => true,
                 };
 
@@ -192,6 +207,99 @@ impl AppState {
                 eprintln!("Error enviando notificación a usuario {}", recipient_id);
             }
         }
+    }
+
+    /// Notifies all room participants (except the sender) about a new room message
+    /// via their global WS channel (`connected_users`).
+    ///
+    /// Participants are fetched from `conversation_participants`. Users not currently
+    /// connected to the global WS are silently skipped — they will learn about the
+    /// message via unread-count on next load.
+    pub async fn notify_room_participants(
+        &self,
+        pool: &PgPool,
+        room_name: &str,
+        conversation_id: i32,
+        message_id: i32,
+        sender_id: i32,
+    ) {
+        let participant_ids: Vec<i32> = match sqlx::query_scalar(
+            "SELECT user_id FROM conversation_participants WHERE conversation_id = $1 AND user_id != $2",
+        )
+        .bind(conversation_id)
+        .bind(sender_id)
+        .fetch_all(pool)
+        .await
+        {
+            Ok(ids) => ids,
+            Err(e) => {
+                eprintln!(
+                    "Error obteniendo participantes de sala {} para notificación: {}",
+                    room_name, e
+                );
+                return;
+            }
+        };
+
+        let notification = serde_json::json!({
+            "type_msg": "NEW_ROOM_MESSAGE",
+            "room_name": room_name,
+            "conversation_id": conversation_id,
+            "message_id": message_id,
+            "sender_id": sender_id,
+        })
+        .to_string();
+
+        for user_id in participant_ids {
+            let sender = self
+                .connected_users
+                .get(&user_id)
+                .map(|entry| entry.clone());
+
+            if let Some(sender) = sender {
+                if sender.send(notification.clone()).await.is_err() {
+                    eprintln!(
+                        "Error enviando NEW_ROOM_MESSAGE a usuario {} en sala {}",
+                        user_id, room_name
+                    );
+                }
+            }
+        }
+    }
+
+    /// Fetches updated reactions for `message_id`, groups them by emoji, and broadcasts
+    /// a `REACTION_UPDATE` event to all participants of `conversation_id` currently
+    /// connected via DM channels.
+    ///
+    /// This is fire-and-forget from the handler's perspective: errors are logged but
+    /// never returned — a failed broadcast doesn't invalidate the HTTP response.
+    pub async fn notify_reaction_update(
+        &self,
+        pool: &PgPool,
+        message_id: i64,
+        conversation_id: i32,
+    ) {
+        let reactions_map =
+            match get_reactions_for_messages(pool, &[message_id], None).await {
+                Ok(m) => m,
+                Err(e) => {
+                    eprintln!(
+                        "notify_reaction_update: error fetching reactions for message {}: {}",
+                        message_id, e
+                    );
+                    return;
+                }
+            };
+
+        let reactions = reactions_map.get(&message_id).cloned().unwrap_or_default();
+
+        let event = DmEvent::ReactionUpdate {
+            message_id,
+            conversation_id,
+            reactions,
+        };
+
+        self.send_direct_message(event).await;
     }
 
     // <--------------------------------------------------------------------------------------------->

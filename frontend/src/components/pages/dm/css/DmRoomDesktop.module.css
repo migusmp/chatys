@@ -55,16 +55,36 @@
 }
 
 
+/* TYPING INDICATOR */
+.typingIndicator {
+    padding: 4px 0.75rem 2px;
+    font-size: 12px;
+    font-style: italic;
+    color: #555;
+    min-height: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
 /* ESTILOS PARA LA SECCIÓN DEL INPUT PARA EL MENSAJE Y ENVIARLO */
 .inputSection {
     display: flex;
-    align-items: center;
-    padding: 0.6rem 0.75rem 0.75rem;
+    flex-direction: column;
     border-top: 1px solid #222;
     background-color: #000;
     width: 100%;
-    gap: 0.5rem;
     flex-shrink: 0;
+}
+
+.inputRow {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 0.75rem 0.75rem;
+    gap: 0.5rem;
 }
 
 .inputPill {

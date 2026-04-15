@@ -93,3 +93,17 @@ ALTER TABLE conversation_participants ADD COLUMN IF NOT EXISTS role VARCHAR(20) 
 
 -- Phase 4: link rooms to their conversation for message persistence
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS conversation_id INT REFERENCES conversations(id) ON DELETE SET NULL;
+
+-- Phase 5: explicit message persistence flag — creator can opt out of history
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS persist_messages BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- Phase 6: emoji reactions on messages
+CREATE TABLE IF NOT EXISTS message_reactions (
+    id         BIGSERIAL PRIMARY KEY,
+    message_id BIGINT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    emoji      VARCHAR(10) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(message_id, user_id, emoji)
+);
+CREATE INDEX IF NOT EXISTS idx_reactions_message_id ON message_reactions(message_id);
