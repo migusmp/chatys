@@ -239,7 +239,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                 <button
                     type="button"
                     className={`${styles.searchToggleBtn}${searchOpen ? ` ${styles.active}` : ""}`}
-                    aria-label={searchOpen ? "Cerrar búsqueda" : "Buscar mensajes"}
+                    aria-label={searchOpen ? t("directMessages.userDm.search.toggleClose") : t("directMessages.userDm.search.toggleOpen")}
                     onClick={() => setSearchOpen((prev) => !prev)}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
@@ -255,7 +255,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                         ref={searchInputRef}
                         type="text"
                         className={styles.searchInput}
-                        placeholder="Buscar mensajes..."
+                        placeholder={t("directMessages.userDm.search.placeholder")}
                         value={searchQuery}
                         onChange={handleSearchQueryChange}
                         maxLength={MAX_SEARCH_QUERY_LEN}
@@ -264,7 +264,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     <button
                         type="button"
                         className={styles.searchCloseBtn}
-                        aria-label="Cerrar búsqueda"
+                        aria-label={t("directMessages.userDm.search.toggleClose")}
                         onClick={closeSearch}
                     >
                         ✕
@@ -276,9 +276,9 @@ export default function DmRoomDesktop({ conversationData }: Props) {
             {showResultsPanel && (
                 <div className={styles.searchResults}>
                     {searchLoading ? (
-                        <div className={styles.searchResultsEmpty}>Buscando…</div>
+                        <div className={styles.searchResultsEmpty}>{t("directMessages.userDm.search.searching")}</div>
                     ) : searchResults.length === 0 ? (
-                        <div className={styles.searchResultsEmpty}>Sin resultados para "{searchQuery}"</div>
+                        <div className={styles.searchResultsEmpty}>{t("directMessages.userDm.search.noResults", { query: searchQuery })}</div>
                     ) : (
                         searchResults.map((msg) => {
                             const time = msg.created_at
@@ -301,7 +301,7 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                                 >
                                     <div className={styles.searchResultMeta}>
                                         <span className={styles.searchResultSender}>
-                                            {isOwn ? "Tú" : otherParticipant.username}
+                                            {isOwn ? t("directMessages.userDm.search.you") : otherParticipant.username}
                                         </span>
                                         <span>{time}</span>
                                     </div>

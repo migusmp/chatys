@@ -11,6 +11,7 @@ const Register = lazy(() => import('./components/pages/register/Register'))
 
 const Friends = lazy(() => import('./components/pages/friends/Friends'))
 const Chats = lazy(() => import('./components/pages/chats/Chats'))
+const ServersPage = lazy(() => import('./components/pages/servers/ServersPage'))
 
 const DirectMessages = lazy(() => import('./components/pages/dm/DirectMessages'))
 const Notifications = lazy(() => import('./components/pages/notifications/Notifications'))
@@ -44,6 +45,11 @@ function App() {
                         {/* /chats sin sala → NoRoomSelected; /chats/:roomName → sala activa */}
                         <Route path="/chats" element={<Chats />} />
                         <Route path="/chats/:roomName" element={<Chats />} />
+
+                        {/* Servers */}
+                        <Route path="/servers" element={<ServersPage />} />
+                        <Route path="/servers/:serverId" element={<ServersPage />} />
+                        <Route path="/servers/:serverId/channels/:channelId" element={<ServersPage />} />
 
                         <Route path="/dm" element={<DirectMessages />}>
                             <Route index element={<DmList />} />

@@ -1,4 +1,5 @@
 pub mod chat;
+pub mod server;
 pub mod user;
 
 #[derive(sqlx::FromRow)]

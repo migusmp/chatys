@@ -1,6 +1,7 @@
 use crate::utils::responses::ErrorResponse;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 
+#[derive(Debug)]
 pub enum AppError {
     UsernameInvalid,
     NameEmpty,

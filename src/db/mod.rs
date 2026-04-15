@@ -1,7 +1,10 @@
+pub mod channels;
 pub mod chat;
 pub mod conversations;
 pub mod db;
 pub mod messages;
+pub mod server_members;
+pub mod servers;
 pub mod undelivered_messages;
 
 pub mod offset_date_time_serde {

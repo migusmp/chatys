@@ -1,20 +1,39 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import EmojiPicker from "../../../../EmojiPicker";
 import MessageReactions from "../../../../MessageReactions";
 import useDmRoom from "../../../../../hooks/useDmRoom";
 import type { FullConversation } from "../../../../../types/user";
+import type { ChatMessage } from "../../../../../types/chat_message";
 import { OnlineIndicator } from "../OnlineIndicator";
 import { ReadReceipt } from "./ReadReceipt";
 import BackButtonMobile from "../../../../bar_icons/BackButtonMobile";
 
 // Minimum gap (ms) between outgoing typing events sent to the server.
 const TYPING_DEBOUNCE_MS = 2000;
+// Debounce delay (ms) before firing a search request after the user stops typing.
+const SEARCH_DEBOUNCE_MS = 300;
+// Maximum characters allowed in a search query.
+const MAX_SEARCH_QUERY_LEN = 200;
 
 type Props = {
   conversationData: FullConversation;
 };
 
+/** Highlights all case-insensitive occurrences of `term` inside `text`. */
+function highlightMatch(text: string, term: string): React.ReactNode {
+  if (!term) return text;
+  const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  const parts = text.split(regex);
+  return parts.map((part, i) =>
+    regex.test(part)
+      ? <mark key={i} style={{ color: "#0f6", fontWeight: 600, background: "transparent" }}>{part}</mark>
+      : part
+  );
+}
+
 export default function DmRoomMobile({ conversationData }: Props) {
+  const { t } = useTranslation();
   const {
     allMessages,
     bottomRef,
@@ -49,6 +68,14 @@ export default function DmRoomMobile({ conversationData }: Props) {
   const longPressCoords = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // Tracks the last time we sent a typing event so we debounce outgoing signals
   const lastTypingSentRef = useRef(0);
+
+  // ── Search state ──────────────────────────────────────────────────────────
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ChatMessage[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (menuOpenId === null) return;
@@ -166,9 +193,66 @@ export default function DmRoomMobile({ conversationData }: Props) {
     }
   };
 
+  // Focus the search input when the bar opens
+  useEffect(() => {
+    if (searchOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchOpen]);
+
+  // Clear results when the search bar is closed
+  useEffect(() => {
+    if (!searchOpen) {
+      setSearchQuery("");
+      setSearchResults([]);
+    }
+  }, [searchOpen]);
+
+  const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.length > MAX_SEARCH_QUERY_LEN) {
+      setSearchResults([]);
+      return;
+    }
+
+    searchDebounceRef.current = setTimeout(async () => {
+      if (!otherParticipant) return;
+      setSearchLoading(true);
+      try {
+        const res = await fetch(
+          `/api/chat/conversation/${encodeURIComponent(otherParticipant.username)}/search?q=${encodeURIComponent(trimmed)}`,
+          { credentials: "include" }
+        );
+        if (!res.ok) {
+          setSearchResults([]);
+          return;
+        }
+        const json = await res.json();
+        setSearchResults(json.data ?? []);
+      } catch (err) {
+        console.error("[DmRoomMobile] search failed:", err);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, SEARCH_DEBOUNCE_MS);
+  };
+
+  const closeSearch = () => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    setSearchOpen(false);
+  };
+
   if (!otherParticipant) {
     return null;
   }
+
+  const showResultsPanel = searchOpen && searchQuery.trim().length > 0;
 
   return (
     <section style={containerStyle}>
@@ -189,7 +273,89 @@ export default function DmRoomMobile({ conversationData }: Props) {
             <p style={statusStyle}>{isOnline ? "Conectado" : "Desconectado"}</p>
           </div>
         </div>
+
+        {/* Search toggle button */}
+        <button
+          type="button"
+          style={{
+            ...searchToggleBtnStyle,
+            ...(searchOpen ? searchToggleBtnActiveStyle : {}),
+          }}
+          aria-label={searchOpen ? t("directMessages.userDm.search.toggleClose") : t("directMessages.userDm.search.toggleOpen")}
+          onClick={() => setSearchOpen((prev) => !prev)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+          </svg>
+        </button>
       </header>
+
+      {/* Search bar — fixed below header */}
+      {searchOpen && (
+        <div style={{ ...searchBarStyle, position: "fixed", top: "60px", left: 0, right: 0, zIndex: 9 }}>
+          <input
+            ref={searchInputRef}
+            type="text"
+            style={searchInputStyle}
+            placeholder={t("directMessages.userDm.search.placeholder")}
+            value={searchQuery}
+            onChange={handleSearchQueryChange}
+            maxLength={MAX_SEARCH_QUERY_LEN}
+            onKeyDown={(e) => e.key === "Escape" && closeSearch()}
+          />
+          <button
+            type="button"
+            style={searchCloseBtnStyle}
+            aria-label={t("directMessages.userDm.search.toggleClose")}
+            onClick={closeSearch}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Search results panel — fixed below search bar */}
+      {showResultsPanel && (
+        <div style={{ ...searchResultsStyle, position: "fixed", top: "112px", left: 0, right: 0, zIndex: 9 }}>
+          {searchLoading ? (
+            <div style={searchResultsEmptyStyle}>{t("directMessages.userDm.search.searching")}</div>
+          ) : searchResults.length === 0 ? (
+            <div style={searchResultsEmptyStyle}>{t("directMessages.userDm.search.noResults", { query: searchQuery })}</div>
+          ) : (
+            searchResults.map((msg) => {
+              const time = msg.created_at
+                ? new Date(msg.created_at).toLocaleString([], {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : "";
+              const isOwn = msg.sender_id === currentUserId;
+              return (
+                <div
+                  key={msg.id}
+                  style={searchResultItemStyle}
+                  onClick={() => { closeSearch(); setTimeout(() => scrollToMessage(msg.id), 80); }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter") { closeSearch(); setTimeout(() => scrollToMessage(msg.id), 80); } }}
+                >
+                  <div style={searchResultMetaStyle}>
+                    <span style={searchResultSenderStyle}>
+                      {isOwn ? t("directMessages.userDm.search.you") : otherParticipant.username}
+                    </span>
+                    <span style={{ fontSize: "0.7rem", color: "#666" }}>{time}</span>
+                  </div>
+                  <div style={searchResultContentStyle}>
+                    {highlightMatch(msg.content, searchQuery.trim())}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       <div ref={containerRef} style={messagesWrapperStyle}>
         {loadingMore && <p style={loadingStyle}>Cargando mensajes...</p>}
@@ -828,4 +994,102 @@ const contextMenuReactionBtnStyle: CSSProperties = {
 const contextMenuReactionBtnActiveStyle: CSSProperties = {
   background: "rgba(0, 255, 102, 0.15)",
   outline: "1px solid rgba(0, 255, 102, 0.4)",
+};
+
+// ─── MESSAGE SEARCH ───────────────────────────────────────────────────────────
+
+const searchToggleBtnStyle: CSSProperties = {
+  marginLeft: "auto",
+  border: "none",
+  background: "transparent",
+  color: "#888",
+  cursor: "pointer",
+  padding: "0.3rem",
+  borderRadius: "6px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+};
+
+const searchToggleBtnActiveStyle: CSSProperties = {
+  color: "#0f6",
+  background: "rgba(0, 255, 102, 0.08)",
+};
+
+const searchBarStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  padding: "0.5rem 0.75rem",
+  borderBottom: "1px solid #222",
+  backgroundColor: "#000",
+};
+
+const searchInputStyle: CSSProperties = {
+  flex: 1,
+  background: "#121212",
+  border: "1px solid #444",
+  borderRadius: "9999px",
+  color: "#fff",
+  fontSize: "0.9rem",
+  outline: "none",
+  padding: "0.35rem 0.85rem",
+  minWidth: 0,
+};
+
+const searchCloseBtnStyle: CSSProperties = {
+  border: "none",
+  background: "transparent",
+  color: "#666",
+  cursor: "pointer",
+  fontSize: "1.1rem",
+  lineHeight: 1,
+  padding: "0.2rem 0.4rem",
+  borderRadius: "4px",
+  flexShrink: 0,
+};
+
+const searchResultsStyle: CSSProperties = {
+  background: "#0a0a0a",
+  borderBottom: "1px solid #222",
+  maxHeight: "260px",
+  overflowY: "auto",
+};
+
+const searchResultsEmptyStyle: CSSProperties = {
+  padding: "0.75rem 1rem",
+  color: "#555",
+  fontSize: "0.85rem",
+  textAlign: "center",
+};
+
+const searchResultItemStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.15rem",
+  padding: "0.6rem 1rem",
+  cursor: "pointer",
+  borderBottom: "1px solid #141414",
+};
+
+const searchResultMetaStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  fontSize: "0.72rem",
+  color: "#666",
+};
+
+const searchResultSenderStyle: CSSProperties = {
+  color: "#0f6",
+  fontWeight: 600,
+};
+
+const searchResultContentStyle: CSSProperties = {
+  fontSize: "0.88rem",
+  color: "#ccc",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };

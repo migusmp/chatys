@@ -66,6 +66,23 @@
     "description": "Sorry, the page you are looking for does not exist or has been moved.",
     "buttonText": "Back to Home"
   },
+  "servers": {
+    "title": "Servers",
+    "createServer": "Create Server",
+    "joinServer": "Join Server",
+    "noChannels": "No channels yet",
+    "selectChannel": "Select a channel to start chatting",
+    "noMessages": "No messages yet. Be the first to say something!",
+    "public": "Public",
+    "private": "Private",
+    "members": "{{count}} members",
+    "join": "Join",
+    "joined": "Joined",
+    "alreadyMember": "You're already a member",
+    "requestSent": "Join request sent",
+    "channels": "Channels",
+    "general": "general"
+  },
   "dmRoomSearchUserPlaceholder": "Search user...",
   "directMessages": {
     "desktopSidebarDm": {
@@ -77,7 +94,15 @@
       "noMessages": "No messages yet",
       "sendMessagePlaceholder": "Type your message here...",
       "sendButton": "Send",
-      "deleteMessage": "Delete message"
+      "deleteMessage": "Delete message",
+      "search": {
+        "toggleOpen": "Search messages",
+        "toggleClose": "Close search",
+        "placeholder": "Search messages...",
+        "searching": "Searching…",
+        "noResults": "No results for \"{{query}}\"",
+        "you": "You"
+      }
     }
   }
 }

@@ -12,9 +12,11 @@ pub mod utils;
 use crate::db::chat::ensure_room_conversation;
 use crate::middlewares::auth::auth;
 use crate::models::user::Payload;
+use crate::services::server_ws::handle_channel_socket_upgrade;
 use crate::services::ws::{handle_socket_connection_for_direct_chat, handle_ws_connection};
 use crate::state::app_state::AppState;
 use crate::utils::cleanup_unused_images;
+use crate::routes::server::server_router;
 use crate::{models::chat::ChatState, routes::main_router::main_router};
 use axum::extract::{Path, WebSocketUpgrade};
 use axum::Extension;
@@ -104,6 +106,7 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
     let app_state_for_router = app_state.clone();
     let pool_for_chats = pool.clone();
     let pool_for_router = pool.clone();
+    let pool_for_servers = pool.clone();
 
     // MONITOREO DE USUARIOS CONECTADOS Y CANALES DE CHAT ENTRE USUARIOS ACTIVOS
     // tokio::spawn(print_connected_user_ids_periodically(app_state.clone()));
@@ -131,10 +134,15 @@ async fn main(#[shuttle_shared_db::Postgres] pool: PgPool) -> shuttle_axum::Shut
                 },
             ),
         )
+        .route(
+            "/ws/server/{server_id}/channel/{channel_id}",
+            get(handle_channel_socket_upgrade),
+        )
         .layer(axum::middleware::from_fn(auth));
 
     let router = Router::new()
         .nest("/api", main_router(chat_state, pool_for_chats, app_state_for_router))
+        .nest("/api/servers", server_router(pool_for_servers))
         .merge(ws_router)
         .route("/", get(index_handler))
         .nest_service("/static", ServeDir::new("public"))

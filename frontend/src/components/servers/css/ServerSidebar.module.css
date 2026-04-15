@@ -1,0 +1,166 @@
+/* ============================================
+   ServerSidebar.module.css — vertical icon rail
+   ============================================ */
+
+.rail {
+    width: 60px;
+    flex-shrink: 0;
+    background-color: #000;
+    height: 100vh;
+    border-right: 1px solid #1e1e1e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    gap: 4px;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.rail::-webkit-scrollbar {
+    display: none;
+}
+
+/* ---- Divider ---- */
+.divider {
+    width: 32px;
+    height: 1px;
+    background-color: #222;
+    margin: 4px 0;
+    flex-shrink: 0;
+}
+
+/* ---- Server icon button ---- */
+.serverBtn {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: #111;
+    border: 2px solid transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: border-radius 0.2s, border-color 0.2s, background-color 0.2s;
+    outline: none;
+    padding: 0;
+}
+
+.serverBtn:hover {
+    border-radius: 14px;
+    background-color: #1a1a1a;
+}
+
+.serverBtnActive {
+    border-radius: 14px;
+    border-color: #0f6;
+    background-color: rgba(0, 255, 102, 0.06);
+}
+
+.serverBtnActive:hover {
+    border-color: #0f6;
+}
+
+/* Active indicator pill on the left */
+.activeIndicator {
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    background-color: #0f6;
+    border-radius: 0 3px 3px 0;
+}
+
+/* ---- Server icon image / letter ---- */
+.serverImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.serverLetter {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ccc;
+    text-transform: uppercase;
+    line-height: 1;
+    user-select: none;
+}
+
+.serverBtnActive .serverLetter {
+    color: #0f6;
+}
+
+/* ---- Tooltip ---- */
+.tooltip {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #1a1a1a;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.tooltip::before {
+    content: "";
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: #333;
+}
+
+.serverBtn:hover .tooltip,
+.serverBtn:focus .tooltip {
+    opacity: 1;
+}
+
+/* ---- Action buttons (+ and compass) ---- */
+.actionBtn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: #111;
+    border: 1px dashed #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #555;
+    font-size: 18px;
+    transition: border-radius 0.2s, border-color 0.2s, color 0.2s, background-color 0.2s;
+    outline: none;
+    position: relative;
+}
+
+.actionBtn:hover {
+    border-radius: 14px;
+    border-color: #0f6;
+    color: #0f6;
+    background-color: rgba(0, 255, 102, 0.06);
+    border-style: solid;
+}
+
+.actionBtn:focus .tooltip,
+.actionBtn:hover .tooltip {
+    opacity: 1;
+}

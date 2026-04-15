@@ -1,5 +1,6 @@
 use dashmap::DashMap;
 use sqlx::PgPool;
+use std::sync::Arc;
 use time::PrimitiveDateTime;
 use tokio::sync::{broadcast, mpsc};
 
@@ -10,6 +11,7 @@ use crate::{
     services::ws::notify_user_with_active_friends,
     state::{
         chat_message::DmEvent,
+        server_state::ServerState,
         types::{
             AppConfig, DirectMessageChannels, FriendNotification, FriendNotificationRow,
             UserChannels,
@@ -25,6 +27,7 @@ pub struct AppState {
     pub friend_notifications: UserChannels,
     pub online_user_connections: DashMap<i32, usize>,
     pub config: AppConfig,
+    pub server_state: Arc<ServerState>,
 }
 
 impl AppState {
@@ -38,6 +41,7 @@ impl AppState {
             online_user_connections: DashMap::new(),
             config: AppConfig::default(),
             direct_message_channels: DashMap::new(),
+            server_state: ServerState::new(),
         }
     }
 

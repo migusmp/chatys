@@ -4,6 +4,7 @@ use sqlx::PgPool;
 use tokio::{fs, io};
 
 pub mod cors;
+pub mod invite;
 pub mod jwt;
 pub mod responses;
 pub mod user_utils;
