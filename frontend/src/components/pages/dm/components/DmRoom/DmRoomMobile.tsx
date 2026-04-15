@@ -5,6 +5,7 @@ import useDmRoom from "../../../../../hooks/useDmRoom";
 import type { FullConversation } from "../../../../../types/user";
 import { OnlineIndicator } from "../OnlineIndicator";
 import { ReadReceipt } from "./ReadReceipt";
+import BackButtonMobile from "../../../../bar_icons/BackButtonMobile";
 
 // Minimum gap (ms) between outgoing typing events sent to the server.
 const TYPING_DEBOUNCE_MS = 2000;
@@ -149,9 +150,7 @@ export default function DmRoomMobile({ conversationData }: Props) {
   return (
     <section style={containerStyle}>
       <header style={headerStyle}>
-        <svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em" viewBox="0 0 24 24">
-          <path fill="#0f6" d="M13.83 19a1 1 0 0 1-.78-.37l-4.83-6a1 1 0 0 1 0-1.27l5-6a1 1 0 0 1 1.54 1.28L10.29 12l4.32 5.36a1 1 0 0 1-.78 1.64" />
-        </svg>
+        <BackButtonMobile />
 
         <div style={headerInfoStyle}>
           <div style={avatarWrapperStyle}>
