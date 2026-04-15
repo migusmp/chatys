@@ -37,13 +37,16 @@ export default function DmRoomMobile({ conversationData }: Props) {
   } = useDmRoom(conversationData);
 
   const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressCoords = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // Tracks the last time we sent a typing event so we debounce outgoing signals
   const lastTypingSentRef = useRef(0);
 
@@ -62,8 +65,20 @@ export default function DmRoomMobile({ conversationData }: Props) {
     };
   }, [menuOpenId]);
 
-  const startLongPress = (id: number) => {
-    longPressTimer.current = setTimeout(() => setMenuOpenId(id), 500);
+  const startLongPress = (id: number, touchX: number, touchY: number) => {
+    longPressCoords.current = { x: touchX, y: touchY };
+    longPressTimer.current = setTimeout(() => {
+      const menuWidth = 160;
+      const menuHeight = 280;
+      const left = touchX + menuWidth > window.innerWidth
+        ? touchX - menuWidth
+        : touchX;
+      const top = touchY - menuHeight < 0
+        ? touchY
+        : touchY - menuHeight;
+      setMenuPos({ top, left });
+      setMenuOpenId(id);
+    }, 500);
   };
 
   const cancelLongPress = () => {
@@ -90,6 +105,14 @@ export default function DmRoomMobile({ conversationData }: Props) {
   const cancelEdit = () => {
     setEditingId(null);
     setEditValue("");
+  };
+
+  const scrollToMessage = (msgId: number) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedId(msgId);
+    setTimeout(() => setHighlightedId(null), 1500);
   };
 
   useEffect(() => {
@@ -181,9 +204,44 @@ export default function DmRoomMobile({ conversationData }: Props) {
           });
 
           return (
-            <div key={msg.id} style={{ position: "relative", alignSelf: isOwn ? "flex-end" : "flex-start", maxWidth: "60%" }}>
+            <div
+              key={msg.id}
+              id={`msg-${msg.id}`}
+              style={{
+                position: "relative",
+                alignSelf: isOwn ? "flex-end" : "flex-start",
+                maxWidth: "60%",
+                borderRadius: "1rem",
+                ...(highlightedId === msg.id ? { animation: "none", boxShadow: "0 0 0 2px rgba(0,255,102,0.5)", transition: "box-shadow 1.5s ease" } : {}),
+              }}
+            >
               {menuOpenId === msg.id && (
-                <div ref={menuRef} style={{ ...contextMenuStyle, [isOwn ? "right" : "left"]: 0 }}>
+                <div ref={menuRef} style={{ ...contextMenuStyle, position: "fixed", top: menuPos.top, left: menuPos.left, bottom: "auto", right: "auto" }}>
+                  {/* Quick reaction row */}
+                  <div style={contextMenuReactionRowStyle}>
+                    {["👍", "❤️", "😂", "😮", "😢", "🔥"].map((emoji) => {
+                      const alreadyReacted = (msg.reactions ?? []).some(
+                        (r) => r.emoji === emoji && r.reacted_by_me
+                      );
+                      return (
+                        <button
+                          key={emoji}
+                          type="button"
+                          style={{
+                            ...contextMenuReactionBtnStyle,
+                            ...(alreadyReacted ? contextMenuReactionBtnActiveStyle : {}),
+                          }}
+                          aria-label={emoji}
+                          onClick={() => {
+                            toggleReaction(msg.id, emoji);
+                            setMenuOpenId(null);
+                          }}
+                        >
+                          {emoji}
+                        </button>
+                      );
+                    })}
+                  </div>
                   {/* Reply — available for all non-deleted messages */}
                   <button
                     style={contextMenuItemStyle}
@@ -232,13 +290,19 @@ export default function DmRoomMobile({ conversationData }: Props) {
 
               <article
                 style={isOwn ? ownBubbleStyle : otherBubbleStyle}
-                onTouchStart={() => !msg.is_deleted ? startLongPress(msg.id) : undefined}
+                onTouchStart={(e) => !msg.is_deleted ? startLongPress(msg.id, e.touches[0].clientX, e.touches[0].clientY) : undefined}
                 onTouchEnd={cancelLongPress}
                 onTouchMove={cancelLongPress}
               >
                 {/* Quoted block — shown above message text when this is a reply */}
                 {msg.reply_to && !msg.is_deleted && (
-                  <div style={quotedMessageStyle}>
+                  <div
+                    style={{ ...quotedMessageStyle, cursor: "pointer" }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => msg.reply_to_id != null && scrollToMessage(msg.reply_to_id)}
+                    onKeyDown={(e) => e.key === "Enter" && msg.reply_to_id != null && scrollToMessage(msg.reply_to_id)}
+                  >
                     <p style={quotedAuthorStyle}>{msg.reply_to.sender_username}</p>
                     <p style={quotedContentStyle}>{msg.reply_to.content}</p>
                   </div>
@@ -579,14 +643,13 @@ const timeStyle: CSSProperties = {
 };
 
 const contextMenuStyle: CSSProperties = {
-  position: "absolute",
-  bottom: "calc(100% + 0.4rem)",
+  position: "fixed",
   background: "#141414",
   border: "1px solid #2a2a2a",
   borderRadius: "0.85rem",
   boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
   zIndex: 30,
-  minWidth: "145px",
+  minWidth: "160px",
   overflow: "hidden",
 };
 
@@ -739,4 +802,30 @@ const downloadBtnMobileStyle: CSSProperties = {
   fontSize: "0.85rem",
   textDecoration: "none",
   lineHeight: "1.6",
+};
+
+// ─── Reaction row inside context menu ────────────────────────────────────────
+
+const contextMenuReactionRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-around",
+  padding: "0.5rem 0.75rem",
+  borderBottom: "1px solid #2a2a2a",
+  gap: "0.25rem",
+};
+
+const contextMenuReactionBtnStyle: CSSProperties = {
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  fontSize: "1.25rem",
+  borderRadius: "6px",
+  padding: "0.2rem 0.3rem",
+  lineHeight: 1,
+};
+
+const contextMenuReactionBtnActiveStyle: CSSProperties = {
+  background: "rgba(0, 255, 102, 0.15)",
+  outline: "1px solid rgba(0, 255, 102, 0.4)",
 };

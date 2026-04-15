@@ -7,6 +7,7 @@ import {
 import type { NewDmMessageNotification } from "../interfaces/notifications";
 import type { ChatMessage, MessagePreview, ReactionCount } from "../types/chat_message";
 import type { FullConversation, Participants } from "../types/user";
+import { messageCache } from "../utils/messageCache";
 
 type UseDmRoomReturn = {
     allMessages: ChatMessage[];
@@ -39,13 +40,27 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
     const { checkUserIsOnline } = useFriendsContext();
     const { setDmNotifications, setNewLastMessage } = useNotificationsContext();
 
+    // Derive participant info and cache key before any state declarations
+    const otherParticipant = conversationData.conversation.participants.find(
+        (participant) => participant.id !== user?.id,
+    );
+    const otherParticipantId = otherParticipant?.id;
+    const otherParticipantUsername = otherParticipant?.username;
+    const isOnline = checkUserIsOnline(otherParticipantId ?? -1);
+
+    // Stable cache key — username preferred, falls back to conversationId
+    const cacheKey = otherParticipantUsername ?? String(conversationData.conversation.id);
+
+    // Seed from cache if available — avoids re-fetch on remount within the same session
+    const cachedEntry = messageCache.get(cacheKey);
+
     const [message, setMessage] = useState("");
     const [allMessages, setAllMessages] = useState<ChatMessage[]>(
-        [...conversationData.messages].reverse(),
+        cachedEntry ? cachedEntry.messages : [...conversationData.messages].reverse(),
     );
     const [socket, setSocket] = useState<WebSocket | null>(null);
-    const [offset, setOffset] = useState(allMessages.length);
-    const [hasMore, setHasMore] = useState(true);
+    const [offset, setOffset] = useState(cachedEntry ? cachedEntry.cursor : conversationData.messages.length);
+    const [hasMore, setHasMore] = useState(cachedEntry ? cachedEntry.hasMore : true);
     const [loadingMore, setLoadingMore] = useState(false);
     // Username of the participant currently typing, or null if nobody is.
     const [typingUser, setTypingUser] = useState<string | null>(null);
@@ -58,13 +73,6 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
     const wsRef = useRef<WebSocket | null>(null);
     // Timeout handle to auto-clear the typing indicator after TYPING_TIMEOUT_MS
     const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const otherParticipant = conversationData.conversation.participants.find(
-        (participant) => participant.id !== user?.id,
-    );
-    const otherParticipantId = otherParticipant?.id;
-    const otherParticipantUsername = otherParticipant?.username;
-    const isOnline = checkUserIsOnline(otherParticipantId ?? -1);
 
     function mergeMessages(existing: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
         const map = new Map<string | number, ChatMessage>();
@@ -107,11 +115,21 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
             const data = await res.json();
             const olderMessages = [...data.messages].reverse();
 
-            if (data.messages.length < MESSAGES_LIMIT) {
+            const reachedEnd = data.messages.length < MESSAGES_LIMIT;
+            if (reachedEnd) {
                 setHasMore(false);
             }
 
-            setAllMessages((prev) => mergeMessages(prev, olderMessages));
+            setAllMessages((prev) => {
+                const merged = mergeMessages(prev, olderMessages);
+                // Persist the expanded list to cache
+                messageCache.set(cacheKey, {
+                    messages: merged,
+                    cursor: (messageCache.get(cacheKey)?.cursor ?? prev.length) + data.messages.length,
+                    hasMore: !reachedEnd,
+                });
+                return merged;
+            });
             setOffset((prev) => prev + data.messages.length);
 
             requestAnimationFrame(() => {
@@ -136,9 +154,23 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
     }, [allMessages, hasMore, loadingMore, offset, otherParticipant]);
 
     useEffect(() => {
-        setAllMessages([...conversationData.messages].reverse());
-        setOffset(conversationData.messages.length);
-        setHasMore(true);
+        // When the conversation changes, check cache before falling back to server data
+        const cached = messageCache.get(cacheKey);
+        if (cached) {
+            setAllMessages(cached.messages);
+            setOffset(cached.cursor);
+            setHasMore(cached.hasMore);
+        } else {
+            setAllMessages([...conversationData.messages].reverse());
+            setOffset(conversationData.messages.length);
+            setHasMore(true);
+            // Seed the cache with the initial data provided by the server
+            messageCache.set(cacheKey, {
+                messages: [...conversationData.messages].reverse(),
+                cursor: conversationData.messages.length,
+                hasMore: true,
+            });
+        }
         firstLoadRef.current = true;
         // Clear any active reply when switching conversations
         setReplyingTo(null);
@@ -192,46 +224,58 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
             }
 
             if (raw.type_msg === "MESSAGE_READ") {
-                setAllMessages((prev) =>
-                    prev.map((msg) =>
+                setAllMessages((prev) => {
+                    const updated = prev.map((msg) =>
                         (raw.message_ids as number[]).includes(msg.id)
                             ? { ...msg, read_by: [...(msg.read_by ?? []), raw.reader_id as number] }
                             : msg,
-                    ),
-                );
+                    );
+                    const entry = messageCache.get(cacheKey);
+                    if (entry) messageCache.set(cacheKey, { ...entry, messages: updated });
+                    return updated;
+                });
                 return;
             }
 
             if (raw.type_msg === "MESSAGE_EDITED") {
-                setAllMessages((prev) =>
-                    prev.map((msg) =>
+                setAllMessages((prev) => {
+                    const updated = prev.map((msg) =>
                         msg.id === raw.message_id
-                            ? { ...msg, content: raw.content, edited_at: raw.edited_at }
+                            ? { ...msg, content: raw.content as string, edited_at: raw.edited_at as string }
                             : msg,
-                    ),
-                );
+                    );
+                    const entry = messageCache.get(cacheKey);
+                    if (entry) messageCache.set(cacheKey, { ...entry, messages: updated });
+                    return updated;
+                });
                 return;
             }
 
             if (raw.type_msg === "MESSAGE_DELETED") {
-                setAllMessages((prev) =>
-                    prev.map((msg) =>
+                setAllMessages((prev) => {
+                    const updated = prev.map((msg) =>
                         msg.id === raw.message_id
                             ? { ...msg, is_deleted: true, content: "" }
                             : msg,
-                    ),
-                );
+                    );
+                    const entry = messageCache.get(cacheKey);
+                    if (entry) messageCache.set(cacheKey, { ...entry, messages: updated });
+                    return updated;
+                });
                 return;
             }
 
             if (raw.type_msg === "REACTION_UPDATE") {
-                setAllMessages((prev) =>
-                    prev.map((msg) =>
+                setAllMessages((prev) => {
+                    const updated = prev.map((msg) =>
                         msg.id === (raw.message_id as number)
                             ? { ...msg, reactions: raw.reactions as ReactionCount[] }
                             : msg,
-                    ),
-                );
+                    );
+                    const entry = messageCache.get(cacheKey);
+                    if (entry) messageCache.set(cacheKey, { ...entry, messages: updated });
+                    return updated;
+                });
                 return;
             }
 
@@ -251,7 +295,11 @@ export default function useDmRoom(conversationData: FullConversation): UseDmRoom
             const isAtBottom =
                 container && container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
-            setAllMessages((prev) => [...prev, data]);
+            setAllMessages((prev) => {
+                const updated = [...prev, data];
+                messageCache.appendMessage(cacheKey, data);
+                return updated;
+            });
 
             // El usuario está viendo la conversación: marcar el nuevo mensaje como leído
             if (wsRef.current?.readyState === WebSocket.OPEN) {

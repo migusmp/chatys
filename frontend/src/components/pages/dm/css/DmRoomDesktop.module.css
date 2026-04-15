@@ -333,15 +333,13 @@
 }
 
 .contextMenu {
-    position: absolute;
-    bottom: calc(100% + 0.4rem);
-    right: 0;
+    position: fixed;
     background: #141414;
     border: 1px solid #2a2a2a;
     border-radius: 0.85rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     z-index: 30;
-    min-width: 145px;
+    min-width: 180px;
     overflow: hidden;
     animation: menuFadeIn 0.12s ease;
 }
@@ -412,6 +410,51 @@
 
 .imageWrapper:hover .downloadBtn {
     opacity: 1;
+}
+
+/* ─── HIGHLIGHT ANIMATION (quoted scroll + search navigation) ────────────── */
+
+@keyframes highlightPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0, 255, 102, 0.5); }
+    50%  { box-shadow: 0 0 0 6px rgba(0, 255, 102, 0.2); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 255, 102, 0); }
+}
+
+.messageHighlighted {
+    animation: highlightPulse 1.5s ease forwards;
+    border-radius: 1rem;
+}
+
+/* ─── REACTION ROW inside context menu ───────────────────────────────────── */
+
+.contextMenuReactionRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #2a2a2a;
+    gap: 0.25rem;
+}
+
+.contextMenuReactionBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    border-radius: 6px;
+    padding: 0.2rem 0.3rem;
+    transition: background 0.12s, transform 0.1s;
+    line-height: 1;
+}
+
+.contextMenuReactionBtn:hover {
+    background: #222;
+    transform: scale(1.2);
+}
+
+.contextMenuReactionBtnActive {
+    background: rgba(0, 255, 102, 0.15);
+    outline: 1px solid rgba(0, 255, 102, 0.4);
 }
 
 /* ─── MESSAGE SEARCH ──────────────────────────────────────────────────────── */

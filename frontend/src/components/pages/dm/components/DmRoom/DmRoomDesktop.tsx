@@ -57,7 +57,9 @@ export default function DmRoomDesktop({ conversationData }: Props) {
 
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+    const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [highlightedId, setHighlightedId] = useState<number | null>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement | null>(null);
@@ -197,6 +199,14 @@ export default function DmRoomDesktop({ conversationData }: Props) {
         setSearchOpen(false);
     };
 
+    const scrollToMessage = (msgId: number) => {
+        const el = document.getElementById(`msg-${msgId}`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedId(msgId);
+        setTimeout(() => setHighlightedId(null), 1500);
+    };
+
     if (!otherParticipant) {
         return null;
     }
@@ -284,10 +294,10 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                                 <div
                                     key={msg.id}
                                     className={styles.searchResultItem}
-                                    onClick={closeSearch}
+                                    onClick={() => { closeSearch(); setTimeout(() => scrollToMessage(msg.id), 80); }}
                                     role="button"
                                     tabIndex={0}
-                                    onKeyDown={(e) => e.key === "Enter" && closeSearch()}
+                                    onKeyDown={(e) => { if (e.key === "Enter") { closeSearch(); setTimeout(() => scrollToMessage(msg.id), 80); } }}
                                 >
                                     <div className={styles.searchResultMeta}>
                                         <span className={styles.searchResultSender}>
@@ -324,11 +334,12 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                     return (
                         <div
                             key={msg.id}
+                            id={`msg-${msg.id}`}
                             onMouseEnter={() => setHoveredId(msg.id)}
                             onMouseLeave={() => setHoveredId(null)}
                             className={`${styles.messageBubble} ${
                                 isOwn ? styles.ownMessage : styles.otherMessage
-                            }`}
+                            }${highlightedId === msg.id ? ` ${styles.messageHighlighted}` : ""}`}
                             style={{ position: "relative" }}
                         >
                             {hoveredId === msg.id && !msg.is_deleted && (
@@ -336,7 +347,21 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                                     className={styles.menuTrigger}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setMenuOpenId((prev) => (prev === msg.id ? null : msg.id));
+                                        if (menuOpenId === msg.id) {
+                                            setMenuOpenId(null);
+                                            return;
+                                        }
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        const menuWidth = 180;
+                                        const menuHeight = 280;
+                                        const left = rect.right + menuWidth > window.innerWidth
+                                            ? rect.left - menuWidth
+                                            : rect.right;
+                                        const top = rect.top - menuHeight < 0
+                                            ? rect.bottom
+                                            : rect.top - menuHeight;
+                                        setMenuPos({ top, left });
+                                        setMenuOpenId(msg.id);
                                     }}
                                     aria-label="Opciones"
                                 >
@@ -345,7 +370,33 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                             )}
 
                             {menuOpenId === msg.id && (
-                                <div ref={menuRef} className={styles.contextMenu}>
+                                <div
+                                    ref={menuRef}
+                                    className={styles.contextMenu}
+                                    style={{ position: "fixed", top: menuPos.top, left: menuPos.left, bottom: "auto", right: "auto" }}
+                                >
+                                    {/* Quick reaction row */}
+                                    <div className={styles.contextMenuReactionRow}>
+                                        {["👍", "❤️", "😂", "😮", "😢", "🔥"].map((emoji) => {
+                                            const alreadyReacted = (msg.reactions ?? []).some(
+                                                (r) => r.emoji === emoji && r.reacted_by_me
+                                            );
+                                            return (
+                                                <button
+                                                    key={emoji}
+                                                    type="button"
+                                                    className={`${styles.contextMenuReactionBtn}${alreadyReacted ? ` ${styles.contextMenuReactionBtnActive}` : ""}`}
+                                                    aria-label={emoji}
+                                                    onClick={() => {
+                                                        toggleReaction(msg.id, emoji);
+                                                        setMenuOpenId(null);
+                                                    }}
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                     {/* Reply — available for all non-deleted messages */}
                                     <button
                                         className={styles.contextMenuItem}
@@ -395,7 +446,14 @@ export default function DmRoomDesktop({ conversationData }: Props) {
                             <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
                                 {/* Quoted block — rendered above the message text when this is a reply */}
                                 {msg.reply_to && !msg.is_deleted && (
-                                    <div className={styles.quotedMessage}>
+                                    <div
+                                        className={styles.quotedMessage}
+                                        style={{ cursor: "pointer" }}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => msg.reply_to_id != null && scrollToMessage(msg.reply_to_id)}
+                                        onKeyDown={(e) => e.key === "Enter" && msg.reply_to_id != null && scrollToMessage(msg.reply_to_id)}
+                                    >
                                         <div className={styles.quotedMessageAuthor}>
                                             {msg.reply_to.sender_username}
                                         </div>
