@@ -7,9 +7,10 @@ import { useTranslation } from "react-i18next";
 import chatysLogo from '../../assets/chatys-logo-official.png';
 import { useEffect, useRef, useState } from "react";
 import LogoutDesktop from "./LogoutDesktop";
+import NotificationIcon from "../bar_icons/NotificationIcon";
 
 export default function SidebarDesktop() {
-    const { notifications, dmNotifications } = useNotificationsContext();
+    const { dmNotifications } = useNotificationsContext();
     const { user } = useUserProfileContext();
     const location = useLocation();
     const { t } = useTranslation();
@@ -76,15 +77,7 @@ export default function SidebarDesktop() {
                             </div>
                             <span>{t("sidebar.messages")}</span>
                         </Link>
-                        <Link to="/notifications" className={`link ${isActive('/notifications') ? 'active' : ''}`}>
-                            <div className="icon-with-badge">
-                                <i className={`bi ${isActive('/notifications') ? 'bi-bell-fill' : 'bi-bell'}`}></i>
-                                {notifications.length > 0 && (
-                                    <span className="badge">{notifications.length}</span>
-                                )}
-                            </div>
-                            <span>{t("sidebar.notifications")}</span>
-                        </Link>
+                        <NotificationIcon hasText={true} />
                         <Link to={`/profile/${user?.username}`} className={`link ${isActive(`/profile/${user?.username}`) ? 'active' : ''}`}>
                             <i className={`bi ${isActive(`/profile/${user?.username}`) ? 'bi-person-fill' : 'bi-person'}`}></i>
                             <span>{t("sidebar.profile")}</span>

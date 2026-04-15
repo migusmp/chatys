@@ -29,9 +29,6 @@ export default function SidebarMovile() {
                             )}
                         </div>
                     </Link>
-                    <Link to="/notifications" className={`mobile-sidebar__link ${isActive('/notifications') ? 'active' : ''}`}>
-                        <i className={`bi ${isActive('/notifications') ? 'bi-bell-fill' : 'bi-bell'}`}></i>
-                    </Link>
                     <Link to={`/profile/${user?.username}`} className={`mobile-sidebar__link ${isActive(`/profile/${user?.username}`) ? 'active' : ''}`}>
                         <i className={`bi ${isActive(`/profile/${user?.username}`) ? 'bi-person-fill' : 'bi-person'}`}></i>
                     </Link>
