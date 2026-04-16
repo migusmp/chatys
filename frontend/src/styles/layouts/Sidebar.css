@@ -102,7 +102,8 @@
     /* opacidad general */
 }
 
-.menu .link i {
+.menu .link i,
+.menu .link svg {
     font-size: 1.7rem;
     opacity: 0.75;
     /* opacidad específica para el icono */
@@ -114,7 +115,8 @@
     color: #00ff66;
 }
 
-.menu .link:hover i {
+.menu .link:hover i,
+.menu .link:hover svg {
     color: #00ff66;
     opacity: 1;
 }
@@ -124,7 +126,8 @@
     color: #00ff66;
 }
 
-.menu .link.active i {
+.menu .link.active i,
+.menu .link.active svg {
     color: #00ff66;
     opacity: 1;
 }

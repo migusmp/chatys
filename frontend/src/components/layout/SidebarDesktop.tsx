@@ -69,7 +69,20 @@ export default function SidebarDesktop() {
                             <span>{t("sidebar.chats")}</span>
                         </Link>
                         <Link to="/servers" className={`link ${isActive('/servers') ? 'active' : ''}`}>
-                            <i className={`bi ${isActive('/servers') ? 'bi-globe-fill' : 'bi-globe'}`}></i>
+                            <svg 
+                                width="24" 
+                                height="24" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="2"
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                            >
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M2 12h20"/>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
                             <span>{t("sidebar.servers")}</span>
                         </Link>
                         <Link to="/dm" className={`link ${isActive('/dm') ? 'active' : ''}`}>
