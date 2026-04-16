@@ -29,15 +29,12 @@ function ChannelItem({ channel, isActive, onClick }: ChannelItemProps) {
 
 export default function ChannelList() {
     const navigate = useNavigate();
-    const { activeServer, activeChannel, channels, setActiveChannel } = useServerStore();
+    const activeServer   = useServerStore((s) => s.activeServer);
+    const activeChannel  = useServerStore((s) => s.activeChannel);
+    const channels       = useServerStore((s) => s.channels);
+    const setActiveChannel = useServerStore((s) => s.setActiveChannel);
 
-    if (!activeServer) {
-        return (
-            <div className={styles.sidebar}>
-                <p className={styles.noServer}>Seleccioná un servidor</p>
-            </div>
-        );
-    }
+    if (!activeServer) return null;
 
     const serverChannels = channels[activeServer.id] ?? [];
 

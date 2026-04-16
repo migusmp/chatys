@@ -2,7 +2,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::errors::AppError as ErrorRequest;
-use crate::models::server::{Channel, ChannelResponse, Server, ServerSummary};
+use crate::models::server::{Channel, ChannelResponse, FriendServerSummary, Server, ServerSummary};
 
 // ─── create_server ────────────────────────────────────────────────────────────
 
@@ -255,6 +255,61 @@ pub async fn set_invite_code(
     .map_err(|_| ErrorRequest::InternalError)?;
 
     Ok(stored)
+}
+
+// ─── get_server_by_invite_code ────────────────────────────────────────────────
+
+// ─── list_friends_servers ─────────────────────────────────────────────────────
+
+/// Returns public servers where at least one friend of `user_id` is a member,
+/// excluding servers the caller already belongs to. Each row includes a list
+/// of the friend usernames present.
+pub async fn list_friends_servers(
+    user_id: i32,
+    pool: &PgPool,
+) -> Result<Vec<FriendServerSummary>, ErrorRequest> {
+    let rows = sqlx::query(
+        r#"
+        SELECT
+            s.id,
+            s.name,
+            s.description,
+            s.image,
+            s.is_public,
+            COUNT(DISTINCT sm_all.user_id)::bigint AS member_count,
+            ARRAY_AGG(DISTINCT u.username)          AS friends_in_server
+        FROM servers s
+        JOIN server_members sm_friend ON sm_friend.server_id = s.id
+        JOIN friends f               ON f.friend_id = sm_friend.user_id AND f.user_id = $1
+        JOIN users u                 ON u.id = f.friend_id
+        LEFT JOIN server_members sm_me  ON sm_me.server_id  = s.id AND sm_me.user_id  = $1
+        LEFT JOIN server_members sm_all ON sm_all.server_id = s.id
+        WHERE s.is_public = true
+          AND sm_me.user_id IS NULL
+        GROUP BY s.id, s.name, s.description, s.image, s.is_public
+        ORDER BY s.created_at DESC
+        "#,
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|_| ErrorRequest::InternalError)?;
+
+    use sqlx::Row;
+    let summaries = rows
+        .into_iter()
+        .map(|r| FriendServerSummary {
+            id:                r.get("id"),
+            name:              r.get("name"),
+            description:       r.get("description"),
+            image:             r.get("image"),
+            is_public:         r.get("is_public"),
+            member_count:      r.get("member_count"),
+            friends_in_server: r.get::<Vec<String>, _>("friends_in_server"),
+        })
+        .collect();
+
+    Ok(summaries)
 }
 
 // ─── get_server_by_invite_code ────────────────────────────────────────────────

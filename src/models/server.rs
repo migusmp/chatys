@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -32,7 +32,7 @@ pub struct Server {
     pub is_public: bool,
     pub invite_code: Option<String>,
     pub created_by: i32,
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -42,7 +42,7 @@ pub struct Channel {
     pub conversation_id: i32,
     pub name: String,
     pub is_default: bool,
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -50,7 +50,7 @@ pub struct ServerMember {
     pub server_id: Uuid,
     pub user_id: i32,
     pub role: ServerRole,
-    pub joined_at: NaiveDateTime,
+    pub joined_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -61,8 +61,8 @@ pub struct ServerJoinRequest {
     pub status: JoinRequestStatus,
     pub message: Option<String>,
     pub reviewed_by: Option<i32>,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 // ─── Response/View Types ───────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ pub struct ServerDetailResponse {
     pub is_public: bool,
     pub invite_code: Option<String>, // only for owner/admin callers
     pub created_by: i32,
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
     pub channels: Vec<ChannelResponse>,
     pub member_role: Option<ServerRole>,
 }
@@ -107,7 +107,7 @@ pub struct MemberResponse {
     pub username: String,
     pub image: Option<String>,
     pub role: ServerRole,
-    pub joined_at: NaiveDateTime,
+    pub joined_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,7 +117,20 @@ pub struct JoinRequestResponse {
     pub username: String,
     pub image: Option<String>,
     pub message: Option<String>,
-    pub created_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Returned by `GET /api/servers/friends` — servers where at least one friend
+/// is a member and the caller is NOT already a member themselves.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FriendServerSummary {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub image: Option<String>,
+    pub is_public: bool,
+    pub member_count: i64,
+    pub friends_in_server: Vec<String>, // usernames of friends present
 }
 
 // ─── Request Bodies ────────────────────────────────────────────────────────────

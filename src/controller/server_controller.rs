@@ -18,7 +18,7 @@ use crate::db::server_members::{
 };
 use crate::db::servers::{
     create_server, delete_server, get_server_by_id, get_server_by_invite_code,
-    list_servers_for_user, set_invite_code, update_server, update_server_image,
+    list_friends_servers, list_servers_for_user, set_invite_code, update_server, update_server_image,
 };
 use crate::errors::AppError;
 use crate::models::server::{
@@ -90,6 +90,19 @@ pub async fn list_servers_handler(
 ) -> Result<impl IntoResponse, AppError> {
     let servers = list_servers_for_user(payload.id, &pool).await?;
     Ok(ApiResponse::success_with_data("Servers fetched", Some(servers)))
+}
+
+/// `GET /api/servers/friends`
+///
+/// Returns public servers where at least one friend of the caller is a member
+/// and the caller is NOT already a member. Each entry includes `friends_in_server`
+/// (list of friend usernames present).
+pub async fn list_friends_servers_handler(
+    Extension(payload): Extension<Payload>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<impl IntoResponse, AppError> {
+    let servers = list_friends_servers(payload.id, &pool).await?;
+    Ok(ApiResponse::success_with_data("Friends servers fetched", Some(servers)))
 }
 
 /// `POST /api/servers`  (multipart: name, description?, is_public, image?)

@@ -141,11 +141,12 @@ const useServerStore = create<ServerStore>((set) => ({
 
   fetchServers: async () => {
     try {
-      const res = await fetch("/api/server", {
+      const res = await fetch("/api/servers", {
         credentials: "include",
       });
       if (!res.ok) return;
-      const servers: ServerSummary[] = await res.json();
+      const body = await res.json();
+      const servers: ServerSummary[] = body.data ?? body;
       set({ servers });
     } catch {
       // Non-critical: silently ignore network errors
@@ -154,11 +155,12 @@ const useServerStore = create<ServerStore>((set) => ({
 
   fetchChannels: async (serverId) => {
     try {
-      const res = await fetch(`/api/server/${serverId}/channels`, {
+      const res = await fetch(`/api/servers/${serverId}/channels`, {
         credentials: "include",
       });
       if (!res.ok) return;
-      const channels: Channel[] = await res.json();
+      const body = await res.json();
+      const channels: Channel[] = body.data ?? body;
       set((state) => ({
         channels: { ...state.channels, [serverId]: channels },
       }));
@@ -169,11 +171,12 @@ const useServerStore = create<ServerStore>((set) => ({
 
   fetchMembers: async (serverId) => {
     try {
-      const res = await fetch(`/api/server/${serverId}/members`, {
+      const res = await fetch(`/api/servers/${serverId}/members`, {
         credentials: "include",
       });
       if (!res.ok) return;
-      const members: ServerMember[] = await res.json();
+      const body = await res.json();
+      const members: ServerMember[] = body.data ?? body;
       set((state) => ({
         members: { ...state.members, [serverId]: members },
       }));

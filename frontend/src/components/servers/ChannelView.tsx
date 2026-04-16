@@ -36,7 +36,10 @@ function formatTime(isoString?: string | null): string {
 
 export default function ChannelView() {
     const { user } = useUserProfileContext();
-    const { activeServer, activeChannel, members, fetchMembers } = useServerStore();
+    const activeServer  = useServerStore((s) => s.activeServer);
+    const activeChannel = useServerStore((s) => s.activeChannel);
+    const members       = useServerStore((s) => s.members);
+    const fetchMembers  = useServerStore((s) => s.fetchMembers);
 
     const [messages, setMessages] = useState<DisplayMessage[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -66,7 +69,8 @@ export default function ChannelView() {
     // ── Fetch message history on channel change ───────────────────────────────
     useEffect(() => {
         if (!activeChannel) {
-            setMessages([]);
+            // Avoid extra re-render when messages is already empty
+            setMessages((prev) => (prev.length > 0 ? [] : prev));
             return;
         }
 

@@ -111,3 +111,92 @@ CREATE INDEX IF NOT EXISTS idx_reactions_message_id ON message_reactions(message
 -- Phase 7: message replies (quote-reply)
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id INT REFERENCES messages(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_messages_reply_to_id ON messages(reply_to_id);
+
+-- ─── Servers ─────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS servers (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        TEXT NOT NULL,
+    description TEXT,
+    image       TEXT,
+    is_public   BOOLEAN NOT NULL DEFAULT TRUE,
+    invite_code TEXT UNIQUE,
+    created_by  INT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_servers_is_public ON servers(is_public);
+CREATE INDEX IF NOT EXISTS idx_servers_invite_code ON servers(invite_code) WHERE invite_code IS NOT NULL;
+
+ALTER TABLE conversations ADD COLUMN IF NOT EXISTS server_id UUID REFERENCES servers(id) ON DELETE CASCADE;
+
+DO $$ BEGIN
+    CREATE TYPE server_role AS ENUM ('owner', 'admin', 'member');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS server_members (
+    server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+    user_id   INT  NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+    role      server_role NOT NULL DEFAULT 'member',
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (server_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_server_members_user_id ON server_members(user_id);
+
+DO $$ BEGIN
+    CREATE TYPE join_request_status AS ENUM ('pending', 'approved', 'rejected');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS server_join_requests (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    server_id   UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+    user_id     INT  NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+    status      join_request_status NOT NULL DEFAULT 'pending',
+    message     TEXT,
+    reviewed_by INT REFERENCES users(id),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (server_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_join_requests_server_status ON server_join_requests(server_id, status);
+
+CREATE TABLE IF NOT EXISTS channels (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    server_id       UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+    conversation_id INT  NOT NULL UNIQUE REFERENCES conversations(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    is_default      BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (server_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_channels_server_id ON channels(server_id);
+
+-- Seed: Chatys default public server
+DO $$
+DECLARE
+    chatys_server_id UUID := '00000000-0000-0000-0000-000000000001';
+    chatys_conv_id   INT;
+BEGIN
+    INSERT INTO servers(id, name, description, is_public, created_by)
+    SELECT chatys_server_id, 'Chatys', 'The global Chatys community', TRUE, id
+    FROM users ORDER BY id LIMIT 1
+    ON CONFLICT DO NOTHING;
+
+    IF EXISTS (SELECT 1 FROM servers WHERE id = chatys_server_id) AND
+       NOT EXISTS (SELECT 1 FROM channels WHERE server_id = chatys_server_id) THEN
+
+        INSERT INTO conversations(type, is_group, created_at, updated_at)
+        VALUES ('room', TRUE, NOW(), NOW())
+        RETURNING id INTO chatys_conv_id;
+
+        UPDATE conversations SET server_id = chatys_server_id WHERE id = chatys_conv_id;
+
+        INSERT INTO channels(server_id, conversation_id, name, is_default)
+        VALUES (chatys_server_id, chatys_conv_id, 'general', TRUE);
+    END IF;
+END $$;

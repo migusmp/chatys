@@ -16,7 +16,7 @@ struct MemberRow {
     pub username: String,
     pub image: Option<String>,
     pub role_str: String,
-    pub joined_at: chrono::NaiveDateTime,
+    pub joined_at: chrono::DateTime<chrono::Utc>,
 }
 
 /// Intermediate row for list_pending_requests — maps the JOIN result.
@@ -27,7 +27,7 @@ struct JoinRequestRow {
     pub username: String,
     pub image: Option<String>,
     pub message: Option<String>,
-    pub created_at: chrono::NaiveDateTime,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 fn parse_role(role_str: &str) -> ServerRole {

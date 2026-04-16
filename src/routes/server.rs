@@ -12,6 +12,8 @@ pub fn server_router(pool: PgPool) -> Router {
     Router::new()
         // Server CRUD
         .route("/", get(list_servers_handler).post(create_server_handler))
+        // Friends' servers — must be before /{server_id} so Axum matches the literal first
+        .route("/friends", get(list_friends_servers_handler))
         .route(
             "/{server_id}",
             get(get_server_handler)

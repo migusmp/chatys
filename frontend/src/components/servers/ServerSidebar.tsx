@@ -52,7 +52,11 @@ function ServerIcon({ server, isActive, onClick }: ServerIconProps) {
 
 export default function ServerSidebar({ onCreateServer, onJoinServer }: Props) {
     const navigate = useNavigate();
-    const { servers, activeServer, setActiveServer, fetchChannels, channels } = useServerStore();
+    const servers       = useServerStore((s) => s.servers);
+    const activeServer  = useServerStore((s) => s.activeServer);
+    const channels      = useServerStore((s) => s.channels);
+    const setActiveServer = useServerStore((s) => s.setActiveServer);
+    const fetchChannels = useServerStore((s) => s.fetchChannels);
 
     const handleSelectServer = async (server: ServerSummary) => {
         // ServerSummary is a subset of Server; cast is safe here since the store

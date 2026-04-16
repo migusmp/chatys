@@ -1,0 +1,272 @@
+/* ============================================
+   ServersLanding.module.css — discovery screen
+   Shown when no server is selected in /servers
+   ============================================ */
+
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background-color: #000;
+    padding: 40px 32px;
+    gap: 32px;
+    scrollbar-width: thin;
+    scrollbar-color: #222 transparent;
+}
+
+.container::-webkit-scrollbar { width: 4px; }
+.container::-webkit-scrollbar-track { background: transparent; }
+.container::-webkit-scrollbar-thumb { background-color: #222; border-radius: 4px; }
+
+/* ---- Hero ---- */
+.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.heroTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.heroTitle span {
+    color: #0f6;
+}
+
+.heroSub {
+    font-size: 13px;
+    color: #555;
+    margin: 0;
+    max-width: 480px;
+    line-height: 1.5;
+}
+
+/* ---- Actions ---- */
+.actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btnPrimary {
+    padding: 8px 20px;
+    border-radius: 8px;
+    background-color: #0f6;
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    outline: none;
+}
+
+.btnPrimary:hover {
+    background-color: #0d5;
+}
+
+.btnSecondary {
+    padding: 8px 20px;
+    border-radius: 8px;
+    background-color: transparent;
+    color: #555;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #222;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    outline: none;
+}
+
+.btnSecondary:hover {
+    border-color: #444;
+    color: #ccc;
+}
+
+/* ---- Section heading ---- */
+.sectionHeading {
+    font-size: 10px;
+    font-weight: 700;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 12px;
+}
+
+/* ---- Server grid ---- */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+/* ---- Server card ---- */
+.card {
+    background-color: #060606;
+    border: 1px solid #1a1a1a;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s;
+}
+
+.card:hover {
+    border-color: #333;
+}
+
+.cardTop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cardAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background-color: #111;
+    border: 1px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.cardAvatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.cardAvatarLetter {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ccc;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.cardInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.cardName {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ddd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+.cardMembers {
+    font-size: 11px;
+    color: #0f6;
+    margin: 2px 0 0;
+}
+
+.cardDescription {
+    font-size: 12px;
+    color: #444;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+    flex: 1;
+}
+
+.cardJoinBtn {
+    width: 100%;
+    padding: 7px;
+    border-radius: 8px;
+    background-color: #0f6;
+    color: #000;
+    font-size: 12px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s, opacity 0.15s;
+    outline: none;
+}
+
+.cardJoinBtn:hover:not(:disabled) {
+    background-color: #0d5;
+}
+
+.cardJoinBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cardJoinedBtn {
+    width: 100%;
+    padding: 7px;
+    border-radius: 8px;
+    background-color: transparent;
+    color: #0f6;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(0, 255, 102, 0.3);
+    cursor: default;
+    text-align: center;
+}
+
+/* ---- Enter button (for already-joined servers) ---- */
+.cardEnterBtn {
+    width: 100%;
+    padding: 7px;
+    border-radius: 8px;
+    background-color: transparent;
+    color: #0f6;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(0, 255, 102, 0.25);
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+    outline: none;
+    text-align: center;
+}
+
+.cardEnterBtn:hover {
+    background-color: rgba(0, 255, 102, 0.06);
+    border-color: rgba(0, 255, 102, 0.5);
+}
+
+/* ---- Friends badge ---- */
+.cardFriends {
+    font-size: 11px;
+    color: #556;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Loading / empty states ---- */
+.loading {
+    color: #333;
+    font-size: 13px;
+    text-align: center;
+    padding: 32px 0;
+}
+
+.empty {
+    color: #333;
+    font-size: 13px;
+    text-align: center;
+    padding: 32px 0;
+}

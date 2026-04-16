@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import useServerStore from "../../stores/useServerStore";
-import type { ServerSummary } from "../../stores/useServerStore";
+import type { ServerSummary, Channel } from "../../stores/useServerStore";
 import styles from "../pages/chats/css/RoomList.module.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -13,10 +14,11 @@ interface Props {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function JoinServerModal({ open, onClose }: Props) {
-  const { servers, fetchServers } = useServerStore((s) => ({
-    servers: s.servers,
-    fetchServers: s.fetchServers,
-  }));
+  const navigate = useNavigate();
+  const fetchServers   = useServerStore((s) => s.fetchServers);
+  const setChannels    = useServerStore((s) => s.setChannels);
+  const setActiveServer = useServerStore((s) => s.setActiveServer);
+  const setActiveChannel = useServerStore((s) => s.setActiveChannel);
 
   const [publicServers, setPublicServers] = useState<ServerSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,8 @@ export default function JoinServerModal({ open, onClose }: Props) {
           return;
         }
 
-        const all: ServerSummary[] = await res.json();
+        const body = await res.json();
+        const all: ServerSummary[] = body.data ?? body;
         // Only show public servers the user hasn't joined yet
         setPublicServers(all.filter((s) => s.is_public && !s.member_role));
       } catch {
@@ -64,6 +67,8 @@ export default function JoinServerModal({ open, onClose }: Props) {
       const res = await fetch(`/api/servers/${serverId}/join`, {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
 
       if (res.status === 409) {
@@ -77,8 +82,25 @@ export default function JoinServerModal({ open, onClose }: Props) {
         return;
       }
 
+      // Parse response to navigate directly to the server's default channel
+      const responseBody = await res.json().catch(() => null);
+      const detail = responseBody?.data ?? null;
+
       setJoinedIds((prev) => new Set(prev).add(serverId));
       await fetchServers();
+
+      // Navigate to default channel if we have it in the response
+      if (detail) {
+        const channels: Channel[] = detail.channels ?? [];
+        setChannels(serverId, channels);
+        setActiveServer(detail);
+        const defaultChannel = channels.find((c: Channel) => c.is_default) ?? channels[0];
+        if (defaultChannel) {
+          setActiveChannel(defaultChannel);
+          navigate(`/servers/${serverId}/channels/${defaultChannel.id}`);
+          onClose();
+        }
+      }
     } catch {
       setError("Error de red al unirse al servidor.");
     } finally {
