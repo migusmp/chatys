@@ -105,6 +105,13 @@
     gap: 12px;
 }
 
+/* ---- Server cards grid (new styled cards) ---- */
+.serverCardsGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
 /* ---- Server card ---- */
 .card {
     background-color: #060606;

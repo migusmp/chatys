@@ -21,6 +21,9 @@ export default function SidebarMovile() {
                     <Link to="/chats" className={`mobile-sidebar__link ${isActive('/chats') ? 'active' : ''}`}>
                         <i className={`bi ${isActive('/chats') ? 'bi-chat-fill' : 'bi-chat'}`}></i>
                     </Link>
+                    <Link to="/servers" className={`mobile-sidebar__link ${isActive('/servers') ? 'active' : ''}`}>
+                        <i className={`bi ${isActive('/servers') ? 'bi-globe-fill' : 'bi-globe'}`}></i>
+                    </Link>
                     <Link to="/dm" className={`mobile-sidebar__link ${isActive('/dm') ? 'active' : ''}`}>
                         <div className="icon-with-badge">
                             <i className={`bi ${isActive('/dm') ? 'bi-send-fill' : 'bi-send'}`}></i>

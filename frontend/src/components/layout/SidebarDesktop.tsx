@@ -68,6 +68,10 @@ export default function SidebarDesktop() {
                             <i className={`bi ${isActive('/chats') ? 'bi-chat-fill' : 'bi-chat'}`}></i>
                             <span>{t("sidebar.chats")}</span>
                         </Link>
+                        <Link to="/servers" className={`link ${isActive('/servers') ? 'active' : ''}`}>
+                            <i className={`bi ${isActive('/servers') ? 'bi-globe-fill' : 'bi-globe'}`}></i>
+                            <span>{t("sidebar.servers")}</span>
+                        </Link>
                         <Link to="/dm" className={`link ${isActive('/dm') ? 'active' : ''}`}>
                             <div className="icon-with-badge">
                                 <i className={`bi ${isActive('/dm') ? 'bi-send-fill' : 'bi-send'}`}></i>

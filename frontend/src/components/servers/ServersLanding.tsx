@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useServerStore from "../../stores/useServerStore";
 import type { ServerSummary, Channel } from "../../stores/useServerStore";
 import styles from "./css/ServersLanding.module.css";
+import ServerCard from "./ServerCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,20 +20,6 @@ interface FriendServer {
 interface Props {
     onCreateServer: () => void;
     onJoinServer: () => void;
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function ServerAvatar({ name, image }: { name: string; image?: string }) {
-    return (
-        <div className={styles.cardAvatar}>
-            {image ? (
-                <img src={image} alt={name} />
-            ) : (
-                <span className={styles.cardAvatarLetter}>{name.charAt(0)}</span>
-            )}
-        </div>
-    );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -152,26 +139,6 @@ export default function ServersLanding({ onCreateServer, onJoinServer }: Props) 
     const friendServerIds = new Set(friendServers.map((s) => s.id));
     const discoveryServers = publicServers.filter((s) => !friendServerIds.has(s.id));
 
-    // ── Render helpers ────────────────────────────────────────────────────────
-
-    const renderJoinBtn = (server: ServerSummary | FriendServer) => {
-        const isJoining = joiningId === server.id;
-        const joined    = joinedIds.has(server.id);
-        if (joined) {
-            return <div className={styles.cardJoinedBtn}>Unido ✓</div>;
-        }
-        return (
-            <button
-                type="button"
-                className={styles.cardJoinBtn}
-                onClick={() => handleJoin(server)}
-                disabled={isJoining}
-            >
-                {isJoining ? "Uniéndose…" : "Unirse"}
-            </button>
-        );
-    };
-
     return (
         <div className={styles.container}>
             {/* Hero */}
@@ -200,28 +167,15 @@ export default function ServersLanding({ onCreateServer, onJoinServer }: Props) 
                     <p className={styles.sectionHeading}>Tus servidores</p>
                     <div className={styles.grid}>
                         {myServers.map((server) => (
-                            <div key={server.id} className={styles.card}>
-                                <div className={styles.cardTop}>
-                                    <ServerAvatar name={server.name} image={server.image} />
-                                    <div className={styles.cardInfo}>
-                                        <p className={styles.cardName}>{server.name}</p>
-                                        <p className={styles.cardMembers}>
-                                            {server.member_count}{" "}
-                                            {server.member_count === 1 ? "miembro" : "miembros"}
-                                        </p>
-                                    </div>
-                                </div>
-                                {server.description && (
-                                    <p className={styles.cardDescription}>{server.description}</p>
-                                )}
-                                <button
-                                    type="button"
-                                    className={styles.cardEnterBtn}
-                                    onClick={() => enterServer(server.id, server)}
-                                >
-                                    Entrar →
-                                </button>
-                            </div>
+                            <ServerCard
+                                key={server.id}
+                                name={server.name}
+                                memberCount={server.member_count}
+                                image={server.image}
+                                description={server.description}
+                                onClick={() => enterServer(server.id, server)}
+                                isEnter
+                            />
                         ))}
                     </div>
                 </section>
@@ -233,28 +187,21 @@ export default function ServersLanding({ onCreateServer, onJoinServer }: Props) 
                     <p className={styles.sectionHeading}>Servidores de tus amigos</p>
                     <div className={styles.grid}>
                         {friendServers.map((server) => (
-                            <div key={server.id} className={styles.card}>
-                                <div className={styles.cardTop}>
-                                    <ServerAvatar name={server.name} image={server.image} />
-                                    <div className={styles.cardInfo}>
-                                        <p className={styles.cardName}>{server.name}</p>
-                                        <p className={styles.cardMembers}>
-                                            {server.member_count}{" "}
-                                            {server.member_count === 1 ? "miembro" : "miembros"}
-                                        </p>
-                                    </div>
-                                </div>
-                                {server.description && (
-                                    <p className={styles.cardDescription}>{server.description}</p>
-                                )}
-                                <p className={styles.cardFriends}>
-                                    👥{" "}
-                                    {server.friends_in_server.slice(0, 3).join(", ")}
-                                    {server.friends_in_server.length > 3 &&
-                                        ` y ${server.friends_in_server.length - 3} más`}
-                                </p>
-                                {renderJoinBtn(server)}
-                            </div>
+                            <ServerCard
+                                key={server.id}
+                                name={server.name}
+                                memberCount={server.member_count}
+                                image={server.image}
+                                description={server.description}
+                                friendsInServer={server.friends_in_server}
+                                buttonText={joinedIds.has(server.id) ? "Unido ✓" : "Unirse"}
+                                onButtonClick={(e) => {
+                                    e.stopPropagation();
+                                    handleJoin(server);
+                                }}
+                                buttonDisabled={joiningId === server.id || joinedIds.has(server.id)}
+                                isJoined={joinedIds.has(server.id)}
+                            />
                         ))}
                     </div>
                 </section>
@@ -270,22 +217,20 @@ export default function ServersLanding({ onCreateServer, onJoinServer }: Props) 
                 {!loading && discoveryServers.length > 0 && (
                     <div className={styles.grid}>
                         {discoveryServers.map((server) => (
-                            <div key={server.id} className={styles.card}>
-                                <div className={styles.cardTop}>
-                                    <ServerAvatar name={server.name} image={server.image} />
-                                    <div className={styles.cardInfo}>
-                                        <p className={styles.cardName}>{server.name}</p>
-                                        <p className={styles.cardMembers}>
-                                            {server.member_count}{" "}
-                                            {server.member_count === 1 ? "miembro" : "miembros"}
-                                        </p>
-                                    </div>
-                                </div>
-                                {server.description && (
-                                    <p className={styles.cardDescription}>{server.description}</p>
-                                )}
-                                {renderJoinBtn(server)}
-                            </div>
+                            <ServerCard
+                                key={server.id}
+                                name={server.name}
+                                memberCount={server.member_count}
+                                image={server.image}
+                                description={server.description}
+                                buttonText={joinedIds.has(server.id) ? "Unido ✓" : "Unirse"}
+                                onButtonClick={(e) => {
+                                    e.stopPropagation();
+                                    handleJoin(server);
+                                }}
+                                buttonDisabled={joiningId === server.id || joinedIds.has(server.id)}
+                                isJoined={joinedIds.has(server.id)}
+                            />
                         ))}
                     </div>
                 )}

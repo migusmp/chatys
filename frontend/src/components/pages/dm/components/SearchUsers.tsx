@@ -89,7 +89,7 @@ export default function SearchUsers({ onResults }: Props) {
     };
 
     return (
-        <section className={styles.searchSection}>
+        <div className={styles.searchSection}>
             <input
                 type="text"
                 placeholder={t("dmRoomSearchUserPlaceholder")}
@@ -106,6 +106,6 @@ export default function SearchUsers({ onResults }: Props) {
                     ✕
                 </button>
             )}
-        </section>
+        </div>
     );
 }
