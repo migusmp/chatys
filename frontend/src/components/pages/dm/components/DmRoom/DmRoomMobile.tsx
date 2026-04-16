@@ -8,6 +8,7 @@ import type { ChatMessage } from "../../../../../types/chat_message";
 import { OnlineIndicator } from "../OnlineIndicator";
 import { ReadReceipt } from "./ReadReceipt";
 import BackButtonMobile from "../../../../bar_icons/BackButtonMobile";
+import { useNavigateTo } from "../../../../../hooks/useNavigateTo";
 
 // Minimum gap (ms) between outgoing typing events sent to the server.
 const TYPING_DEBOUNCE_MS = 2000;
@@ -34,6 +35,7 @@ function highlightMatch(text: string, term: string): React.ReactNode {
 
 export default function DmRoomMobile({ conversationData }: Props) {
   const { t } = useTranslation();
+  const { goTo } = useNavigateTo();
   const {
     allMessages,
     bottomRef,
@@ -259,7 +261,7 @@ export default function DmRoomMobile({ conversationData }: Props) {
       <header style={headerStyle}>
         <BackButtonMobile link="/dm" />
 
-        <div style={headerInfoStyle}>
+        <div style={headerInfoStyle} onClick={() => goTo(`/profile/${otherParticipant.username}`)}>
           <div style={avatarWrapperStyle}>
             <img
               src={`/media/user/${otherParticipant.image}`}

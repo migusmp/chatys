@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from "react-i18next";
 import EmojiPicker from "../../../../EmojiPicker";
 import MessageReactions from "../../../../MessageReactions";
@@ -9,6 +8,7 @@ import type { ChatMessage } from "../../../../../types/chat_message";
 import { OnlineIndicator } from "../OnlineIndicator";
 import { ReadReceipt } from "./ReadReceipt";
 import styles from "../../css/DmRoomDesktop.module.css";
+import { useNavigateTo } from "../../../../../hooks/useNavigateTo";
 
 // Minimum gap (ms) between outgoing typing events sent to the server.
 const TYPING_DEBOUNCE_MS = 2000;
@@ -35,7 +35,7 @@ function highlightMatch(text: string, term: string): React.ReactNode {
 
 export default function DmRoomDesktop({ conversationData }: Props) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { goTo } = useNavigateTo();
   const {
     allMessages,
     bottomRef,
@@ -214,16 +214,12 @@ export default function DmRoomDesktop({ conversationData }: Props) {
     return null;
   }
 
-  const handleUserProfileClick = () => {
-    navigate(`/profile/${otherParticipant.username}`);
-  }
-
   const showResultsPanel = searchOpen && searchQuery.trim().length > 0;
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.userInfo} onClick={handleUserProfileClick}>
+        <div className={styles.userInfo} onClick={() => goTo(`/profile/${otherParticipant.username}`)}>
           <div className={styles.avatarWrapper}>
             <img
               src={`/media/user/${otherParticipant.image}`}
