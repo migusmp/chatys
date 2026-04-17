@@ -1,0 +1,46 @@
+/* ─── ChannelView.module.css ─────────────────────────────────────────────── */
+
+/* Wrapper that adds hover context for the delete button */
+.msgRow {
+    position: relative;
+}
+
+/* Delete button: absolutely positioned at top-right corner of the bubble.
+   The bubble already has position: relative (from ChatRoom.module.css). */
+.deleteBtn {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+    background: #0d0d0d;
+    border: 1px solid #2a2a2a;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    color: #666;
+    z-index: 1;
+}
+
+.deleteBtn:hover {
+    color: #f00;
+    border-color: #500;
+    background: #1a0000;
+}
+
+.deleteBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.25 !important;
+}
+
+/* Show delete button when hovering the message row */
+.msgRow:hover .deleteBtn {
+    opacity: 1;
+}

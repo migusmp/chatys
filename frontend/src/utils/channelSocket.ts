@@ -4,11 +4,14 @@
 
 type ChannelMessageHandler<T = unknown> = (msg: T) => void;
 
-const sockets = new Map<string, WebSocket>();
-const listeners = new Map<string, EventListener>();
-const reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const openCallbacks = new Map<string, (() => void)[]>();
-const closeCallbacks = new Map<string, (() => void)[]>();
+const sockets          = new Map<string, WebSocket>();
+const listeners        = new Map<string, EventListener>();
+const reconnectTimers  = new Map<string, ReturnType<typeof setTimeout>>();
+const openCallbacks    = new Map<string, (() => void)[]>();
+const closeCallbacks   = new Map<string, (() => void)[]>();
+
+// Keys for sockets that were intentionally closed — suppress auto-reconnect.
+const intentionallyClosed = new Set<string>();
 
 const protocol = location.protocol === "https:" ? "wss" : "ws";
 
@@ -28,6 +31,9 @@ export function connectToChannel<T = unknown>(
     onClose?: () => void,
 ): WebSocket {
     const key = channelKey(serverId, channelId);
+
+    // A new explicit connect means it's no longer intentionally closed.
+    intentionallyClosed.delete(key);
 
     if (onOpen) {
         const existing = openCallbacks.get(key) ?? [];
@@ -59,6 +65,12 @@ export function connectToChannel<T = unknown>(
         });
 
         ws.addEventListener("close", () => {
+            // If this was an intentional close, do NOT reconnect.
+            if (intentionallyClosed.has(key)) {
+                intentionallyClosed.delete(key);
+                return;
+            }
+
             console.warn(
                 `[ChannelWS] Socket cerrado para canal "${channelId}" (servidor "${serverId}"), reintentando en 3s...`
             );
@@ -74,6 +86,10 @@ export function connectToChannel<T = unknown>(
 
         const timerId = setTimeout(() => {
             reconnectTimers.delete(key);
+
+            // Don't reconnect if intentionally closed while timer was pending.
+            if (intentionallyClosed.has(key)) return;
+
             console.log(`[ChannelWS] Reintentando conexión al canal "${channelId}"...`);
             const newSocket = createSocket();
             sockets.set(key, newSocket);
@@ -133,9 +149,18 @@ export function sendChannelMessage(serverId: string, channelId: string, content:
 
 /**
  * Disconnects from a channel and cleans up all associated state.
+ * Marks the close as intentional so the close-event handler does NOT
+ * schedule an automatic reconnect.
  */
 export function disconnectFromChannel(serverId: string, channelId: string): void {
     const key = channelKey(serverId, channelId);
+
+    // Cancel any pending reconnect first.
+    if (reconnectTimers.has(key)) {
+        clearTimeout(reconnectTimers.get(key)!);
+        reconnectTimers.delete(key);
+    }
+
     const socket = sockets.get(key);
     const listener = listeners.get(key);
 
@@ -144,13 +169,12 @@ export function disconnectFromChannel(serverId: string, channelId: string): void
             socket.removeEventListener("message", listener);
             listeners.delete(key);
         }
+
+        // Mark intentional BEFORE calling close so the close-event handler
+        // can check this flag synchronously in the same micro-task queue.
+        intentionallyClosed.add(key);
         socket.close();
         sockets.delete(key);
-    }
-
-    if (reconnectTimers.has(key)) {
-        clearTimeout(reconnectTimers.get(key)!);
-        reconnectTimers.delete(key);
     }
 
     openCallbacks.delete(key);

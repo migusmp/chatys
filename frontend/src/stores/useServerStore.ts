@@ -61,6 +61,14 @@ interface ServerStore {
   fetchServers: () => Promise<void>;
   fetchChannels: (serverId: string) => Promise<void>;
   fetchMembers: (serverId: string) => Promise<void>;
+
+  // Async admin actions
+  updateServerInfo: (serverId: string, data: { name?: string; description?: string; is_public?: boolean }) => Promise<void>;
+  updateServerImage: (serverId: string, file: File) => Promise<string | null>;
+  createChannel: (serverId: string, name: string) => Promise<Channel | null>;
+  renameChannelRemote: (serverId: string, channelId: string, name: string) => Promise<void>;
+  deleteChannelRemote: (serverId: string, channelId: string) => Promise<void>;
+  kickMember: (serverId: string, userId: number) => Promise<void>;
 }
 
 const useServerStore = create<ServerStore>((set) => ({
@@ -183,6 +191,121 @@ const useServerStore = create<ServerStore>((set) => ({
     } catch {
       // Non-critical: silently ignore network errors
     }
+  },
+
+  updateServerInfo: async (serverId, data) => {
+    const res = await fetch(`/api/servers/${serverId}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Failed to update server");
+    const body = await res.json();
+    const updated = body.data ?? body;
+    set((state) => ({
+      servers: state.servers.map((s) =>
+        s.id === serverId ? { ...s, ...updated } : s
+      ),
+      activeServer:
+        state.activeServer?.id === serverId
+          ? { ...state.activeServer, ...updated }
+          : state.activeServer,
+    }));
+  },
+
+  updateServerImage: async (serverId, file) => {
+    const form = new FormData();
+    form.append("image", file);
+    const res = await fetch(`/api/servers/${serverId}/image`, {
+      method: "PATCH",
+      credentials: "include",
+      body: form,
+    });
+    if (!res.ok) throw new Error("Failed to update server image");
+    const body = await res.json();
+    const imageUrl: string = body.data?.image ?? null;
+    if (imageUrl) {
+      set((state) => ({
+        servers: state.servers.map((s) =>
+          s.id === serverId ? { ...s, image: imageUrl } : s
+        ),
+        activeServer:
+          state.activeServer?.id === serverId
+            ? { ...state.activeServer, image: imageUrl }
+            : state.activeServer,
+      }));
+    }
+    return imageUrl;
+  },
+
+  createChannel: async (serverId, name) => {
+    const res = await fetch(`/api/servers/${serverId}/channels`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error("Failed to create channel");
+    const body = await res.json();
+    const channel: Channel = body.data ?? body;
+    set((state) => ({
+      channels: {
+        ...state.channels,
+        [serverId]: [...(state.channels[serverId] ?? []), channel],
+      },
+    }));
+    return channel;
+  },
+
+  renameChannelRemote: async (serverId, channelId, name) => {
+    const res = await fetch(`/api/servers/${serverId}/channels/${channelId}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error("Failed to rename channel");
+    const body = await res.json();
+    const updated: Channel = body.data ?? body;
+    set((state) => ({
+      channels: {
+        ...state.channels,
+        [serverId]: (state.channels[serverId] ?? []).map((c) =>
+          c.id === channelId ? { ...c, name: updated.name } : c
+        ),
+      },
+    }));
+  },
+
+  deleteChannelRemote: async (serverId, channelId) => {
+    const res = await fetch(`/api/servers/${serverId}/channels/${channelId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Failed to delete channel");
+    set((state) => ({
+      channels: {
+        ...state.channels,
+        [serverId]: (state.channels[serverId] ?? []).filter((c) => c.id !== channelId),
+      },
+      activeChannel:
+        state.activeChannel?.id === channelId ? null : state.activeChannel,
+    }));
+  },
+
+  kickMember: async (serverId, userId) => {
+    const res = await fetch(`/api/servers/${serverId}/members/${userId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Failed to kick member");
+    set((state) => ({
+      members: {
+        ...state.members,
+        [serverId]: (state.members[serverId] ?? []).filter((m) => m.user_id !== userId),
+      },
+    }));
   },
 }));
 

@@ -11,6 +11,13 @@
     background-color: #000;
 }
 
+@media (max-width: 768px) {
+    .container {
+        /* 65px header mobile + 60px bottom nav */
+        height: calc(100svh - 65px - 60px);
+    }
+}
+
 /* ---- Header ---- */
 .header {
     display: flex;
@@ -21,6 +28,9 @@
     background-color: #000;
     flex-shrink: 0;
     gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .headerLeft {
@@ -348,6 +358,9 @@
     flex-shrink: 0;
     border-top: 1px solid #1a1a1a;
     background-color: #000;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 
 /* ---- Input bar ---- */

@@ -3,16 +3,16 @@
    ============================================ */
 
 .rail {
-    width: 60px;
+    width: 64px;
     flex-shrink: 0;
-    background-color: #000;
+    background: #050505;
     height: 100vh;
-    border-right: 1px solid #1e1e1e;
+    border-right: 1px solid #151515;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 0;
-    gap: 4px;
+    padding: 12px 0;
+    gap: 6px;
     overflow-y: auto;
     scrollbar-width: none;
 }
@@ -23,9 +23,9 @@
 
 /* ---- Divider ---- */
 .divider {
-    width: 32px;
+    width: 36px;
     height: 1px;
-    background-color: #222;
+    background: linear-gradient(90deg, transparent, #222, transparent);
     margin: 4px 0;
     flex-shrink: 0;
 }
@@ -33,47 +33,64 @@
 /* ---- Server icon button ---- */
 .serverBtn {
     position: relative;
-    width: 44px;
-    height: 44px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
-    background-color: #111;
+    background: #111;
     border: 2px solid transparent;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    overflow: hidden;
-    transition: border-radius 0.2s, border-color 0.2s, background-color 0.2s;
+    overflow: visible;
+    transition: border-radius 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.2s,
+                background-color 0.2s;
     outline: none;
     padding: 0;
 }
 
+/* Inner image clipped separately */
+.serverBtn > .serverImg,
+.serverBtn > .serverLetter {
+    border-radius: inherit;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .serverBtn:hover {
     border-radius: 14px;
-    background-color: #1a1a1a;
+    background: #1a1a1a;
+    border-color: #2a2a2a;
 }
 
 .serverBtnActive {
     border-radius: 14px;
     border-color: #0f6;
-    background-color: rgba(0, 255, 102, 0.06);
+    background: rgba(0, 255, 102, 0.06);
+    box-shadow: 0 0 12px rgba(0, 255, 102, 0.12);
 }
 
 .serverBtnActive:hover {
     border-color: #0f6;
 }
 
-/* Active indicator pill on the left */
+/* Active indicator pill — left edge */
 .activeIndicator {
     position: absolute;
-    left: -12px;
+    left: -13px;
     top: 50%;
     transform: translateY(-50%);
     width: 4px;
-    height: 20px;
-    background-color: #0f6;
+    height: 24px;
+    background: linear-gradient(180deg, #0f6, #00cc55);
     border-radius: 0 3px 3px 0;
+    box-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
 }
 
 /* ---- Server icon image / letter ---- */
@@ -82,40 +99,54 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    border-radius: 12px;
 }
 
 .serverLetter {
-    font-size: 16px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
     font-weight: 700;
-    color: #ccc;
+    color: #666;
     text-transform: uppercase;
     line-height: 1;
     user-select: none;
+    border-radius: 12px;
+    background: #111;
+    transition: color 0.2s;
 }
 
 .serverBtnActive .serverLetter {
     color: #0f6;
+    background: rgba(0, 255, 102, 0.06);
+}
+
+.serverBtn:hover .serverLetter {
+    color: #aaa;
 }
 
 /* ---- Tooltip ---- */
 .tooltip {
     position: absolute;
-    left: calc(100% + 10px);
+    left: calc(100% + 12px);
     top: 50%;
     transform: translateY(-50%);
-    background-color: #1a1a1a;
-    color: #fff;
+    background: #111;
+    color: #eee;
     font-size: 12px;
     font-weight: 600;
-    padding: 5px 10px;
+    padding: 6px 12px;
     border-radius: 8px;
-    border: 1px solid #333;
+    border: 1px solid #222;
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.15s, transform 0.15s;
     z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 .tooltip::before {
@@ -125,42 +156,45 @@
     top: 50%;
     transform: translateY(-50%);
     border: 5px solid transparent;
-    border-right-color: #333;
+    border-right-color: #222;
 }
 
 .serverBtn:hover .tooltip,
-.serverBtn:focus .tooltip {
+.serverBtn:focus-visible .tooltip {
     opacity: 1;
 }
 
 /* ---- Action buttons (+ and compass) ---- */
 .actionBtn {
-    width: 44px;
-    height: 44px;
+    position: relative;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
-    background-color: #111;
-    border: 1px dashed #333;
+    background: #0e0e0e;
+    border: 1px dashed #2a2a2a;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #555;
+    color: #444;
     font-size: 18px;
-    transition: border-radius 0.2s, border-color 0.2s, color 0.2s, background-color 0.2s;
+    transition: border-radius 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.2s,
+                color 0.2s,
+                background-color 0.2s;
     outline: none;
-    position: relative;
 }
 
 .actionBtn:hover {
     border-radius: 14px;
     border-color: #0f6;
-    color: #0f6;
-    background-color: rgba(0, 255, 102, 0.06);
     border-style: solid;
+    color: #0f6;
+    background: rgba(0, 255, 102, 0.06);
 }
 
-.actionBtn:focus .tooltip,
+.actionBtn:focus-visible .tooltip,
 .actionBtn:hover .tooltip {
     opacity: 1;
 }

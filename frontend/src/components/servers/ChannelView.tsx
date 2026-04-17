@@ -3,6 +3,8 @@ import { useChannelSocket, type ChannelMessage } from "../../hooks/useChannelSoc
 import useServerStore from "../../stores/useServerStore";
 import { useUserProfileContext } from "../../context/UserContext";
 import chatStyles from "../pages/chats/css/ChatRoom.module.css";
+import dmStyles from "../pages/dm/css/DmRoomDesktop.module.css";
+import styles from "./css/ChannelView.module.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,7 @@ interface DisplayMessage {
     image?: string;
     content: string;
     created_at: string | null;
+    is_deleted?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -34,7 +37,11 @@ function formatTime(isoString?: string | null): string {
 
 // ─── ChannelView ──────────────────────────────────────────────────────────────
 
-export default function ChannelView() {
+interface ChannelViewProps {
+    onBack?: () => void;
+}
+
+export default function ChannelView({ onBack }: ChannelViewProps = {}) {
     const { user } = useUserProfileContext();
     const activeServer  = useServerStore((s) => s.activeServer);
     const activeChannel = useServerStore((s) => s.activeChannel);
@@ -44,19 +51,22 @@ export default function ChannelView() {
     const [messages, setMessages] = useState<DisplayMessage[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [inputValue, setInputValue] = useState("");
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
     const chatAreaRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const prevMessageCountRef = useRef(0);
 
-    // ── Member lookup (for resolving sender_id → username in history) ─────────
+    // ── Member lookup ─────────────────────────────────────────────────────────
     const serverMembers = activeServer ? (members[activeServer.id] ?? []) : [];
+
+    const isAdmin = activeServer?.member_role === "owner" || activeServer?.member_role === "admin";
 
     useEffect(() => {
         if (activeServer && serverMembers.length === 0) {
             fetchMembers(activeServer.id);
         }
-    }, [activeServer?.id]);
+    }, [activeServer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     function resolveMember(senderId: number): { username: string; image?: string } {
         const member = serverMembers.find((m) => m.user_id === senderId);
@@ -66,10 +76,9 @@ export default function ChannelView() {
         };
     }
 
-    // ── Fetch message history on channel change ───────────────────────────────
+    // ── Fetch history on channel change ───────────────────────────────────────
     useEffect(() => {
         if (!activeChannel) {
-            // Avoid extra re-render when messages is already empty
             setMessages((prev) => (prev.length > 0 ? [] : prev));
             return;
         }
@@ -87,7 +96,6 @@ export default function ChannelView() {
                 if (!res.ok) return;
                 const history: HistoryMessage[] = await res.json();
 
-                // History comes newest-first from the backend — reverse for display
                 const display: DisplayMessage[] = history.reverse().map((m) => {
                     const { username, image } = resolveMember(m.sender_id);
                     return {
@@ -111,7 +119,7 @@ export default function ChannelView() {
 
         load();
         return () => controller.abort();
-    }, [activeChannel?.id]);
+    }, [activeChannel?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Real-time WebSocket messages ──────────────────────────────────────────
     const handleIncoming = (msg: ChannelMessage) => {
@@ -134,7 +142,7 @@ export default function ChannelView() {
         handleIncoming,
     );
 
-    // ── Auto-scroll on new messages ───────────────────────────────────────────
+    // ── Auto-scroll ───────────────────────────────────────────────────────────
     useEffect(() => {
         const el = chatAreaRef.current;
         if (!el) return;
@@ -144,13 +152,28 @@ export default function ChannelView() {
 
         if (newCount > prevCount) {
             const addedAtEnd = newCount - prevCount === 1 || prevCount === 0;
-            if (addedAtEnd) {
-                el.scrollTop = el.scrollHeight;
-            }
+            if (addedAtEnd) el.scrollTop = el.scrollHeight;
         }
 
         prevMessageCountRef.current = newCount;
     }, [messages]);
+
+    // ── Delete message ────────────────────────────────────────────────────────
+    const handleDeleteMessage = async (messageId: number) => {
+        if (!activeServer || !activeChannel) return;
+        setDeletingId(messageId);
+        try {
+            const res = await fetch(
+                `/api/servers/${activeServer.id}/channels/${activeChannel.id}/messages/${messageId}`,
+                { method: "DELETE", credentials: "include" },
+            );
+            if (res.ok) {
+                setMessages((prev) => prev.filter((m) => m.id !== messageId));
+            }
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     // ── Input handlers ────────────────────────────────────────────────────────
     const handleSend = () => {
@@ -175,7 +198,7 @@ export default function ChannelView() {
                 <div className={chatStyles.noRoomHero}>#</div>
                 <h2 className={chatStyles.noRoomTitle}>Canales</h2>
                 <p className={chatStyles.noRoomSubtitle}>
-                    Select a channel to start chatting
+                    Seleccioná un canal para empezar a chatear
                 </p>
             </div>
         );
@@ -186,6 +209,16 @@ export default function ChannelView() {
             {/* Header */}
             <div className={chatStyles.header}>
                 <div className={chatStyles.headerLeft}>
+                    {onBack && (
+                        <button
+                            type="button"
+                            className={chatStyles.backBtn}
+                            onClick={onBack}
+                            aria-label="Volver"
+                        >
+                            ‹
+                        </button>
+                    )}
                     <span className={chatStyles.roomHash}>#</span>
                     <span className={chatStyles.roomName}>{activeChannel.name}</span>
                 </div>
@@ -197,7 +230,7 @@ export default function ChannelView() {
             </div>
 
             {/* Messages */}
-            <div className={chatStyles.chatArea} ref={chatAreaRef}>
+            <div className={dmStyles.chatArea} ref={chatAreaRef}>
                 {isLoadingHistory && (
                     <div className={chatStyles.historyLoading}>
                         <span className={chatStyles.historyLoadingDot} />
@@ -209,38 +242,49 @@ export default function ChannelView() {
                 {messages.length === 0 && !isLoadingHistory && (
                     <div className={chatStyles.emptyChatState}>
                         <span className={chatStyles.emptyChatIcon}>💬</span>
-                        <span>No messages yet. Be the first to say something!</span>
+                        <span>No hay mensajes aún. ¡Sé el primero!</span>
                     </div>
                 )}
 
                 {messages.map((msg, index) => {
                     const isOwn = msg.sender_id === user?.id;
+                    const canDelete = isAdmin || isOwn;
                     const msgKey = msg.id ?? index;
 
                     return (
                         <div
                             key={msgKey}
-                            className={`${chatStyles.messageGroup} ${
-                                isOwn ? chatStyles.messageGroupOwn : chatStyles.messageGroupOther
-                            }`}
+                            className={`${dmStyles.messageBubble} ${
+                                isOwn ? dmStyles.ownMessage : dmStyles.otherMessage
+                            } ${styles.msgRow}`}
+                            style={{ position: "relative" }}
                         >
-                            {!isOwn && (
-                                <span className={chatStyles.messageSender}>{msg.username}</span>
-                            )}
-                            <div
-                                className={`${chatStyles.bubble} ${
-                                    isOwn ? chatStyles.bubbleOwn : chatStyles.bubbleOther
-                                }`}
-                            >
-                                {msg.content}
-                                <span
-                                    className={`${chatStyles.bubbleTimestamp} ${
-                                        !isOwn ? chatStyles.bubbleTimestampOther : ""
-                                    }`}
-                                >
-                                    {formatTime(msg.created_at)}
-                                </span>
+                            <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+                                {!isOwn && (
+                                    <span className={chatStyles.messageSender}>{msg.username}</span>
+                                )}
+                                <div className={dmStyles.messageRow}>
+                                    <span className={dmStyles.messageText}>{msg.content}</span>
+                                    <span className={dmStyles.messageTime}>
+                                        {formatTime(msg.created_at)}
+                                    </span>
+                                </div>
                             </div>
+
+                            {canDelete && (
+                                <button
+                                    type="button"
+                                    className={styles.deleteBtn}
+                                    title="Eliminar mensaje"
+                                    disabled={deletingId === msg.id}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteMessage(msg.id);
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            )}
                         </div>
                     );
                 })}
@@ -258,8 +302,8 @@ export default function ChannelView() {
                             onKeyDown={handleKeyDown}
                             placeholder={
                                 connected
-                                    ? `Message #${activeChannel.name}…`
-                                    : "Reconnecting…"
+                                    ? `Mensaje #${activeChannel.name}…`
+                                    : "Reconectando…"
                             }
                             disabled={!connected}
                             maxLength={2000}
@@ -269,7 +313,7 @@ export default function ChannelView() {
                         className={chatStyles.sendBtn}
                         onClick={handleSend}
                         disabled={!connected || !inputValue.trim()}
-                        aria-label="Send message"
+                        aria-label="Enviar"
                         type="button"
                     >
                         ↑

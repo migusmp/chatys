@@ -43,6 +43,8 @@ pub fn server_router(pool: PgPool) -> Router {
             "/{server_id}/requests/{request_id}",
             patch(decide_join_request_handler),
         )
+        // Server image
+        .route("/{server_id}/image", patch(update_server_image_handler))
         // Channels
         .route(
             "/{server_id}/channels",
@@ -51,6 +53,10 @@ pub fn server_router(pool: PgPool) -> Router {
         .route(
             "/{server_id}/channels/{channel_id}",
             patch(rename_channel_handler).delete(delete_channel_handler),
+        )
+        .route(
+            "/{server_id}/channels/{channel_id}/messages/{message_id}",
+            delete(delete_channel_message_handler),
         )
         // Auth + state
         .layer(from_fn(auth))

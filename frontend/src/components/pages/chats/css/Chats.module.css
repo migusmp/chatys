@@ -23,4 +23,8 @@
     .desktopOnly {
         display: none;
     }
+    .layout {
+        height: calc(100svh - 65px - 60px);
+        overflow: hidden;
+    }
 }

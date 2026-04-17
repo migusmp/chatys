@@ -1,0 +1,461 @@
+/* ============================================================
+   ServerAdminModal.module.css
+   ============================================================ */
+
+/* ---- Overlay ---- */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(2px);
+}
+
+/* ---- Modal container ---- */
+.modal {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 12px;
+    width: 520px;
+    max-width: 96vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+}
+
+/* ---- Header ---- */
+.header {
+    padding: 20px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.closeBtn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: #555;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background-color 0.15s;
+    outline: none;
+    line-height: 1;
+}
+
+.closeBtn:hover {
+    color: #ccc;
+    background: #1a1a1a;
+}
+
+/* ---- Tabs ---- */
+.tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 24px 0;
+    border-bottom: 1px solid #1a1a1a;
+    flex-shrink: 0;
+}
+
+.tab {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: #555;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s;
+    outline: none;
+}
+
+.tab:hover {
+    color: #aaa;
+}
+
+.tabActive {
+    color: #0f6;
+    border-bottom-color: #0f6;
+}
+
+/* ---- Body ---- */
+.body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: #222 transparent;
+}
+
+.body::-webkit-scrollbar { width: 4px; }
+.body::-webkit-scrollbar-track { background: transparent; }
+.body::-webkit-scrollbar-thumb { background-color: #222; border-radius: 4px; }
+
+/* ---- Form fields ---- */
+.field {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.input,
+.textarea {
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+    resize: none;
+}
+
+.input:focus,
+.textarea:focus {
+    border-color: #0f6;
+}
+
+.textarea {
+    min-height: 80px;
+}
+
+/* ---- Toggle row ---- */
+.toggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 8px;
+}
+
+.toggleLabel {
+    font-size: 13px;
+    color: #aaa;
+}
+
+.toggle {
+    width: 38px;
+    height: 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+}
+
+.toggleOn {
+    background: #0f6;
+}
+
+.toggleOn::after {
+    transform: translateX(18px);
+}
+
+.toggleOff {
+    background: #333;
+}
+
+/* ---- Image upload ---- */
+.imageSection {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.imagePreview {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+    object-fit: cover;
+    border: 2px solid #222;
+    flex-shrink: 0;
+}
+
+.imagePlaceholder {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+    background: #111;
+    border: 2px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #444;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.imageUploadBtn {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.uploadBtn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #ccc;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    outline: none;
+}
+
+.uploadBtn:hover {
+    border-color: #0f6;
+    color: #0f6;
+}
+
+.uploadHint {
+    font-size: 11px;
+    color: #444;
+}
+
+/* ---- Save button ---- */
+.saveBtn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    background: #0f6;
+    border: none;
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s, opacity 0.15s;
+    outline: none;
+    margin-top: 8px;
+}
+
+.saveBtn:hover {
+    background: #00e05a;
+}
+
+.saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ---- Error / success messages ---- */
+.message {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+.messageError {
+    background: rgba(255, 60, 60, 0.1);
+    border: 1px solid rgba(255, 60, 60, 0.3);
+    color: #ff6060;
+}
+
+.messageSuccess {
+    background: rgba(0, 255, 102, 0.08);
+    border: 1px solid rgba(0, 255, 102, 0.25);
+    color: #0f6;
+}
+
+/* ─── Channels tab ──────────────────────────────────────────── */
+
+.channelRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #111;
+    border: 1px solid #1a1a1a;
+    margin-bottom: 6px;
+}
+
+.channelRowDefault {
+    border-color: rgba(0, 255, 102, 0.15);
+}
+
+.channelHash {
+    color: #444;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.channelRowName {
+    flex: 1;
+    font-size: 13px;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.channelDefaultBadge {
+    font-size: 10px;
+    font-weight: 700;
+    color: #0f6;
+    background: rgba(0, 255, 102, 0.1);
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.channelRowActions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.iconBtn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: #444;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background-color 0.15s;
+    outline: none;
+}
+
+.iconBtn:hover {
+    color: #ccc;
+    background: #1a1a1a;
+}
+
+.iconBtnDanger:hover {
+    color: #ff6060;
+    background: rgba(255, 60, 60, 0.08);
+}
+
+/* ---- Add channel row ---- */
+.addChannelRow {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    align-items: center;
+}
+
+.addChannelInput {
+    flex: 1;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+}
+
+.addChannelInput:focus {
+    border-color: #0f6;
+}
+
+.addChannelInput::placeholder {
+    color: #333;
+}
+
+.addBtn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: #0f6;
+    border: none;
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s, opacity 0.15s;
+    outline: none;
+    white-space: nowrap;
+}
+
+.addBtn:hover {
+    background: #00e05a;
+}
+
+.addBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ---- Inline rename input ---- */
+.renameInput {
+    flex: 1;
+    background: #0d0d0d;
+    border: 1px solid #0f6;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 13px;
+    padding: 4px 8px;
+    outline: none;
+    font-family: inherit;
+}
+
+.sectionTitle {
+    font-size: 11px;
+    font-weight: 700;
+    color: #444;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+}

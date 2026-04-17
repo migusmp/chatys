@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useParams } from 'react-router-dom'
+import {NavLink, Outlet, useParams } from 'react-router-dom'
 
 import styles from '../../../styles/modules/Profile.module.css'
 
@@ -9,10 +9,12 @@ import type { ProfileData } from '../../../types/user';
 import { useUserProfileContext } from '../../../context/UserContext';
 import i18n from '../../../i18n';
 import EditProfileModal from './components/EditProfileModal';
+import { useNavigateTo } from '../../../hooks/useNavigateTo';
 
 export default function Profile() {
     const { username } = useParams();
     const { user } = useUserProfileContext();
+    const { goBack } = useNavigateTo();
 
     let data;
 
@@ -73,6 +75,12 @@ export default function Profile() {
             <div className={styles.page}>
                 {/* Aurora background blob */}
                 <div className={styles.auroraBlob} aria-hidden="true" />
+
+                <div>
+                    <button className={styles.backButton} onClick={goBack}>
+                        <i className="bi bi-arrow-left" onClick={goBack} />
+                    </button>
+                </div>
 
                 {/* Hero card */}
                 <div className={styles.heroWrap}>

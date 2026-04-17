@@ -156,6 +156,50 @@ pub async fn delete_channel(
     Ok(())
 }
 
+/// Soft-deletes a message in a channel.
+///
+/// Admins/owners can delete any message. Regular members can only delete their own.
+/// Returns `true` if a row was updated, `false` if not found or not authorized.
+pub async fn delete_channel_message(
+    channel_id: Uuid,
+    server_id: Uuid,
+    message_id: i32,
+    caller_id: i32,
+    is_admin: bool,
+    pool: &PgPool,
+) -> Result<bool, AppError> {
+    // Verify channel belongs to server
+    let channel = sqlx::query_as::<_, Channel>(
+        "SELECT id, server_id, conversation_id, name, is_default, created_at FROM channels WHERE id = $1 AND server_id = $2",
+    )
+    .bind(channel_id)
+    .bind(server_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(AppError::UserNotFound)?;
+
+    let result = if is_admin {
+        sqlx::query(
+            "UPDATE messages SET is_deleted = true, content = '' WHERE id = $1 AND conversation_id = $2 AND is_deleted = false",
+        )
+        .bind(message_id)
+        .bind(channel.conversation_id)
+        .execute(pool)
+        .await?
+    } else {
+        sqlx::query(
+            "UPDATE messages SET is_deleted = true, content = '' WHERE id = $1 AND conversation_id = $2 AND sender_id = $3 AND is_deleted = false",
+        )
+        .bind(message_id)
+        .bind(channel.conversation_id)
+        .bind(caller_id)
+        .execute(pool)
+        .await?
+    };
+
+    Ok(result.rows_affected() > 0)
+}
+
 /// Returns the total number of channels in a server.
 pub async fn count_channels(server_id: Uuid, pool: &PgPool) -> Result<i64, AppError> {
     let count: i64 =

@@ -26,19 +26,20 @@ function ServerIcon({ server, isActive, onClick }: ServerIconProps) {
             onClick={onClick}
             aria-label={server.name}
             aria-pressed={isActive}
+            style={{ overflow: "hidden" }}
         >
             {isActive && <span className={styles.activeIndicator} aria-hidden="true" />}
 
             {server.image ? (
                 <img
-                    src={server.image}
+                    src={server.image.startsWith("/") ? server.image : `/media/servers/${server.image}`}
                     alt={server.name}
                     className={styles.serverImg}
                 />
             ) : (
-                <span className={styles.serverLetter}>
+                <div className={styles.serverLetter}>
                     {server.name.charAt(0)}
-                </span>
+                </div>
             )}
 
             <span className={styles.tooltip} role="tooltip">

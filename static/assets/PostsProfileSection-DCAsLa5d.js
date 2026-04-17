@@ -1,1 +1,0 @@
-import{f as t,j as o}from"./index-fe8CJmO1.js";const e="_body_uik04_1",i={body:e};function r(){const{t:s}=t();return o.jsxs("section",{className:i.body,children:[o.jsx("h2",{children:s("profile.postsSection.noPublications")}),o.jsx("i",{className:"bi bi-camera",style:{fontSize:"3rem",color:"#00ff66",marginTop:"1rem",opacity:.6}})]})}export{r as default};

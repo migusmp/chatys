@@ -10,7 +10,8 @@ use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 use crate::db::channels::{
-    count_channels, create_channel, delete_channel, get_channel, list_channels, rename_channel,
+    count_channels, create_channel, delete_channel, delete_channel_message, get_channel,
+    list_channels, rename_channel,
 };
 use crate::db::server_members::{
     add_member, create_join_request, decide_join_request, get_existing_request, get_join_request_by_id,
@@ -768,6 +769,112 @@ pub async fn rename_channel_handler(
     let updated = rename_channel(channel_id, server_id, &name, &pool).await?;
 
     Ok((StatusCode::OK, ApiResponse::success_with_data("Channel renamed", Some(updated))))
+}
+
+/// `PATCH /api/servers/:server_id/image`
+///
+/// Replaces the server's profile image. Caller must be admin or owner.
+/// Accepts multipart with a single `image` field (JPEG, PNG, GIF, WebP ≤ 5 MB).
+pub async fn update_server_image_handler(
+    Extension(payload): Extension<Payload>,
+    Extension(pool): Extension<PgPool>,
+    Path(server_id): Path<Uuid>,
+    mut multipart: Multipart,
+) -> Result<impl IntoResponse, AppError> {
+    require_role(server_id, payload.id, "admin", &pool).await?;
+
+    let mut image_filename: Option<String> = None;
+
+    while let Some(mut field) = multipart.next_field().await.map_err(|_| AppError::InternalError)? {
+        let field_name = field.name().unwrap_or("").to_string();
+        if field_name != "image" {
+            while field.chunk().await.map_err(|_| AppError::InternalError)?.is_some() {}
+            continue;
+        }
+
+        let content_type = field
+            .content_type()
+            .unwrap_or("application/octet-stream")
+            .to_string();
+
+        if !content_type.starts_with("image/") {
+            return Err(AppError::InvalidImageFormat);
+        }
+
+        let file_extension = content_type
+            .split('/')
+            .last()
+            .ok_or(AppError::InvalidImageFormat)?
+            .to_string();
+
+        let filename = format!("{}.{}", Uuid::new_v4(), file_extension);
+        let path = format!("./uploads/servers/{}", filename);
+
+        let first_chunk = field.chunk().await.map_err(|_| AppError::InternalError)?;
+        let Some(first_chunk) = first_chunk else {
+            return Err(AppError::InvalidImageFormat);
+        };
+
+        if let Some(kind) = infer::get(&first_chunk) {
+            if !kind.mime_type().starts_with("image/") {
+                return Err(AppError::InvalidImageFormat);
+            }
+        } else {
+            return Err(AppError::InvalidImageFormat);
+        }
+
+        fs::create_dir_all("./uploads/servers").await.map_err(|_| AppError::InternalError)?;
+
+        let mut file = fs::File::create(&path).await.map_err(|_| AppError::InternalError)?;
+        let mut total_size: u64 = first_chunk.len() as u64;
+        file.write_all(&first_chunk).await.map_err(|_| AppError::InternalError)?;
+
+        while let Some(chunk) = field.chunk().await.map_err(|_| AppError::InternalError)? {
+            total_size += chunk.len() as u64;
+            if total_size > MAX_CONTENT_LENGTH {
+                let _ = fs::remove_file(&path).await;
+                return Err(AppError::FileTooLarge);
+            }
+            file.write_all(&chunk).await.map_err(|_| AppError::InternalError)?;
+        }
+
+        image_filename = Some(filename);
+        break;
+    }
+
+    let filename = image_filename.ok_or(AppError::BadParameter)?;
+    update_server_image(server_id, &filename, &pool).await?;
+
+    let image_url = format!("/media/servers/{}", filename);
+
+    Ok(ApiResponse::success_with_data(
+        "Server image updated",
+        Some(serde_json::json!({ "image": image_url })),
+    ))
+}
+
+/// `DELETE /api/servers/:server_id/channels/:channel_id/messages/:message_id`
+///
+/// Soft-deletes a channel message. Admins/owners can delete any message;
+/// regular members can only delete their own.
+pub async fn delete_channel_message_handler(
+    Extension(payload): Extension<Payload>,
+    Extension(pool): Extension<PgPool>,
+    Path((server_id, channel_id, message_id)): Path<(Uuid, Uuid, i32)>,
+) -> Result<impl IntoResponse, AppError> {
+    let member = get_member(server_id, payload.id, &pool)
+        .await?
+        .ok_or(AppError::Unauthorized)?;
+
+    let is_admin = matches!(member.role, ServerRole::Owner | ServerRole::Admin);
+
+    let deleted = delete_channel_message(channel_id, server_id, message_id, payload.id, is_admin, &pool).await?;
+
+    if !deleted {
+        return Err(AppError::Unauthorized);
+    }
+
+    Ok(ApiResponse::success("Message deleted"))
 }
 
 /// `DELETE /api/servers/:server_id/channels/:channel_id`

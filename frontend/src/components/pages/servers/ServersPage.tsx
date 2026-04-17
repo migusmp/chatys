@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import ServerSidebar from "../../servers/ServerSidebar";
 import ChannelList from "../../servers/ChannelList";
 import ChannelView from "../../servers/ChannelView";
+import ServerMembersSidebar from "../../servers/ServerMembersSidebar";
 import ServersLanding from "../../servers/ServersLanding";
 import CreateServerModal from "../../servers/CreateServerModal";
 import JoinServerModal from "../../servers/JoinServerModal";
 import useServerStore from "../../../stores/useServerStore";
+import useIsMobile from "../../../hooks/useIsMobile";
 import styles from "../chats/css/Chats.module.css";
 
 export default function ServersPage() {
@@ -14,6 +16,8 @@ export default function ServersPage() {
     const [joinOpen, setJoinOpen] = useState(false);
 
     const { serverId, channelId } = useParams<{ serverId: string; channelId: string }>();
+    const navigate = useNavigate();
+    const isMobile = useIsMobile();
 
     const activeServer = useServerStore((s) => s.activeServer);
 
@@ -71,6 +75,49 @@ export default function ServersPage() {
         return () => { cancelled = true; };
     }, [serverId, channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const modals = (
+        <>
+            <CreateServerModal open={createOpen} onClose={() => setCreateOpen(false)} />
+            <JoinServerModal open={joinOpen} onClose={() => setJoinOpen(false)} />
+        </>
+    );
+
+    // ── Mobile layout: one panel at a time ────────────────────────────────────
+    if (isMobile) {
+        if (activeServer && channelId) {
+            return (
+                <div className={styles.layout}>
+                    <ChannelView onBack={() => navigate(`/servers/${serverId}`)} />
+                    {modals}
+                </div>
+            );
+        }
+
+        if (activeServer) {
+            return (
+                <div className={styles.layout}>
+                    <ChannelList onBack={() => navigate("/servers")} />
+                    {modals}
+                </div>
+            );
+        }
+
+        return (
+            <div className={styles.layout}>
+                <ServerSidebar
+                    onCreateServer={() => setCreateOpen(true)}
+                    onJoinServer={() => setJoinOpen(true)}
+                />
+                <ServersLanding
+                    onCreateServer={() => setCreateOpen(true)}
+                    onJoinServer={() => setJoinOpen(true)}
+                />
+                {modals}
+            </div>
+        );
+    }
+
+    // ── Desktop layout ────────────────────────────────────────────────────────
     return (
         <div className={styles.layout}>
             <ServerSidebar
@@ -84,6 +131,7 @@ export default function ServersPage() {
                     <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
                         <ChannelView />
                     </div>
+                    <ServerMembersSidebar />
                 </>
             ) : (
                 <ServersLanding
@@ -92,8 +140,7 @@ export default function ServersPage() {
                 />
             )}
 
-            <CreateServerModal open={createOpen} onClose={() => setCreateOpen(false)} />
-            <JoinServerModal open={joinOpen} onClose={() => setJoinOpen(false)} />
+            {modals}
         </div>
     );
 }

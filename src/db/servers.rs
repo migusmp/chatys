@@ -24,7 +24,10 @@ pub async fn create_server(
     created_by: i32,
     pool: &PgPool,
 ) -> Result<(Server, ChannelResponse), ErrorRequest> {
-    let mut tx = pool.begin().await.map_err(|_| ErrorRequest::InternalError)?;
+    let mut tx = pool.begin().await.map_err(|e| {
+        eprintln!("create_server: begin tx failed: {:?}", e);
+        ErrorRequest::InternalError
+    })?;
 
     // 1. Create the server row
     let server = sqlx::query_as::<_, Server>(
@@ -40,7 +43,10 @@ pub async fn create_server(
     .bind(created_by)
     .fetch_one(&mut *tx)
     .await
-    .map_err(|_| ErrorRequest::InternalError)?;
+    .map_err(|e| {
+        eprintln!("create_server: step1 INSERT servers failed: {:?}", e);
+        ErrorRequest::InternalError
+    })?;
 
     // 2. Create a conversation for the default channel
     let conversation_id = sqlx::query_scalar::<_, i32>(
@@ -48,7 +54,10 @@ pub async fn create_server(
     )
     .fetch_one(&mut *tx)
     .await
-    .map_err(|_| ErrorRequest::InternalError)?;
+    .map_err(|e| {
+        eprintln!("create_server: step2 INSERT conversations failed: {:?}", e);
+        ErrorRequest::InternalError
+    })?;
 
     // 3. Link the conversation back to its server
     sqlx::query("UPDATE conversations SET server_id = $1 WHERE id = $2")
@@ -56,7 +65,10 @@ pub async fn create_server(
         .bind(conversation_id)
         .execute(&mut *tx)
         .await
-        .map_err(|_| ErrorRequest::InternalError)?;
+        .map_err(|e| {
+            eprintln!("create_server: step3 UPDATE conversations.server_id failed: {:?}", e);
+            ErrorRequest::InternalError
+        })?;
 
     // 4. Create the default "general" channel
     let channel_id = Uuid::new_v4();
@@ -64,7 +76,7 @@ pub async fn create_server(
         r#"
         INSERT INTO channels (id, server_id, conversation_id, name, is_default)
         VALUES ($1, $2, $3, $4, true)
-        RETURNING *
+        RETURNING id, server_id, conversation_id, name, is_default, created_at
         "#,
     )
     .bind(channel_id)
@@ -73,7 +85,10 @@ pub async fn create_server(
     .bind("general")
     .fetch_one(&mut *tx)
     .await
-    .map_err(|_| ErrorRequest::InternalError)?;
+    .map_err(|e| {
+        eprintln!("create_server: step4 INSERT channels failed: {:?}", e);
+        ErrorRequest::InternalError
+    })?;
 
     let channel = ChannelResponse {
         id: channel_row.id,
@@ -87,16 +102,22 @@ pub async fn create_server(
     sqlx::query(
         r#"
         INSERT INTO server_members (server_id, user_id, role)
-        VALUES ($1, $2, 'owner')
+        VALUES ($1, $2, 'owner'::server_role)
         "#,
     )
     .bind(server.id)
     .bind(created_by)
     .execute(&mut *tx)
     .await
-    .map_err(|_| ErrorRequest::InternalError)?;
+    .map_err(|e| {
+        eprintln!("create_server: step5 INSERT server_members failed: {:?}", e);
+        ErrorRequest::InternalError
+    })?;
 
-    tx.commit().await.map_err(|_| ErrorRequest::InternalError)?;
+    tx.commit().await.map_err(|e| {
+        eprintln!("create_server: commit failed: {:?}", e);
+        ErrorRequest::InternalError
+    })?;
 
     Ok((server, channel))
 }
